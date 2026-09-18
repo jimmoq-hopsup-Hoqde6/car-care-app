@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240" role="img" aria-label="Outlander door scratch">
+  <rect width="320" height="240" fill="#ece7dc"/>
+  <rect x="36" y="28" width="248" height="184" rx="18" fill="#3f4650"/>
+  <rect x="56" y="48" width="150" height="70" rx="8" fill="#9ec4d6"/>
+  <rect x="220" y="70" width="36" height="18" rx="4" fill="#2b3038"/>
+  <path d="M70 150c30-8 50 16 90 10 28-4 48-22 84-12" fill="none" stroke="#d8c7a2" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="230" cy="168" r="16" fill="#2b3038"/>
+  <text x="24" y="20" fill="#142433" font-family="ui-sans-serif,system-ui" font-size="14" font-weight="700">Nathan · Outlander door</text>
+</svg>

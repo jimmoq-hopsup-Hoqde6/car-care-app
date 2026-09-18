@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum JobStatus {
+  NEEDS_QUOTE
+  AWAITING_CUSTOMER
+  READY_TO_BOOK
+  BOOKED
+  DONE
+}
+
+model Job {
+  id              String    @id
+  customerName    String
+  customerEmail   String?
+  customerPhone   String?
+  vehicle         String?
+  suburb          String?
+  address         String?
+  damageNotes     String?
+  repairItems     String    @default("[]")
+  channel         String    @default("email")
+  threadId        String?
+  gmailThreadId   String?
+  status          JobStatus @default(NEEDS_QUOTE)
+  quoteAmount     Float?
+  bookedStart     DateTime?
+  bookedEnd       DateTime?
+  calendarEventId String?
+  isDemo          Boolean   @default(false)
+  photos          Photo[]
+  drafts          EmailDraft[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Photo {
+  id        String   @id @default(cuid())
+  jobId     String
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  url       String
+  filename  String?
+  createdAt DateTime @default(now())
+}
+
+model EmailDraft {
+  id           String    @id @default(cuid())
+  jobId        String
+  job          Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  type         String
+  subject      String
+  body         String
+  gmailDraftId String?
+  sentAt       DateTime?
+  createdAt    DateTime  @default(now())
+}
+
+model PriceBand {
+  id          String  @id @default(cuid())
+  name        String
+  amount      Float?
+  sortOrder   Int     @default(0)
+}
+
+model AppSetting {
+  id               String @id @default("default")
+  workStartHour    Int    @default(8)
+  workEndHour      Int    @default(16)
+  workDays         String @default("[1,2,3,4,5]")
+  jobDurationHours Int    @default(3)
+  timezone         String @default("Australia/Adelaide")
+  ownerName        String @default("Marcel Kuhn")
+  businessName     String @default("Mobile Car Scratch Repair Adelaide")
+  businessEmail    String @default("Info@mobilecarscratchrepairadelaide.com.au")
+}
