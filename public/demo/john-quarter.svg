@@ -1,9 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240" role="img" aria-label="Honda CR-V quarter panel scratch">
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240" viewBox="0 0 320 240">
   <rect width="320" height="240" fill="#e8eef2"/>
   <path d="M20 70c40-30 90-34 150-20 50 12 90 18 130 8v120c-50 16-110 10-170 4-50-5-90 8-110 20z" fill="#f4f6f8" stroke="#c5ccd3"/>
   <circle cx="86" cy="176" r="28" fill="#1f242b"/>
   <circle cx="86" cy="176" r="12" fill="#8c939c"/>
   <path d="M150 96c24 10 40 28 70 24" fill="none" stroke="#7a4a32" stroke-width="5" stroke-linecap="round"/>
-  <text x="20" y="28" fill="#142433" font-family="ui-sans-serif,system-ui" font-size="14" font-weight="700">John · Honda CR-V</text>
-  <text x="20" y="48" fill="#5b6570" font-family="ui-sans-serif,system-ui" font-size="12">Glenelg · rear quarter</text>
 </svg>

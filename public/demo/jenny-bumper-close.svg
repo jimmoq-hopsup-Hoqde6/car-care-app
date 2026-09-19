@@ -1,7 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240" role="img" aria-label="Close-up of bumper scratch">
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240" viewBox="0 0 320 240">
   <rect width="320" height="240" fill="#cfd6dd"/>
   <rect x="0" y="40" width="320" height="160" fill="#8f9aa6"/>
   <path d="M20 120c40 18 70-20 120-8 40 10 70 28 160 4" fill="none" stroke="#5a2f24" stroke-width="8" stroke-linecap="round"/>
   <path d="M36 132c36 10 68-10 110-2" fill="none" stroke="#f3ead4" stroke-width="3"/>
-  <text x="20" y="28" fill="#142433" font-family="ui-sans-serif,system-ui" font-size="14" font-weight="700">Close-up</text>
 </svg>

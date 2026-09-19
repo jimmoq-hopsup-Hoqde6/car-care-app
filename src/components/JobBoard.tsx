@@ -139,7 +139,9 @@ function JobCard({ job }: { job: JobWithPhotos }) {
           <img
             src={photo.url}
             alt=""
-            className="h-14 w-14 rounded-xl object-cover ring-1 ring-line"
+            width={56}
+            height={56}
+            className="h-14 w-14 rounded-xl bg-stone-200 object-cover ring-1 ring-line"
           />
         ) : (
           <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-stone-100 text-[10px] text-stone-400">

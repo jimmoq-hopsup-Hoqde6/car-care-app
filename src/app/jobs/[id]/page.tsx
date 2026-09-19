@@ -101,7 +101,9 @@ export default async function JobPage({
                   key={photo.id}
                   src={photo.url}
                   alt={photo.filename ?? "Damage photo"}
-                  className="h-36 w-full rounded-xl object-cover ring-1 ring-line"
+                  width={320}
+                  height={144}
+                  className="h-36 w-full rounded-xl bg-stone-200 object-cover ring-1 ring-line"
                 />
               ))}
             </div>

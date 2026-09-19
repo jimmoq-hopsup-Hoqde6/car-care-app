@@ -62,7 +62,9 @@ export function QuoteComposer({ job, priceBands, items }: Props) {
                   key={photo.id}
                   src={photo.url}
                   alt={photo.filename ?? "Damage photo"}
-                  className="h-24 w-full rounded-xl object-cover ring-1 ring-line"
+                  width={240}
+                  height={96}
+                  className="h-24 w-full rounded-xl bg-stone-200 object-cover ring-1 ring-line"
                 />
               ))}
             </div>
