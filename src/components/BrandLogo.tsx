@@ -12,7 +12,7 @@ export function BrandLogo({ className, compact = false }: Props) {
       alt="Mobile Car Scratch Repair Adelaide"
       className={
         className ??
-        "h-8 w-auto max-w-[min(220px,58vw)] object-contain object-left sm:h-10 sm:max-w-[280px]"
+        "h-10 w-auto max-w-[min(240px,64vw)] object-contain object-left sm:h-12 sm:max-w-[320px]"
       }
     />
   );
