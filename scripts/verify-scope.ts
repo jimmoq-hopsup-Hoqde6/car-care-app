@@ -1,6 +1,7 @@
 import {
   buildPhotoAskEmail,
   buildScopeDeclineEmail,
+  SCOPE_DECLINE_FRAMING,
 } from "../src/lib/automation-copy";
 import { detectOutOfScope } from "../src/lib/scope";
 
@@ -61,13 +62,25 @@ assert(!/estimated total|\$\d/i.test(ask), "Photo ask must not invent a price");
 
 const decline = buildScopeDeclineEmail("Jamie Collis");
 assert(decline.startsWith("Hi Jamie,"), "Decline uses first name");
+assert(!decline.includes("Hi ,"), "Decline must never emit Hi ,");
 assert(
-  decline.includes(
-    "the only panels we are unable to repair are the horizontal ones — the bonnet and the roof",
-  ),
-  "Decline uses Marcel's professional wording",
+  decline.includes(SCOPE_DECLINE_FRAMING),
+  "Decline uses Marcel's professional horizontal-panel wording",
 );
-assert(decline.includes("tailgate"), "Decline offers help on other panels");
+assert(
+  !/i don't do bonnets|i do not do bonnets|can't do bonnets|cannot do bonnets/i.test(
+    decline,
+  ),
+  "Decline must not use blunt 'I don't do bonnets' wording",
+);
+assert(decline.includes("photos"), "Decline offers help on other panels with photos");
+assert(decline.includes("tailgate"), "Decline lists tailgate as an in-scope panel");
+assert(decline.includes("Marcel Kuhn"), "Decline signs off with Marcel Kuhn");
+assert(
+  decline.includes("Mobile Car Scratch Repair Adelaide"),
+  "Decline signs off with the business name",
+);
 assert(decline.includes("0435 222 221"), "Decline signs off with owner mobile");
+assert(!/estimated total|\$\d/i.test(decline), "Decline must not invent a price");
 
 console.log(JSON.stringify({ ok: true }, null, 2));

@@ -308,11 +308,24 @@ When inbox triage or a new job is clearly bonnet or roof:
 2. A polite decline template is prepared. Default is a **draft for you to send**. Turn on **Auto-send out-of-scope declines** only if you want it to send on its own.
 3. The missing-photo auto-ask does **not** run.
 
-Wording:
+Locked decline copy (Australian English, first name — not blunt “I don’t do bonnets”):
 
-> With our mobile service, the only panels we are unable to repair are the horizontal ones — the bonnet and the roof.
+```
+Hi Jamie,
 
-Demo seed: **Jamie Collis** (Paradise, scratches on bonnet, no photos) is flagged out of scope with the decline drafted — not emailed, and no photo-ask.
+Thanks for getting in touch.
+
+With our mobile service, the only panels we are unable to repair are the horizontal ones — the bonnet and the roof.
+
+Happy to help if the damage is on another panel — a door, bumper, guard, quarter, tailgate or spoiler. Reply with a few photos and I’ll gladly quote it.
+
+Kind regards,
+Marcel Kuhn
+Mobile Car Scratch Repair Adelaide
+0435 222 221
+```
+
+Demo seed: **Jamie Collis** (Paradise, scratches on bonnet, no photos) is flagged out of scope with this decline drafted — not emailed, and no photo-ask.
 
 ## Settings you can change in the app
 

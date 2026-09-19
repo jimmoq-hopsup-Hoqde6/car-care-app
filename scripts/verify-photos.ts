@@ -1,4 +1,4 @@
-import { buildPhotoAskEmail } from "../src/lib/automation-copy";
+import { buildPhotoAskEmail, SCOPE_DECLINE_FRAMING } from "../src/lib/automation-copy";
 import { formSaysNoPhotos, hasUsablePhotos, primaryPhoto, sortPhotos } from "../src/lib/photos";
 import { prisma } from "../src/lib/prisma";
 
@@ -53,10 +53,14 @@ async function main() {
     !jamie?.automations.some((event) => event.type === "photo_ask"),
     "Jamie must not queue a photo-ask",
   );
+  const jamieDecline = jamie?.drafts.find((draft) => draft.type === "scope_decline");
+  assert(jamieDecline, "Jamie stores the decline draft");
   assert(
-    jamie?.drafts.some((draft) => draft.type === "scope_decline"),
-    "Jamie stores the decline draft",
+    jamieDecline?.body.includes(SCOPE_DECLINE_FRAMING),
+    "Jamie decline uses Marcel's professional wording",
   );
+  assert(jamieDecline?.body.startsWith("Hi Jamie,"), "Jamie decline uses first name");
+  assert(jamieDecline?.body.includes("0435 222 221"), "Jamie decline includes the mobile");
   assert(
     jamie?.automations.some((event) => event.type === "scope_decline" && !event.delivered),
     "Jamie decline is drafted, not emailed",

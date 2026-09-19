@@ -75,14 +75,17 @@ export function photoAskSubject(suburb?: string | null) {
     : "Photos for your quote";
 }
 
+export const SCOPE_DECLINE_FRAMING =
+  "With our mobile service, the only panels we are unable to repair are the horizontal ones — the bonnet and the roof.";
+
 export function buildScopeDeclineEmail(customerName?: string | null) {
   return `${emailGreeting(customerName)}
 
 Thanks for getting in touch.
 
-With our mobile service, the only panels we are unable to repair are the horizontal ones — the bonnet and the roof.
+${SCOPE_DECLINE_FRAMING}
 
-If the damage is on another panel — a door, bumper, guard, quarter, tailgate or spoiler — reply with a few photos and I’ll gladly quote it.
+Happy to help if the damage is on another panel — a door, bumper, guard, quarter, tailgate or spoiler. Reply with a few photos and I’ll gladly quote it.
 
 ${signOff(true)}`;
 }
