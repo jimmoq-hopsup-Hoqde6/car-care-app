@@ -7,24 +7,35 @@ export type AutomationSettings = {
   reviewAskDaysAfterJob: number;
 };
 
-export function hoursSince(from: Date | null | undefined, now = new Date()) {
-  if (!from) return null;
-  return (now.getTime() - from.getTime()) / (1000 * 60 * 60);
+type DateLike = Date | string | null | undefined;
+
+function asDate(value: DateLike): Date | null {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
-export function isAtLeastDaysAgo(
-  from: Date | null | undefined,
-  days: number,
-  now = new Date(),
-) {
-  if (!from) return false;
-  return now.getTime() >= from.getTime() + days * 24 * 60 * 60 * 1000;
+export function hoursSince(from: DateLike, now = new Date()) {
+  const date = asDate(from);
+  if (!date) return null;
+  return (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+}
+
+export function isAtLeastDaysAgo(from: DateLike, days: number, now = new Date()) {
+  const date = asDate(from);
+  if (!date) return false;
+  return now.getTime() >= date.getTime() + days * 24 * 60 * 60 * 1000;
 }
 
 export function followUpClockStart(
   job: Pick<Job, "lastOutboundAt" | "quoteSentAt" | "awaitingSince" | "updatedAt">,
 ) {
-  return job.lastOutboundAt ?? job.quoteSentAt ?? job.awaitingSince ?? job.updatedAt ?? null;
+  return (
+    asDate(job.lastOutboundAt) ??
+    asDate(job.quoteSentAt) ??
+    asDate(job.awaitingSince) ??
+    asDate(job.updatedAt)
+  );
 }
 
 export function followUpPhase(
@@ -42,15 +53,13 @@ export function followUpPhase(
   settings: AutomationSettings,
   now = new Date(),
 ): AutomationPhase {
-  if (job.followUpSkippedAt) return "skipped";
-  if (job.followUpSentAt) return "sent";
+  if (asDate(job.followUpSkippedAt)) return "skipped";
+  if (asDate(job.followUpSentAt)) return "sent";
   if (job.status !== "AWAITING_CUSTOMER") return "n/a";
   const start = followUpClockStart(job);
   if (!start) return "waiting";
-  if (
-    job.lastCustomerReplyAt &&
-    job.lastCustomerReplyAt.getTime() >= start.getTime()
-  ) {
+  const replyAt = asDate(job.lastCustomerReplyAt);
+  if (replyAt && replyAt.getTime() >= start.getTime()) {
     return "n/a";
   }
   return isAtLeastDaysAgo(start, settings.followUpDays, now)
@@ -66,10 +75,10 @@ export function reviewAskPhase(
   settings: AutomationSettings,
   now = new Date(),
 ): AutomationPhase {
-  if (job.reviewAskSkippedAt) return "skipped";
-  if (job.reviewAskSentAt) return "sent";
+  if (asDate(job.reviewAskSkippedAt)) return "skipped";
+  if (asDate(job.reviewAskSentAt)) return "sent";
   if (job.status !== "DONE") return "n/a";
-  if (!job.completedAt) return "waiting";
+  if (!asDate(job.completedAt)) return "waiting";
   return isAtLeastDaysAgo(job.completedAt, settings.reviewAskDaysAfterJob, now)
     ? "pending"
     : "waiting";
