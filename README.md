@@ -217,7 +217,7 @@ Quote
 
 This quote is valid for 30 days from the date of this email.
 
-I use digital colour-matching technology so the repair blends with the surrounding paintwork.
+To ensure the best possible colour match, we use advanced digital colour-matching technology. This allows us to achieve a finish that blends seamlessly with your vehicle’s existing paintwork.
 
 An onsite inspection confirms the final price if more work is needed.
 

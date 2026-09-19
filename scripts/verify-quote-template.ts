@@ -16,7 +16,7 @@ const required = [
   "• Front bumper scratch and scuff",
   "• Estimated total: $520.00",
   "This quote is valid for 30 days from the date of this email.",
-  "colour-matching",
+  "To ensure the best possible colour match, we use advanced digital colour-matching technology. This allows us to achieve a finish that blends seamlessly with your vehicle’s existing paintwork.",
   "onsite inspection",
   "lifetime workmanship guarantee",
   "preferred repair dates and a mobile number",
@@ -32,6 +32,7 @@ for (const line of required) {
 }
 
 assert(!jenny.includes("Hi ,"), "Must never emit a bare Hi ,");
+assert(!jenny.includes("surrounding paintwork"), "Old short colour-match line must be gone");
 assert(emailGreeting("") === "Hi there,", "Empty name must greet Hi there,");
 assert(emailGreeting("   ") === "Hi there,", "Whitespace name must greet Hi there,");
 assert(emailGreeting("Nathan Crowe") === "Hi Nathan,", "Nathan must greet Hi Nathan,");
