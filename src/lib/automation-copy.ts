@@ -1,3 +1,4 @@
+import { DEFAULT_GOOGLE_REVIEW_URL } from "./constants";
 import { firstName } from "./quote";
 
 export function signOff() {
@@ -22,15 +23,16 @@ export function followUpSubject(vehicle?: string | null) {
 
 export function buildReviewAskEmail(
   customerName: string,
-  reviewUrl: string,
+  reviewUrl: string = DEFAULT_GOOGLE_REVIEW_URL,
 ) {
+  const link = reviewUrl.trim() || DEFAULT_GOOGLE_REVIEW_URL;
   return `Hi ${firstName(customerName)},
 
 Thanks for having me out — hope the repair is looking good.
 
 If you have a minute, a Google review helps other Adelaide drivers find the service:
 
-${reviewUrl}
+${link}
 
 ${signOff()}`;
 }

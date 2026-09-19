@@ -95,7 +95,7 @@ GOOGLE_CLIENT_ID="....apps.googleusercontent.com"
 GOOGLE_CLIENT_SECRET="...."
 FOLLOW_UP_DAYS="2"
 REVIEW_ASK_DAYS_AFTER_JOB="1"
-GOOGLE_REVIEW_URL="https://g.page/r/YOUR-REVIEW-LINK"
+GOOGLE_REVIEW_URL="https://maps.app.goo.gl/UJcUi9ouWQaVn71D8?g_st=ic"
 ```
 
 Create a fresh `AUTH_SECRET`:
@@ -140,7 +140,7 @@ The composer always uses this shape:
 | Follow-up | Job is **Awaiting customer** (quote sent or waiting) and there has been no customer reply for **2 days** | `FOLLOW_UP_DAYS=2` |
 | Google review ask | The day after you mark a job **Booked → Done** (or otherwise Done) | `REVIEW_ASK_DAYS_AFTER_JOB=1` |
 
-The review email includes `GOOGLE_REVIEW_URL` (placeholder `https://g.page/r/PLACEHOLDER` until you paste your real Google review link on Settings).
+The review email includes Marcel's Google review link (`GOOGLE_REVIEW_URL`, default `https://maps.app.goo.gl/UJcUi9ouWQaVn71D8?g_st=ic`). Change it on Settings if the Maps link ever moves.
 
 Each job stores `lastOutboundAt`, `followUpSentAt`, and `reviewAskSentAt` so the same email is not sent twice. You can **Skip** a follow-up or review ask on the job page. The board shows Pending / Sent / Skipped / Waiting.
 

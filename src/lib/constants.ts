@@ -1,5 +1,9 @@
 export const ADELAIDE_TZ = "Australia/Adelaide";
 
+/** Marcel's Google review link — default, still editable on Settings. */
+export const DEFAULT_GOOGLE_REVIEW_URL =
+  "https://maps.app.goo.gl/UJcUi9ouWQaVn71D8?g_st=ic";
+
 export const GOOGLE_SCOPES = [
   "openid",
   "email",

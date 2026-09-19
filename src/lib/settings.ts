@@ -1,4 +1,4 @@
-import { ADELAIDE_TZ } from "./constants";
+import { ADELAIDE_TZ, DEFAULT_GOOGLE_REVIEW_URL } from "./constants";
 import { prisma } from "./prisma";
 
 export async function getSettings() {
@@ -23,8 +23,8 @@ export async function getSettings() {
     followUpDays: row.followUpDays || 2,
     reviewAskDaysAfterJob: row.reviewAskDaysAfterJob || 1,
     googleReviewUrl:
-      row.googleReviewUrl ||
-      process.env.GOOGLE_REVIEW_URL?.trim() ||
-      "https://g.page/r/PLACEHOLDER",
+      row.googleReviewUrl && !row.googleReviewUrl.includes("PLACEHOLDER")
+        ? row.googleReviewUrl
+        : process.env.GOOGLE_REVIEW_URL?.trim() || DEFAULT_GOOGLE_REVIEW_URL,
   };
 }

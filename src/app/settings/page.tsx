@@ -214,6 +214,10 @@ export default async function SettingsPage() {
             defaultValue={settings.googleReviewUrl}
             className="mt-1 w-full rounded-xl border border-line px-3 py-2"
           />
+          <span className="mt-1 block text-xs text-stone-500">
+            Default is Marcel&apos;s Maps review link. Change this if Google
+            gives you a new one.
+          </span>
         </label>
 
         <h3 className="pt-2 font-semibold text-ink">Price bands</h3>

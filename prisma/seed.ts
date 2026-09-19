@@ -1,4 +1,5 @@
 import { PrismaClient, JobStatus } from "@prisma/client";
+import { DEFAULT_GOOGLE_REVIEW_URL } from "../src/lib/constants";
 
 const prisma = new PrismaClient();
 
@@ -7,17 +8,26 @@ function daysAgo(days: number) {
 }
 
 async function main() {
+  const reviewUrl =
+    process.env.GOOGLE_REVIEW_URL?.trim() || DEFAULT_GOOGLE_REVIEW_URL;
+  const existingSettings = await prisma.appSetting.findUnique({
+    where: { id: "default" },
+  });
+  const storedUrl = existingSettings?.googleReviewUrl ?? "";
+  const replacePlaceholder =
+    !storedUrl ||
+    storedUrl.includes("PLACEHOLDER") ||
+    storedUrl.includes("YOUR-REVIEW-LINK");
+
   await prisma.appSetting.upsert({
     where: { id: "default" },
     create: {
       id: "default",
       followUpDays: Number(process.env.FOLLOW_UP_DAYS || 2),
       reviewAskDaysAfterJob: Number(process.env.REVIEW_ASK_DAYS_AFTER_JOB || 1),
-      googleReviewUrl:
-        process.env.GOOGLE_REVIEW_URL?.trim() ||
-        "https://g.page/r/PLACEHOLDER",
+      googleReviewUrl: reviewUrl,
     },
-    update: {},
+    update: replacePlaceholder ? { googleReviewUrl: reviewUrl } : {},
   });
 
   const bands = [

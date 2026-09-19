@@ -90,7 +90,7 @@ model AppSetting {
   businessEmail          String @default("Info@mobilecarscratchrepairadelaide.com.au")
   followUpDays           Int    @default(2)
   reviewAskDaysAfterJob  Int    @default(1)
-  googleReviewUrl        String @default("https://g.page/r/PLACEHOLDER")
+  googleReviewUrl        String @default("https://maps.app.goo.gl/UJcUi9ouWQaVn71D8?g_st=ic")
 }
 
 model AutomationEvent {

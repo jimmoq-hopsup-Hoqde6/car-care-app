@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { DEFAULT_GOOGLE_REVIEW_URL } from "@/lib/constants";
 import { parsePrice } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 
@@ -31,7 +32,7 @@ export async function saveSettingsAction(formData: FormData) {
       ),
       googleReviewUrl:
         String(formData.get("googleReviewUrl") ?? "").trim() ||
-        "https://g.page/r/PLACEHOLDER",
+        DEFAULT_GOOGLE_REVIEW_URL,
     },
   });
 
