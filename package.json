@@ -1,0 +1,55 @@
+{
+  "name": "mobile-car-scratch-repair-adelaide",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "predev": "npm run db:prepare",
+    "build": "node scripts/sync-prisma-provider.js && prisma generate && node scripts/hosted-db-push.js && next build",
+    "start": "next start",
+    "lint": "eslint",
+    "postinstall": "node scripts/sync-prisma-provider.js && prisma generate",
+    "db:prepare": "node scripts/ensure-env.js && node scripts/sync-prisma-provider.js && prisma generate && prisma db push && prisma db seed",
+    "setup": "npm run db:prepare",
+    "db:seed": "prisma db seed",
+    "automations:run": "tsx scripts/run-automations.ts",
+    "automations:verify": "tsx scripts/verify-automations-demo.ts",
+    "booking:verify": "tsx scripts/verify-booking-demo.ts",
+    "quote:verify": "tsx scripts/verify-quote-template.ts",
+    "labels:verify": "tsx scripts/verify-gmail-labels.ts",
+    "activity:verify": "tsx scripts/verify-activity.ts",
+    "photos:verify": "tsx scripts/verify-photos.ts",
+    "scope:verify": "tsx scripts/verify-scope.ts",
+    "pricing:verify": "tsx scripts/verify-pricing.ts",
+    "sms:verify": "tsx scripts/verify-sms.ts",
+    "login:verify": "tsx scripts/verify-login.ts",
+    "inbox:verify": "tsx scripts/verify-inbox.ts",
+    "desk:verify": "tsx scripts/verify-desk.ts",
+    "verify": "npm run quote:verify && npm run booking:verify && npm run labels:verify && npm run automations:verify && npm run activity:verify && npm run photos:verify && npm run scope:verify && npm run pricing:verify && npm run sms:verify && npm run login:verify && npm run inbox:verify && npm run desk:verify"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "date-fns": "^4.4.0",
+    "date-fns-tz": "^3.2.0",
+    "googleapis": "^181.0.0",
+    "next": "16.3.5",
+    "next-auth": "^5.0.0-beta.32",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.5",
+    "prisma": "^6.19.3",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.13",
+    "typescript": "^5"
+  }
+}
