@@ -94,6 +94,7 @@ export async function bookSlotAction(input: {
       bookedEnd: end,
       calendarEventId: eventId,
       status: JobStatus.BOOKED,
+      lastActivityAt: new Date(),
     },
   });
   await markJobNotificationsRead(job.id);

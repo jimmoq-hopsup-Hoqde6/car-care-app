@@ -1,5 +1,6 @@
 import type { Job } from "@prisma/client";
 import { google } from "googleapis";
+import { touchJobActivity } from "./activity-server";
 import {
   buildFollowUpEmail,
   buildReviewAskEmail,
@@ -138,6 +139,7 @@ export async function runAutomations(now = new Date()): Promise<AutomationRunRes
           where: { id: job.id },
           data: { lastCustomerReplyAt: replyAt },
         });
+        await touchJobActivity(job.id, replyAt);
         if (replyAt.getTime() >= (followUpClockStart(job)?.getTime() ?? 0)) {
           continue;
         }
@@ -173,6 +175,7 @@ export async function runAutomations(now = new Date()): Promise<AutomationRunRes
         data: {
           followUpSentAt: sentAt,
           lastOutboundAt: sentAt,
+          lastActivityAt: sentAt,
         },
       });
       await syncJobGmailLabelById(job.id);
@@ -219,6 +222,7 @@ export async function runAutomations(now = new Date()): Promise<AutomationRunRes
         data: {
           reviewAskSentAt: sentAt,
           lastOutboundAt: sentAt,
+          lastActivityAt: sentAt,
         },
       });
       await syncJobGmailLabelById(job.id);

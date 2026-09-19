@@ -38,6 +38,7 @@ export async function createJob(formData: FormData) {
       repairItems: JSON.stringify(repairItems),
       channel: String(formData.get("channel") ?? "email"),
       status: JobStatus.NEEDS_QUOTE,
+      lastActivityAt: new Date(),
     },
   });
 
@@ -52,6 +53,7 @@ export async function updateJobStatus(jobId: string, status: JobStatus) {
   await prisma.job.update({
     where: { id: jobId },
     data: {
+      lastActivityAt: now,
       status,
       awaitingSince:
         status === JobStatus.AWAITING_CUSTOMER

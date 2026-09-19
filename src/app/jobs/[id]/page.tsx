@@ -5,6 +5,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { StatusSelect } from "@/components/StatusSelect";
 import { getSettings } from "@/lib/settings";
 import { CHANNEL_LABELS } from "@/lib/constants";
+import { formatLastActivity } from "@/lib/activity";
 import { formatAdelaide } from "@/lib/booking";
 import { formatAUD } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
@@ -41,6 +42,10 @@ export default async function JobPage({
           <p className="mt-1 text-stone-600">
             {job.vehicle || "Vehicle not set"} · {job.suburb || "Suburb not set"}
           </p>
+          <p className="mt-1 text-sm font-medium text-ink">
+            Last activity · {formatLastActivity(job.lastActivityAt ?? job.updatedAt)}
+          </p>
+          <p className="text-xs text-stone-500">Australia/Adelaide</p>
         </div>
         <div className="flex gap-2">
           <Link
@@ -62,6 +67,10 @@ export default async function JobPage({
         <section className="rounded-2xl border border-line bg-card p-4">
           <h2 className="text-sm font-semibold text-ink">Details</h2>
           <dl className="mt-3 space-y-2 text-sm">
+            <Row
+              label="Last activity"
+              value={formatLastActivity(job.lastActivityAt ?? job.updatedAt)}
+            />
             <Row label="Email" value={job.customerEmail} />
             <Row label="Phone" value={job.customerPhone} />
             <Row label="Address" value={job.address} />

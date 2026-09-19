@@ -43,6 +43,7 @@ model Job {
   lastCustomerReplyAt DateTime?
   followUpSkippedAt DateTime?
   reviewAskSkippedAt DateTime?
+  lastActivityAt  DateTime  @default(now())
   photos          Photo[]
   drafts          EmailDraft[]
   automations     AutomationEvent[]

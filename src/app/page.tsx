@@ -6,7 +6,7 @@ export default async function HomePage() {
   const [jobs, settings] = await Promise.all([
     prisma.job.findMany({
       include: { photos: true },
-      orderBy: { updatedAt: "desc" },
+      orderBy: { lastActivityAt: "desc" },
     }),
     getSettings(),
   ]);

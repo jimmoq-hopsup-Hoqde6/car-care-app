@@ -10,9 +10,12 @@ import {
   type JobStatusValue,
 } from "@/lib/constants";
 import type { AutomationSettings } from "@/lib/automation-status";
+import { activityMillis, formatLastActivity } from "@/lib/activity";
 import { formatAUD } from "@/lib/money";
 import { AutomationBadges } from "./AutomationBadges";
 import { StatusBadge } from "./StatusBadge";
+
+type ActivitySort = "newest" | "stalled";
 
 type JobWithPhotos = Job & { photos: Photo[] };
 
@@ -24,16 +27,29 @@ export function JobBoard({
   settings: AutomationSettings;
 }) {
   const [filter, setFilter] = useState<JobStatusValue | "ALL">("ALL");
+  const [sort, setSort] = useState<ActivitySort>("newest");
+
+  const byActivity = useMemo(() => {
+    const ranked = [...jobs].sort((a, b) => {
+      const diff =
+        activityMillis(b.lastActivityAt, b.updatedAt) -
+        activityMillis(a.lastActivityAt, a.updatedAt);
+      return sort === "newest" ? diff : -diff;
+    });
+    return ranked;
+  }, [jobs, sort]);
 
   const grouped = useMemo(() => {
     return JOB_STATUSES.map((status) => ({
       status,
-      jobs: jobs.filter((job) => job.status === status),
+      jobs: byActivity.filter((job) => job.status === status),
     }));
-  }, [jobs]);
+  }, [byActivity]);
 
   const visible =
-    filter === "ALL" ? jobs : jobs.filter((job) => job.status === filter);
+    filter === "ALL"
+      ? byActivity
+      : byActivity.filter((job) => job.status === filter);
 
   return (
     <div className="space-y-5">
@@ -45,6 +61,18 @@ export function JobBoard({
           <p className="mt-1 text-sm text-stone-600">
             Quote, wait, book, done — Marcel types every price.
           </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <SortChip
+              active={sort === "newest"}
+              onClick={() => setSort("newest")}
+              label="Newest activity"
+            />
+            <SortChip
+              active={sort === "stalled"}
+              onClick={() => setSort("stalled")}
+              label="Stalled first"
+            />
+          </div>
         </div>
         <Link
           href="/jobs/new"
@@ -116,6 +144,28 @@ export function JobBoard({
   );
 }
 
+function SortChip({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
+        active ? "bg-teal text-ink" : "bg-white text-ink ring-1 ring-line"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
 function FilterChip({
   active,
   label,
@@ -171,6 +221,9 @@ function JobCard({
             <p className="truncate font-semibold text-ink">{job.customerName}</p>
             <StatusBadge status={job.status} />
           </div>
+          <p className="truncate text-xs text-stone-500">
+            Last: {formatLastActivity(job.lastActivityAt ?? job.updatedAt)}
+          </p>
           <p className="truncate text-sm text-stone-600">
             {job.vehicle || "Vehicle not set"}
           </p>

@@ -48,7 +48,7 @@ export async function syncInboxNotifications() {
       if (job.status === JobStatus.AWAITING_CUSTOMER) {
         await prisma.job.update({
           where: { id: job.id },
-          data: { status: JobStatus.READY_TO_BOOK },
+          data: { status: JobStatus.READY_TO_BOOK, lastActivityAt: new Date() },
         });
         await syncJobGmailLabelById(job.id);
       }

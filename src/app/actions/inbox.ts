@@ -41,6 +41,7 @@ export async function addThreadToBoard(threadId: string) {
       threadId,
       gmailThreadId: threadId.startsWith("demo-") ? null : threadId,
       status,
+      lastActivityAt: new Date(),
     },
   });
   if (status === JobStatus.READY_TO_BOOK || bookingReply) {

@@ -14,7 +14,7 @@ The job-desk header uses Marcel's business-card lockup (black background, white 
 
 ## What you can do
 
-- **Job board** — Needs quote, Awaiting customer, Ready to book, Booked, Done
+- **Job board** — Needs quote, Awaiting customer, Ready to book, Booked, Done. Each card shows **last activity** in Adelaide time (`Last: 19 Sep · 11:58 am`). Toggle **Newest activity** or **Stalled first**.
 - **Inbox triage** — quote requests, website form leads, booking replies; marketing such as Manheim is ignored. Existing Gmail job-desk labels seed the job status.
 - **Gmail labels** — one stage label at a time: Quote request, Awaiting customer, Ready to book, Booked, Follow-up / Review. Label changes never send email.
 - **Notifications** — when a customer accepts a quote or asks to book, a badge tells you they are waiting for your booking approval (nothing is auto-sent)
@@ -48,6 +48,7 @@ npm run automations:verify  # confirm demo mode did not email anyone
 npm run booking:verify      # confirm demo alerts + suburb-aware slot recommendations
 npm run quote:verify        # confirm the locked quote template wording
 npm run labels:verify       # confirm Gmail job-desk label mapping (no email)
+npm run activity:verify     # confirm last-activity Adelaide formatting + seeded dates
 npm run verify              # run all of the checks above
 ```
 
@@ -233,6 +234,17 @@ A typical cron (once a day, Adelaide morning) is enough:
 This desk is **email + Google Calendar only**. Do not expect SMS, WhatsApp, or an iOS app here.
 
 Marcel's owner mobile for a later SMS phase is **0435222221** (`OWNER_MOBILE` in `.env`). It is shown on Settings so it is not lost. This app never sends a text.
+
+## Last activity
+
+Every job stores `lastActivityAt` (Australia/Adelaide). It is the newest of:
+
+- last inbound customer message
+- last outbound quote, booking confirmation, follow-up, or review email (drafted or sent)
+- last status change
+- last booking-slot action
+
+The board and the job page show it as `Today · 11:58 am`, `Yesterday · 4:32 pm`, or `Wed 17 Sep · 4:32 pm`. Demo jobs are seeded with staggered times so stalled threads are easy to spot.
 
 ## Settings you can change in the app
 

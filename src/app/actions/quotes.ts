@@ -109,6 +109,7 @@ export async function saveQuoteAction(input: {
         becomingAwaiting && !job.awaitingSince ? now : job.awaitingSince,
       quoteSentAt: input.send ? now : job.quoteSentAt,
       lastOutboundAt: input.send ? now : job.lastOutboundAt,
+      lastActivityAt: now,
     },
   });
   await syncJobGmailLabelById(job.id);

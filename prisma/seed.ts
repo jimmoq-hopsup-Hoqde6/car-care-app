@@ -9,6 +9,16 @@ function daysAgo(days: number) {
   return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 }
 
+/** Wall-clock Adelaide time, `daysBack` calendar days before today. */
+function adelaideAt(daysBack: number, hour: number, minute: number) {
+  const zoned = toZonedTime(new Date(), ADELAIDE_TZ);
+  const day = addDays(zoned, -daysBack);
+  return fromZonedTime(
+    `${day.getFullYear()}-${pad(day.getMonth() + 1)}-${pad(day.getDate())}T${pad(hour)}:${pad(minute)}:00`,
+    ADELAIDE_TZ,
+  );
+}
+
 function pad(value: number) {
   return String(value).padStart(2, "0");
 }
@@ -88,6 +98,7 @@ async function main() {
       status: JobStatus.NEEDS_QUOTE,
       quoteAmount: null as number | null,
       isDemo: true,
+      lastActivityAt: adelaideAt(0, 9, 14),
       photos: [
         { url: "/demo/jenny-bumper.svg", filename: "bmw-bumper.jpg" },
         { url: "/demo/jenny-bumper-close.svg", filename: "bmw-bumper-close.jpg" },
@@ -115,6 +126,7 @@ async function main() {
       lastOutboundAt: stalledSince,
       quoteSentAt: stalledSince,
       awaitingSince: stalledSince,
+      lastActivityAt: adelaideAt(3, 10, 20),
       photos: [
         { url: "/demo/nathan-door.svg", filename: "outlander-door.jpg" },
       ],
@@ -135,6 +147,8 @@ async function main() {
       status: JobStatus.READY_TO_BOOK,
       quoteAmount: 520,
       isDemo: true,
+      lastCustomerReplyAt: adelaideAt(1, 16, 32),
+      lastActivityAt: adelaideAt(1, 16, 32),
       photos: [
         { url: "/demo/john-quarter.svg", filename: "crv-quarter.jpg" },
       ],
@@ -156,6 +170,7 @@ async function main() {
       isDemo: true,
       completedAt: completedSince,
       lastOutboundAt: daysAgo(5),
+      lastActivityAt: adelaideAt(2, 15, 40),
       photos: [] as { url: string; filename: string }[],
     },
     {
@@ -174,6 +189,8 @@ async function main() {
       status: JobStatus.READY_TO_BOOK,
       quoteAmount: 340,
       isDemo: true,
+      lastCustomerReplyAt: adelaideAt(2, 13, 18),
+      lastActivityAt: adelaideAt(2, 13, 18),
       photos: [] as { url: string; filename: string }[],
     },
   ];
@@ -198,6 +215,7 @@ async function main() {
           lastOutboundAt: existing.lastOutboundAt ?? stalledSince,
           quoteSentAt: existing.quoteSentAt ?? stalledSince,
           awaitingSince: existing.awaitingSince ?? stalledSince,
+          lastActivityAt: adelaideAt(3, 10, 20),
           status: JobStatus.AWAITING_CUSTOMER,
         },
       });
@@ -208,6 +226,7 @@ async function main() {
         data: {
           status: JobStatus.DONE,
           completedAt: existing.completedAt ?? completedSince,
+          lastActivityAt: adelaideAt(2, 15, 40),
         },
       });
     }
@@ -220,6 +239,8 @@ async function main() {
           bookedEnd: null,
           calendarEventId: null,
           suburb: "Glenelg",
+          lastCustomerReplyAt: adelaideAt(1, 16, 32),
+          lastActivityAt: adelaideAt(1, 16, 32),
         },
       });
     }
@@ -233,6 +254,17 @@ async function main() {
           calendarEventId: null,
           suburb: "Goodwood",
           quoteAmount: existing.quoteAmount ?? 340,
+          lastCustomerReplyAt: adelaideAt(2, 13, 18),
+          lastActivityAt: adelaideAt(2, 13, 18),
+        },
+      });
+    }
+    if (job.id === "job-jenny") {
+      await prisma.job.update({
+        where: { id: job.id },
+        data: {
+          status: JobStatus.NEEDS_QUOTE,
+          lastActivityAt: adelaideAt(0, 9, 14),
         },
       });
     }
@@ -260,6 +292,7 @@ async function main() {
       bookedStart: tuesday.start,
       bookedEnd: tuesday.end,
       calendarEventId: "demo-liam-stirling",
+      lastActivityAt: adelaideAt(5, 14, 10),
     },
     {
       id: "job-tom",
@@ -278,6 +311,7 @@ async function main() {
       bookedStart: wednesday.start,
       bookedEnd: wednesday.end,
       calendarEventId: "demo-tom-brighton",
+      lastActivityAt: adelaideAt(4, 9, 0),
     },
     {
       id: "job-eve",
@@ -296,6 +330,7 @@ async function main() {
       bookedStart: thursday.start,
       bookedEnd: thursday.end,
       calendarEventId: "demo-eve-somerton",
+      lastActivityAt: adelaideAt(1, 11, 5),
     },
   ];
 
@@ -308,7 +343,25 @@ async function main() {
         bookedEnd: job.bookedEnd,
         status: JobStatus.BOOKED,
         suburb: job.suburb,
+        lastActivityAt: job.lastActivityAt,
       },
+    });
+  }
+
+  const demoActivity: Record<string, Date> = {
+    "job-jenny": adelaideAt(0, 9, 14),
+    "job-john": adelaideAt(1, 16, 32),
+    "job-eve": adelaideAt(1, 11, 5),
+    "job-mia": adelaideAt(2, 13, 18),
+    "job-priya": adelaideAt(2, 15, 40),
+    "job-nathan": adelaideAt(3, 10, 20),
+    "job-tom": adelaideAt(4, 9, 0),
+    "job-liam": adelaideAt(5, 14, 10),
+  };
+  for (const [id, lastActivityAt] of Object.entries(demoActivity)) {
+    await prisma.job.update({
+      where: { id },
+      data: { lastActivityAt },
     });
   }
 
