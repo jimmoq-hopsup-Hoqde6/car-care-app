@@ -113,7 +113,8 @@ export function JobBoard({
             Job board
           </h1>
           <p className="mt-1 text-sm text-muted">
-            Quote, wait, book, done — Marcel types every price.
+            Daily home — quote, wait, book, done. Inbox is triage; Marcel types
+            every price.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <SortChip
@@ -232,9 +233,9 @@ export function JobBoard({
           </h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-muted">
             {demo
-              ? "Sample jobs usually load in demo. Use Inbox or New job to add work."
+              ? "Sample jobs usually load in demo. Stay on Jobs, or use New job / Sync inbox."
               : googleConnected
-                ? "Sign-in worked. Sync Inbox to pull eligible Gmail threads onto this board — marketing such as Manheim stays ignored."
+                ? "Sign-in worked. Tap Sync inbox here — do not wait on Inbox. Marketing such as Manheim stays ignored."
                 : "Connect Google, then tap Sync inbox now so this hosted board is not stuck on All (0). New Quote Request forms and ready-to-book replies will appear here."}
           </p>
           <div className="mt-5 flex flex-col items-stretch justify-center gap-2 sm:flex-row sm:flex-wrap sm:items-center">

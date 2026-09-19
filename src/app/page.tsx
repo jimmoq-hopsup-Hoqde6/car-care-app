@@ -43,7 +43,11 @@ export default async function HomePage() {
     let inboxError: string | undefined;
     if (shouldAutoImport) {
       try {
-        const result = await importEligibleInbox();
+        const result = await importEligibleInbox({
+          skipPhotos: true,
+          skipDeskLabels: !demo,
+          maxResults: demo ? 25 : 18,
+        });
         imported = result.imported;
         inboxError = result.error;
         if (imported > 0) {

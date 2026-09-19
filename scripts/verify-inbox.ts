@@ -5,6 +5,7 @@ import {
   findJobForThread,
   importEligibleInbox,
   importThreadToBoard,
+  refreshInboxInteractive,
   removeJunkSystemJobs,
 } from "../src/lib/board-import";
 import {
@@ -22,8 +23,14 @@ import {
   friendlyInboxError,
   isEligibleForAutoImport,
   loadInbox,
+  mapWithConcurrency,
   pickLatestCustomerMessage,
 } from "../src/lib/inbox";
+import {
+  readInboxSnapshot,
+  snapshotIsFresh,
+  writeInboxSnapshot,
+} from "../src/lib/inbox-cache";
 import { applyCustomerBookingReply, syncInboxNotifications } from "../src/lib/notifications";
 import { looksLikeBookingConfirmation } from "../src/lib/booking-ops";
 import { nextActionForJob } from "../src/lib/job-next";
@@ -341,6 +348,25 @@ async function main() {
     isPublicPath("/api/inbox/sync"),
     "Cron can hit /api/inbox/sync without a login session",
   );
+  assert(
+    !isPublicPath("/api/inbox/refresh"),
+    "Interactive inbox refresh stays session-gated",
+  );
+
+  const concurrentStarted = Date.now();
+  const concurrent = await mapWithConcurrency([40, 40, 40], 3, async (ms) => {
+    await new Promise((resolve) => setTimeout(resolve, ms));
+    return ms;
+  });
+  const concurrentMs = Date.now() - concurrentStarted;
+  assert(
+    concurrent[0] === 40 && concurrent[1] === 40 && concurrent[2] === 40,
+    "mapWithConcurrency keeps result order",
+  );
+  assert(
+    concurrentMs < 110,
+    `mapWithConcurrency overlaps Gmail-style waits (${concurrentMs}ms)`,
+  );
 
   const loaded = await loadInbox();
   assert(!loaded.error, "Demo inbox load does not error");
@@ -371,6 +397,25 @@ async function main() {
   });
   assert(kaiCountBefore === 1 && kaiCountAfter === 1, "Re-import does not duplicate Kai");
   assert(second.imported === 0, "Second inbox pass imports nothing new");
+
+  const snapshot = await readInboxSnapshot();
+  assert(snapshot.threads.length > 0, "Inbox snapshot stores last known threads");
+  assert(snapshot.syncedAt, "Inbox snapshot records syncedAt");
+  assert(snapshotIsFresh(snapshot.syncedAt, 60_000), "Fresh snapshot is reusable");
+  const written = await writeInboxSnapshot({
+    threads: snapshot.threads,
+    source: snapshot.source,
+  });
+  assert(written.threads.some((thread) => thread.id === "demo-thread-kai"), "Snapshot keeps Kai");
+  const skippedRefresh = await refreshInboxInteractive();
+  assert(skippedRefresh.skipped, "Interactive refresh reuses a fresh snapshot");
+  assert(
+    skippedRefresh.threads.some((thread) => thread.id === "demo-thread-kai"),
+    "Skipped refresh still returns cached threads",
+  );
+  const forced = await refreshInboxInteractive({ force: true });
+  assert(!forced.skipped, "Force refresh walks inbox again");
+  assert(forced.imported === 0, "Forced demo refresh does not duplicate jobs");
 
   const stamp = Date.now().toString(36);
   const oosThread = {

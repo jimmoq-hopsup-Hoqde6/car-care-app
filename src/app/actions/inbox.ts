@@ -5,9 +5,10 @@ import { redirect } from "next/navigation";
 import {
   canImportThreadToBoard,
   findJobForThread,
-  importEligibleInbox,
   importThreadToBoard,
+  refreshInboxInteractive,
 } from "@/lib/board-import";
+import { readInboxSnapshot } from "@/lib/inbox-cache";
 import { loadInbox } from "@/lib/inbox";
 
 export async function addThreadToBoard(threadId: string) {
@@ -16,8 +17,15 @@ export async function addThreadToBoard(threadId: string) {
     redirect(`/jobs/${existing.id}`);
   }
 
-  const { threads } = await loadInbox();
-  const thread = threads.find((item) => item.id === threadId);
+  const snapshot = await readInboxSnapshot();
+  let thread = snapshot.threads.find((item) => item.id === threadId);
+  if (!thread) {
+    const { threads } = await loadInbox({
+      maxResults: 18,
+      skipDeskLabels: true,
+    });
+    thread = threads.find((item) => item.id === threadId);
+  }
   if (!thread || !canImportThreadToBoard(thread)) {
     redirect("/inbox");
     return;
@@ -37,13 +45,16 @@ export async function addThreadToBoard(threadId: string) {
 
 export async function syncInboxNowAction() {
   try {
-    const result = await importEligibleInbox();
+    const result = await refreshInboxInteractive({ force: true });
     revalidatePath("/");
     revalidatePath("/inbox");
     revalidatePath("/notifications");
     return {
       imported: result.imported,
       error: result.error,
+      threads: result.threads,
+      source: result.source,
+      syncedAt: result.syncedAt,
     };
   } catch {
     return {

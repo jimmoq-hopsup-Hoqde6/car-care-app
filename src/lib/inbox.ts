@@ -65,6 +65,46 @@ export function needsBookingApproval(kind: InboxKind) {
   return kind === "booking_negotiation" || kind === "time_confirmation";
 }
 
+/** Never create a board card for Google alerts, Sinch, no-reply, or info@ without a customer. */
+export function canImportThreadToBoard(thread: InboxThread) {
+  if (thread.kind === "marketing" || thread.ignored) return false;
+  if (thread.kind === "sms") return true;
+  if (
+    isSystemMailSender({ from: thread.from, fromEmail: thread.fromEmail }) &&
+    !(thread.kind === "website_form" && isOwnBusinessEmail(thread.fromEmail))
+  ) {
+    return false;
+  }
+  const customer = resolveInboxCustomer({
+    from: thread.from,
+    fromEmail: thread.fromEmail,
+    replyTo: thread.replyTo,
+    subject: thread.subject,
+    snippet: `${thread.snippet}\n${thread.bodyText ?? ""}`,
+  });
+  return Boolean(customer.email) && !customer.ignored;
+}
+
+export async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let next = 0;
+  async function worker() {
+    while (true) {
+      const index = next;
+      next += 1;
+      if (index >= items.length) return;
+      results[index] = await fn(items[index], index);
+    }
+  }
+  const workers = Math.max(0, Math.min(concurrency, items.length));
+  await Promise.all(Array.from({ length: workers }, () => worker()));
+  return results;
+}
+
 /** Kinds that land on the board without a tap. Marketing is never in this list. */
 export const AUTO_IMPORT_KINDS: InboxKind[] = [
   "quote_request",
@@ -434,16 +474,26 @@ export function demoInboxThreads(): InboxThread[] {
   ];
 }
 
-async function listGmailThreads(): Promise<InboxThread[]> {
+export type InboxLoadOptions = {
+  maxResults?: number;
+  skipDeskLabels?: boolean;
+};
+
+const GMAIL_GET_CONCURRENCY = 6;
+
+async function listGmailThreads(
+  options?: InboxLoadOptions,
+): Promise<InboxThread[]> {
   const gmail = await getGmail();
   if (!gmail) {
     throw new Error("Gmail is not connected");
   }
 
+  const maxResults = Math.max(1, Math.min(options?.maxResults ?? 25, 25));
   const listed = await gmail.users.threads.list({
     userId: "me",
     q: "newer_than:45d",
-    maxResults: 25,
+    maxResults,
   });
 
   const jobs = await prisma.job.findMany({
@@ -451,79 +501,85 @@ async function listGmailThreads(): Promise<InboxThread[]> {
   });
 
   let resolved: Awaited<ReturnType<typeof ensureDeskLabels>> | null = null;
-  try {
-    resolved = await ensureDeskLabels(gmail);
-  } catch {
-    resolved = null;
+  if (!options?.skipDeskLabels) {
+    try {
+      resolved = await ensureDeskLabels(gmail);
+    } catch {
+      resolved = null;
+    }
   }
 
-  const threads: InboxThread[] = [];
-  for (const thread of listed.data.threads ?? []) {
-    if (!thread.id) continue;
-    try {
-      const detail = await gmail.users.threads.get({
-        userId: "me",
-        id: thread.id,
-        format: "full",
-      });
-      const messages = detail.data.messages ?? [];
-      const first = messages[0];
-      const headers = first?.payload?.headers ?? [];
-      const firstFrom = headerValue(headers, "from");
-      const firstReplyTo = headerValue(headers, "reply-to");
-      const subject =
-        headerValue(headers, "subject") ||
-        headerValue(messages.at(-1)?.payload?.headers, "subject") ||
-        "(no subject)";
-      const latest = pickLatestCustomerMessage(messages);
-      const from = latest?.from || firstFrom;
-      const replyTo = latest?.replyTo || firstReplyTo;
-      const snippet = latest?.snippet || first?.snippet || "";
-      const bodyText =
-        latest?.bodyText ||
-        decodeGmailText(first?.payload as GmailPart | undefined);
-      const kind = classifyThread({
-        from,
-        subject,
-        snippet: `${snippet}\n${bodyText}`,
-      });
-      const rawFromEmail = extractEmail(from);
-      const customer = resolveInboxCustomer({
-        from,
-        fromEmail: rawFromEmail,
-        replyTo,
-        subject,
-        snippet: `${snippet}\n${bodyText}`,
-      });
-      const systemFrom = isSystemMailSender({ from, fromEmail: rawFromEmail });
-      const fromEmail =
-        systemFrom && !isOwnBusinessEmail(rawFromEmail)
-          ? rawFromEmail
-          : customer.email || latest?.email || rawFromEmail;
-      const job = jobs.find((row) => {
-        if (row.gmailThreadId === thread.id || row.threadId === thread.id) {
-          return true;
-        }
-        const matchEmail = latest?.email || fromEmail;
-        if (!isCustomerReplyEmail(matchEmail) || !row.customerEmail) return false;
-        return row.customerEmail.toLowerCase() === matchEmail;
-      });
-      const labelIds = [
-        ...new Set(
-          (detail.data.messages ?? []).flatMap(
-            (message) => message.labelIds ?? [],
+  const listedThreads = (listed.data.threads ?? []).filter(
+    (thread): thread is { id: string } => Boolean(thread.id),
+  );
+
+  const mapped = await mapWithConcurrency(
+    listedThreads,
+    GMAIL_GET_CONCURRENCY,
+    async (thread) => {
+      try {
+        const detail = await gmail.users.threads.get({
+          userId: "me",
+          id: thread.id,
+          format: "full",
+        });
+        const messages = detail.data.messages ?? [];
+        const first = messages[0];
+        const headers = first?.payload?.headers ?? [];
+        const firstFrom = headerValue(headers, "from");
+        const firstReplyTo = headerValue(headers, "reply-to");
+        const subject =
+          headerValue(headers, "subject") ||
+          headerValue(messages.at(-1)?.payload?.headers, "subject") ||
+          "(no subject)";
+        const latest = pickLatestCustomerMessage(messages);
+        const from = latest?.from || firstFrom;
+        const replyTo = latest?.replyTo || firstReplyTo;
+        const snippet = latest?.snippet || first?.snippet || "";
+        const bodyText =
+          latest?.bodyText ||
+          decodeGmailText(first?.payload as GmailPart | undefined);
+        const kind = classifyThread({
+          from,
+          subject,
+          snippet: `${snippet}\n${bodyText}`,
+        });
+        const rawFromEmail = extractEmail(from);
+        const customer = resolveInboxCustomer({
+          from,
+          fromEmail: rawFromEmail,
+          replyTo,
+          subject,
+          snippet: `${snippet}\n${bodyText}`,
+        });
+        const systemFrom = isSystemMailSender({ from, fromEmail: rawFromEmail });
+        const fromEmail =
+          systemFrom && !isOwnBusinessEmail(rawFromEmail)
+            ? rawFromEmail
+            : customer.email || latest?.email || rawFromEmail;
+        const job = jobs.find((row) => {
+          if (row.gmailThreadId === thread.id || row.threadId === thread.id) {
+            return true;
+          }
+          const matchEmail = latest?.email || fromEmail;
+          if (!isCustomerReplyEmail(matchEmail) || !row.customerEmail) return false;
+          return row.customerEmail.toLowerCase() === matchEmail;
+        });
+        const labelIds = [
+          ...new Set(
+            (detail.data.messages ?? []).flatMap(
+              (message) => message.labelIds ?? [],
+            ),
           ),
-        ),
-      ];
-      const deskLabel = resolved
-        ? pickDeskLabel(deskKeysFromLabelIds(labelIds, resolved))
-        : null;
-      const ignored =
-        kind === "marketing" ||
-        (systemFrom && !isOwnBusinessEmail(rawFromEmail)) ||
-        (customer.ignored && !isOwnBusinessEmail(rawFromEmail));
-      threads.push(
-        withDeskLabel(
+        ];
+        const deskLabel = resolved
+          ? pickDeskLabel(deskKeysFromLabelIds(labelIds, resolved))
+          : null;
+        const ignored =
+          kind === "marketing" ||
+          (systemFrom && !isOwnBusinessEmail(rawFromEmail)) ||
+          (customer.ignored && !isOwnBusinessEmail(rawFromEmail));
+        return withDeskLabel(
           {
             id: thread.id,
             from:
@@ -540,17 +596,19 @@ async function listGmailThreads(): Promise<InboxThread[]> {
             jobId: job?.id ?? null,
           },
           deskLabel,
-        ),
-      );
-    } catch {
-      // Skip a single bad thread; do not fail the whole inbox.
-    }
-  }
+        );
+      } catch {
+        return null;
+      }
+    },
+  );
 
-  return threads;
+  return mapped.filter((thread): thread is InboxThread => thread !== null);
 }
 
-export async function loadInbox(): Promise<InboxListResult> {
+export async function loadInbox(
+  options?: InboxLoadOptions,
+): Promise<InboxListResult> {
   try {
     const gmail = await getGmail();
     if (!gmail) {
@@ -564,7 +622,7 @@ export async function loadInbox(): Promise<InboxListResult> {
           "Gmail is not connected. Connect Google in Settings, then tap Sync inbox now.",
       };
     }
-    const threads = await listGmailThreads();
+    const threads = await listGmailThreads(options);
     return { threads, source: "gmail" };
   } catch (error) {
     return {

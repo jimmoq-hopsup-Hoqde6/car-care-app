@@ -3,16 +3,23 @@ import { runPhotoAndScopeAutomations } from "./automations";
 import { syncJobGmailLabelById } from "./gmail-labels";
 import { importGmailThreadPhotos } from "./gmail-photos";
 import {
+  canImportThreadToBoard,
   isEligibleForAutoImport,
   loadInbox,
   needsBookingApproval,
   type InboxThread,
 } from "./inbox";
 import {
+  readInboxSnapshot,
+  snapshotIsFresh,
+  writeInboxSnapshot,
+} from "./inbox-cache";
+import {
   applyCustomerBookingReply,
   notifyBookingApproval,
   syncInboxNotifications,
 } from "./notifications";
+import { formatAuMobile, toE164Au } from "./phone";
 import { prisma } from "./prisma";
 import { detectOutOfScope } from "./scope";
 import { getSettings } from "./settings";
@@ -20,11 +27,10 @@ import {
   customerRecipientOrNull,
   extractJobIntakeFields,
   isJunkBoardJob,
-  isOwnBusinessEmail,
-  isSystemMailSender,
   resolveInboxCustomer,
 } from "./customer-mail";
-import { formatAuMobile, toE164Au } from "./phone";
+
+export { canImportThreadToBoard };
 
 export async function findJobForThread(threadId: string) {
   return prisma.job.findFirst({
@@ -38,26 +44,6 @@ function channelForThread(kind: InboxThread["kind"]) {
   if (kind === "website_form") return "website";
   if (kind === "sms") return "sms";
   return "email";
-}
-
-/** Never create a board card for Google alerts, Sinch, no-reply, or info@ without a customer. */
-export function canImportThreadToBoard(thread: InboxThread) {
-  if (thread.kind === "marketing" || thread.ignored) return false;
-  if (thread.kind === "sms") return true;
-  if (
-    isSystemMailSender({ from: thread.from, fromEmail: thread.fromEmail }) &&
-    !(thread.kind === "website_form" && isOwnBusinessEmail(thread.fromEmail))
-  ) {
-    return false;
-  }
-  const customer = resolveInboxCustomer({
-    from: thread.from,
-    fromEmail: thread.fromEmail,
-    replyTo: thread.replyTo,
-    subject: thread.subject,
-    snippet: `${thread.snippet}\n${thread.bodyText ?? ""}`,
-  });
-  return Boolean(customer.email) && !customer.ignored;
 }
 
 export async function removeJunkSystemJobs() {
@@ -75,7 +61,10 @@ export async function removeJunkSystemJobs() {
  * Create a job from an inbox thread. Idempotent on threadId / gmailThreadId.
  * Does not redirect — callers decide.
  */
-export async function importThreadToBoard(thread: InboxThread): Promise<{
+export async function importThreadToBoard(
+  thread: InboxThread,
+  options?: { skipPhotos?: boolean },
+): Promise<{
   jobId: string;
   created: boolean;
   refused?: boolean;
@@ -147,10 +136,12 @@ export async function importThreadToBoard(thread: InboxThread): Promise<{
       outOfScope,
     },
   });
-  try {
-    await importGmailThreadPhotos(id, liveThreadId);
-  } catch {
-    // Job still lands on the board if Gmail attachments fail.
+  if (!options?.skipPhotos) {
+    try {
+      await importGmailThreadPhotos(id, liveThreadId);
+    } catch {
+      // Job still lands on the board if Gmail attachments fail.
+    }
   }
   if (status === JobStatus.READY_TO_BOOK || bookingReply) {
     await notifyBookingApproval({
@@ -167,7 +158,10 @@ export async function importThreadToBoard(thread: InboxThread): Promise<{
   return { jobId: id, created: true };
 }
 
-export async function autoImportEligibleInbox(threads: InboxThread[]): Promise<{
+export async function autoImportEligibleInbox(
+  threads: InboxThread[],
+  options?: { skipPhotos?: boolean },
+): Promise<{
   threads: InboxThread[];
   imported: number;
 }> {
@@ -184,7 +178,7 @@ export async function autoImportEligibleInbox(threads: InboxThread[]): Promise<{
       continue;
     }
     try {
-      const result = await importThreadToBoard(thread);
+      const result = await importThreadToBoard(thread, options);
       if (result.refused || !result.jobId) {
         next.push(thread);
         continue;
@@ -198,36 +192,88 @@ export async function autoImportEligibleInbox(threads: InboxThread[]): Promise<{
   return { threads: next, imported };
 }
 
-/** Inbox load + auto-import. Used from /inbox and the daily automation run. */
-export async function importEligibleInbox(): Promise<{
+export type InboxSyncOptions = {
+  skipPhotos?: boolean;
+  skipDeskLabels?: boolean;
+  maxResults?: number;
+};
+
+/** Inbox load + auto-import. Cron keeps photos; Inbox UI skips them. */
+export async function importEligibleInbox(options?: InboxSyncOptions): Promise<{
   threads: InboxThread[];
   imported: number;
   error?: string;
   source: "gmail" | "demo";
+  syncedAt?: string;
 }> {
   try {
     await removeJunkSystemJobs();
   } catch {
     // Sweep is best-effort; Inbox still loads.
   }
-  const listed = await loadInbox();
+  const listed = await loadInbox({
+    maxResults: options?.maxResults,
+    skipDeskLabels: options?.skipDeskLabels,
+  });
   if (listed.error) {
+    const snapshot = await writeInboxSnapshot({
+      threads: listed.threads,
+      source: listed.source,
+      error: listed.error,
+    });
     return {
       threads: listed.threads,
       imported: 0,
       error: listed.error,
       source: listed.source,
+      syncedAt: snapshot.syncedAt,
     };
   }
-  const result = await autoImportEligibleInbox(listed.threads);
+  const result = await autoImportEligibleInbox(listed.threads, {
+    skipPhotos: options?.skipPhotos,
+  });
   try {
     await syncInboxNotifications(result.threads);
   } catch {
     // Booking alerts are best-effort; the board still loads.
   }
+  const snapshot = await writeInboxSnapshot({
+    threads: result.threads,
+    source: listed.source,
+  });
   return {
     threads: result.threads,
     imported: result.imported,
     source: listed.source,
+    syncedAt: snapshot.syncedAt,
   };
+}
+
+const INTERACTIVE_INBOX_MAX = 18;
+
+/** Phone Inbox / Sync inbox — skip photos and desk-label writes; reuse a fresh snapshot. */
+export async function refreshInboxInteractive(options?: { force?: boolean }) {
+  if (!options?.force) {
+    const snap = await readInboxSnapshot();
+    if (
+      snapshotIsFresh(snap.syncedAt) &&
+      snap.threads.length > 0 &&
+      !snap.error
+    ) {
+      return {
+        threads: snap.threads,
+        imported: 0,
+        source: snap.source,
+        error: snap.error,
+        syncedAt: snap.syncedAt,
+        skipped: true,
+      };
+    }
+  }
+  const result = await importEligibleInbox({
+    skipPhotos: true,
+    skipDeskLabels: true,
+    maxResults: INTERACTIVE_INBOX_MAX,
+  });
+  return { ...result, skipped: false };
 }

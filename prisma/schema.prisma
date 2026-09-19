@@ -92,6 +92,15 @@ model PriceBand {
   sortOrder   Int     @default(0)
 }
 
+model InboxCache {
+  id        String    @id @default("default")
+  payload   String    @default("[]")
+  source    String    @default("demo")
+  error     String?
+  syncedAt  DateTime?
+  updatedAt DateTime  @updatedAt
+}
+
 model AppSetting {
   id                     String @id @default("default")
   workStartHour          Int    @default(8)

@@ -16,7 +16,7 @@ The job-desk header uses Marcel's business-card lockup (black background, white 
 
 - **Phone / web login** — hosted mode shows a branded Google Sign-In page; only Marcel's allowlisted accounts get in. Local demo stays open. See [Deploy for phone access](#deploy-for-phone-access).
 - **Job board** — Needs quote, Awaiting customer, Ready to book, Booked, Done. Phone-first cards show a large damage photo (or **No damage photo** — never a broken image), name, suburb, phone, quote $, last activity, stage chip, and booked Adelaide date/time when booked. Status colour sits on the left edge. **Ready to book — no date** and **Stalled** jobs highlight as rotting. Default sort is **Urgency** (forgotten bookings, then stalled, then newest); also **Newest activity**, **Stalled first**, or **Highest quote**. The desk uses a cool grey canvas (`#f4f5f7`), black branded header, and teal `#2dd4bf` — login stays black.
-- **Inbox triage** — quote requests, website forms, booking replies and SMS **land on the job board automatically** when you open the (empty) job board, open Inbox, tap **Sync inbox now**, or hit `/api/inbox/sync` (same cron secret as automations). Marketing such as Manheim, Google security alerts, and Sinch tickets are never added. Website forms that arrive from `info@` import the customer **Name / Email / Phone** (or Reply-To), never `info@` itself. If Gmail fails, the desk shows a reconnect message instead of crashing. **After a customer replies to a quote (yes / Saturday / book me in), tap Sync inbox so the job moves to Ready to book and the booking confirm appears in Alerts.** Booking confirmation emails still never auto-send.
+- **Inbox triage** — **Jobs is the daily home.** Inbox is for triage only and must feel instant on a phone: it paints the last known snapshot (or demo threads) immediately and never blocks first paint on a full Gmail walk. Quote requests, website forms, booking replies and SMS **land on the job board automatically** when you open an empty job board, tap **Sync inbox now**, or hit `/api/inbox/sync` (same cron secret as automations). Opening Inbox starts a background refresh (`/api/inbox/refresh`, session-gated) with an **Updating inbox…** banner — you can leave for Jobs while that finishes. Interactive refresh skips attachment photo downloads (thumbs stay from the board DB; cron still pulls JPEGs). Marketing such as Manheim, Google security alerts, and Sinch tickets are never added. Website forms that arrive from `info@` import the customer **Name / Email / Phone** (or Reply-To), never `info@` itself. If Gmail fails, the desk shows a reconnect message instead of crashing. **After a customer replies to a quote (yes / Saturday / book me in), tap Sync inbox so the job moves to Ready to book and the booking confirm appears in Alerts.** Booking confirmation emails still never auto-send.
 - **Notifications** — **Needs your reply** stays on the board and Alerts until a calendar date exists (marking an alert read does not hide the job). Quotes and bookings still never auto-send.
 - **Quote composer** — you enter the price or tap **Accept suggestion**; the email uses Marcel's locked standard (first-name greeting, 30-day validity, mobile number ask). Suggestions never send themselves.
 - **Booking picker** — next 14 weekdays, default 8:00 am–4:00 pm, 3-hour jobs; recommends slots near other booked jobs in nearby Adelaide suburbs; creates a Calendar event and a confirmation draft
@@ -26,7 +26,7 @@ The job-desk header uses Marcel's business-card lockup (black background, white 
 ## Expert workflow (phone) — a day in the life
 
 1. Sign in with an allowlisted Google account (hosted) or open the demo locally.
-2. If the board is empty, tap **Sync inbox now** so website **New Quote Request** forms and booking replies land on the board. Opening the empty job board after sign-in also auto-imports. **Sync inbox again after a customer replies** so a “yes Saturday / book me in” lands in Alerts with a **Confirm booking** next action — it will not sit idle as Awaiting customer.
+2. Stay on **Jobs** for the day. If the board is empty, tap **Sync inbox now** so website **New Quote Request** forms and booking replies land on the board. Opening the empty job board after sign-in also auto-imports. Opening **Inbox** is optional triage: last known threads show at once; Gmail updates in the background. **Sync inbox again after a customer replies** so a “yes Saturday / book me in” lands in Alerts with a **Confirm booking** next action — it will not sit idle as Awaiting customer.
 3. The amber **Needs your reply** strip lists every **Ready to book — no date** job (they accepted or asked “when can you come?” and there is still no Calendar event). Age is since the last customer message. Tap **Offer dates**, **Confirm booking**, or **Add to calendar**. Quotes and booking confirms never auto-send.
 4. **Needs quote** → **Write quote** → Accept suggestion or type the price → **Save draft** or **Send**. New form leads show the customer’s name/email, not `info@`. Photo-asks stay drafts and only go to a real customer inbox.
 5. SMS stays on the same job. Failed sends explain an unauthorised 0435 222 221 if MessageMedia rejected the sender.
@@ -140,7 +140,7 @@ Restart `npm run dev`, tap **Connect Google**, and sign in.
 
 After that:
 
-- Inbox reads recent Gmail threads (Manheim, Google alerts, and Sinch are parked under Ignored; website forms from info@ resolve the customer Email/Name) and seeds job status from job-desk labels
+- Inbox paints the last cached Gmail snapshot immediately, then refreshes in the background (parallel `threads.get`, capped list, no photo download on the phone list). Manheim, Google alerts, and Sinch are parked under Ignored; website forms from info@ resolve the customer Email/Name. Nightly cron still walks Gmail with photos.
 - Board stage changes apply the matching Gmail label and remove the other four
 - Booking reads real free/busy on your primary calendar
 - **Save as draft** writes a Gmail draft (not sent)
@@ -297,7 +297,7 @@ npm run automations:run
 ```
 
 That finds due jobs and:
-- **Also auto-imports** eligible Inbox threads onto the board (same rules as opening Inbox)
+- **Also auto-imports** eligible Inbox threads onto the board (same rules as Sync inbox / nightly `/api/inbox/sync`; opening Inbox no longer waits on that walk)
 - **Demo mode (`DEMO_MODE=true`)** — writes a queue entry on the job and **does not email anyone**
 - **Live, Google connected** — follow-ups and review asks send via Gmail using the stored OAuth tokens. Photo-asks stay drafts.
 
@@ -471,7 +471,7 @@ In the same Google Cloud OAuth **Web application** client you used locally:
 5. Deploy. Open the URL on your phone. You should see the branded login page, then the job board after Google Sign-In with an allowlisted account.
 6. After the first URL is known, confirm `AUTH_URL` / `NEXTAUTH_URL` match it (including `https://`) and redeploy if you had to fix them.
 7. MessageMedia inbound webhook (if using SMS): `{NEXTAUTH_URL}/api/sms/messagemedia` (production: `https://car-care-app-green.vercel.app/api/sms/messagemedia`).
-8. After Google Sign-In, open the job board or tap **Sync inbox now**. Eligible threads land without **Add to job board**.
+8. After Google Sign-In, stay on the **job board** or tap **Sync inbox now**. Eligible threads land without **Add to job board**. Opening **Inbox** should show last-known threads in about a second; Gmail refresh continues in the background.
 9. Confirm **Cron Jobs** on the Vercel project (from `vercel.json`): `GET /api/inbox/sync` at `15 22 * * *` UTC, then `GET /api/automations/run` at `30 22 * * *` UTC (Adelaide morning — 08:00 ACST / 09:00 ACDT). If either secret is set, set **both** `CRON_SECRET` and `AUTOMATIONS_SECRET` to the same value so Vercel Cron is authorised. Backup: Settings → **Run automations now**.
 
 ### 4. If login does not appear
