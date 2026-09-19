@@ -88,6 +88,9 @@ export async function saveQuoteAction(input: {
     },
   });
 
+  const now = new Date();
+  const becomingAwaiting =
+    job.status === JobStatus.NEEDS_QUOTE || input.send;
   await prisma.job.update({
     where: { id: job.id },
     data: {
@@ -97,6 +100,10 @@ export async function saveQuoteAction(input: {
         job.status === JobStatus.NEEDS_QUOTE
           ? JobStatus.AWAITING_CUSTOMER
           : job.status,
+      awaitingSince:
+        becomingAwaiting && !job.awaitingSince ? now : job.awaitingSince,
+      quoteSentAt: input.send ? now : job.quoteSentAt,
+      lastOutboundAt: input.send ? now : job.lastOutboundAt,
     },
   });
 

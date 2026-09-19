@@ -1,6 +1,6 @@
 import { google } from "googleapis";
 import { auth } from "./auth";
-import { isGoogleConfigured } from "./env";
+import { isDemoMode, isGoogleConfigured } from "./env";
 
 export async function getGoogleAccessToken() {
   const session = await auth();
@@ -76,6 +76,7 @@ export async function createGmailDraft(input: {
 }
 
 export async function sendGmailDraft(draftId: string) {
+  if (isDemoMode()) return false;
   const gmail = await getGmail();
   if (!gmail) return false;
   await gmail.users.drafts.send({
@@ -92,6 +93,7 @@ export async function sendGmailMessage(input: {
   body: string;
   threadId?: string | null;
 }) {
+  if (isDemoMode()) return false;
   const gmail = await getGmail();
   if (!gmail) return false;
   await gmail.users.messages.send({

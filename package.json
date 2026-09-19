@@ -11,7 +11,9 @@
     "postinstall": "prisma generate",
     "db:prepare": "node scripts/ensure-env.js && prisma generate && prisma db push && prisma db seed",
     "setup": "npm run db:prepare",
-    "db:seed": "prisma db seed"
+    "db:seed": "prisma db seed",
+    "automations:run": "tsx scripts/run-automations.ts",
+    "automations:verify": "tsx scripts/verify-automations-demo.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

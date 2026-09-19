@@ -45,9 +45,24 @@ export async function createJob(formData: FormData) {
 }
 
 export async function updateJobStatus(jobId: string, status: JobStatus) {
+  const job = await prisma.job.findUnique({ where: { id: jobId } });
+  if (!job) return;
+  const now = new Date();
   await prisma.job.update({
     where: { id: jobId },
-    data: { status },
+    data: {
+      status,
+      awaitingSince:
+        status === JobStatus.AWAITING_CUSTOMER
+          ? (job.awaitingSince ?? now)
+          : job.awaitingSince,
+      completedAt:
+        status === JobStatus.DONE
+          ? (job.completedAt ?? now)
+          : job.reviewAskSentAt
+            ? job.completedAt
+            : null,
+    },
   });
   revalidatePath("/");
   revalidatePath(`/jobs/${jobId}`);

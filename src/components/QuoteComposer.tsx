@@ -157,8 +157,9 @@ export function QuoteComposer({ job, priceBands, items }: Props) {
         <div className="rounded-2xl border border-line bg-white p-4">
           <h2 className="text-sm font-semibold text-ink">Email preview</h2>
           <p className="mt-1 text-xs text-stone-500">
-            Matches Marcel&apos;s quote template. Default is draft — nothing sends
-            until you tap Send.
+            Matches Marcel&apos;s quote template. Quotes never auto-send — nothing
+            goes out until you tap Send. A follow-up can send later if they stay
+            quiet.
           </p>
           <pre className="mt-3 whitespace-pre-wrap font-sans text-sm leading-6 text-stone-800">
             {preview ??

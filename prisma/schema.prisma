@@ -34,8 +34,18 @@ model Job {
   bookedEnd       DateTime?
   calendarEventId String?
   isDemo          Boolean   @default(false)
+  lastOutboundAt  DateTime?
+  followUpSentAt  DateTime?
+  reviewAskSentAt DateTime?
+  quoteSentAt     DateTime?
+  awaitingSince   DateTime?
+  completedAt     DateTime?
+  lastCustomerReplyAt DateTime?
+  followUpSkippedAt DateTime?
+  reviewAskSkippedAt DateTime?
   photos          Photo[]
   drafts          EmailDraft[]
+  automations     AutomationEvent[]
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 }
@@ -69,13 +79,39 @@ model PriceBand {
 }
 
 model AppSetting {
-  id               String @id @default("default")
-  workStartHour    Int    @default(8)
-  workEndHour      Int    @default(16)
-  workDays         String @default("[1,2,3,4,5]")
-  jobDurationHours Int    @default(3)
-  timezone         String @default("Australia/Adelaide")
-  ownerName        String @default("Marcel Kuhn")
-  businessName     String @default("Mobile Car Scratch Repair Adelaide")
-  businessEmail    String @default("Info@mobilecarscratchrepairadelaide.com.au")
+  id                     String @id @default("default")
+  workStartHour          Int    @default(8)
+  workEndHour            Int    @default(16)
+  workDays               String @default("[1,2,3,4,5]")
+  jobDurationHours       Int    @default(3)
+  timezone               String @default("Australia/Adelaide")
+  ownerName              String @default("Marcel Kuhn")
+  businessName           String @default("Mobile Car Scratch Repair Adelaide")
+  businessEmail          String @default("Info@mobilecarscratchrepairadelaide.com.au")
+  followUpDays           Int    @default(2)
+  reviewAskDaysAfterJob  Int    @default(1)
+  googleReviewUrl        String @default("https://g.page/r/PLACEHOLDER")
+}
+
+model AutomationEvent {
+  id        String   @id @default(cuid())
+  jobId     String
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  type      String
+  subject   String
+  body      String
+  toEmail   String
+  delivered Boolean  @default(false)
+  demo      Boolean  @default(true)
+  error     String?
+  createdAt DateTime @default(now())
+}
+
+model GoogleAccount {
+  id           String   @id @default("default")
+  email        String?
+  accessToken  String?
+  refreshToken String?
+  expiresAt    Int?
+  updatedAt    DateTime @updatedAt
 }

@@ -102,8 +102,9 @@ export function BookingPicker({
             : "Pick a free slot"}
       </button>
       <p className="text-xs text-stone-500">
-        This creates the calendar event and a confirmation draft. It does not
-        email the customer until you send the draft.
+        This creates the calendar event and a confirmation draft. Booking
+        confirmations never auto-send — the customer is not emailed until you
+        send the draft.
       </p>
     </div>
   );

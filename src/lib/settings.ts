@@ -20,5 +20,11 @@ export async function getSettings() {
     ...row,
     workDays,
     timezone: row.timezone || ADELAIDE_TZ,
+    followUpDays: row.followUpDays || 2,
+    reviewAskDaysAfterJob: row.reviewAskDaysAfterJob || 1,
+    googleReviewUrl:
+      row.googleReviewUrl ||
+      process.env.GOOGLE_REVIEW_URL?.trim() ||
+      "https://g.page/r/PLACEHOLDER",
   };
 }

@@ -24,6 +24,14 @@ export async function saveSettingsAction(formData: FormData) {
         formData.get("businessEmail") ??
           "Info@mobilecarscratchrepairadelaide.com.au",
       ),
+      followUpDays: Math.max(1, Number(formData.get("followUpDays") || 2)),
+      reviewAskDaysAfterJob: Math.max(
+        0,
+        Number(formData.get("reviewAskDaysAfterJob") || 1),
+      ),
+      googleReviewUrl:
+        String(formData.get("googleReviewUrl") ?? "").trim() ||
+        "https://g.page/r/PLACEHOLDER",
     },
   });
 

@@ -2,7 +2,9 @@
 
 A local web app for **Marcel Kuhn** to turn quote requests into drafts and bookings.
 
-It does **not** invent prices. You type the figure. It does **not** email customers unless you tap **Send**. The usual path is: write quote → save Gmail draft → pick a free calendar slot → save a confirmation draft.
+It does **not** invent prices. You type the figure. **Quotes and booking confirmations never send unless you tap Send.** The usual path is: write quote → save Gmail draft → pick a free calendar slot → save a confirmation draft.
+
+Two follow-on emails can send on a schedule (see [Automations](#automations-what-sends-on-its-own)): a nudge if a quote sits unanswered, and a Google review ask after a job is marked Done.
 
 Timezone: **Australia/Adelaide**  
 From address: **Info@mobilecarscratchrepairadelaide.com.au**
@@ -14,7 +16,7 @@ From address: **Info@mobilecarscratchrepairadelaide.com.au**
 - **Quote composer** — you enter the price; the email matches your usual wording (colour-matching, onsite inspection, lifetime guarantee, site requirements)
 - **Booking picker** — next 14 weekdays, default 8:00 am–4:00 pm, 3-hour jobs; creates a Calendar event and a confirmation draft
 
-Sample jobs load automatically: **Jenny Gwynne (BMW bumper, Crafers)**, **Nathan Crowe (Outlander, Unley)**, **John Hale (Honda CR-V, Glenelg)**.
+Sample jobs load automatically: **Jenny Gwynne (BMW bumper, Crafers)**, **Nathan Crowe (Outlander, Unley, follow-up due)**, **John Hale (Honda CR-V, Glenelg)**, **Priya Nair (Mazda 3, Norwood, review ask due)**.
 
 ## Run it on your computer (demo, no Google)
 
@@ -34,8 +36,10 @@ The first start creates a local `.env` (no secrets) and a SQLite file with the t
 Useful extras:
 
 ```bash
-npm run setup     # rebuild the local database and sample jobs
-npm run db:seed   # put the sample jobs back if you deleted them
+npm run setup               # rebuild the local database and sample jobs
+npm run db:seed             # put the sample jobs back if you deleted them
+npm run automations:run     # queue due follow-ups / review asks (demo: no email)
+npm run automations:verify  # confirm demo mode did not email anyone
 ```
 
 ## Connect live Gmail and Calendar
@@ -89,6 +93,9 @@ AUTH_URL="http://localhost:3000"
 DEMO_MODE="false"
 GOOGLE_CLIENT_ID="....apps.googleusercontent.com"
 GOOGLE_CLIENT_SECRET="...."
+FOLLOW_UP_DAYS="2"
+REVIEW_ASK_DAYS_AFTER_JOB="1"
+GOOGLE_REVIEW_URL="https://g.page/r/YOUR-REVIEW-LINK"
 ```
 
 Create a fresh `AUTH_SECRET`:
@@ -120,10 +127,46 @@ The composer always uses this shape:
 - Off-street location, power point, natural light
 - Kind regards, Marcel Kuhn, Mobile Car Scratch Repair Adelaide
 
+## Automations (what sends on its own)
+
+**Never auto-sent (you must tap Send):**
+- Quote emails
+- Booking confirmation emails
+
+**May auto-send (only these two):**
+
+| Rule | When | Default |
+| --- | --- | --- |
+| Follow-up | Job is **Awaiting customer** (quote sent or waiting) and there has been no customer reply for **2 days** | `FOLLOW_UP_DAYS=2` |
+| Google review ask | The day after you mark a job **Booked → Done** (or otherwise Done) | `REVIEW_ASK_DAYS_AFTER_JOB=1` |
+
+The review email includes `GOOGLE_REVIEW_URL` (placeholder `https://g.page/r/PLACEHOLDER` until you paste your real Google review link on Settings).
+
+Each job stores `lastOutboundAt`, `followUpSentAt`, and `reviewAskSentAt` so the same email is not sent twice. You can **Skip** a follow-up or review ask on the job page. The board shows Pending / Sent / Skipped / Waiting.
+
+### How the schedule runs
+
+```bash
+npm run automations:run
+```
+
+That finds due jobs and:
+- **Demo mode (`DEMO_MODE=true`)** — writes a queue entry on the job and **does not email anyone**
+- **Live, Google connected** — sends via Gmail using the stored OAuth tokens
+
+You can also tap **Run automations now** on Settings, or hit `GET`/`POST` `/api/automations/run` from a host cron. If you set `AUTOMATIONS_SECRET` in `.env`, send `Authorization: Bearer …`.
+
+A typical cron (once a day, Adelaide morning) is enough:
+
+```bash
+0 8 * * * cd /path/to/job-desk && npm run automations:run
+```
+
 ## Settings you can change in the app
 
 - Weekdays and hours (default Monday–Friday 8:00–16:00 Adelaide)
 - Job length (default 3 hours)
+- Follow-up days, review-ask days, and Google review URL
 - Optional price bands (minor scratch / bumper / multi-panel) — only used if **you** store a rate
 
 ## Deploy later

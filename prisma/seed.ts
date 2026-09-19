@@ -2,10 +2,21 @@ import { PrismaClient, JobStatus } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+function daysAgo(days: number) {
+  return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+}
+
 async function main() {
   await prisma.appSetting.upsert({
     where: { id: "default" },
-    create: { id: "default" },
+    create: {
+      id: "default",
+      followUpDays: Number(process.env.FOLLOW_UP_DAYS || 2),
+      reviewAskDaysAfterJob: Number(process.env.REVIEW_ASK_DAYS_AFTER_JOB || 1),
+      googleReviewUrl:
+        process.env.GOOGLE_REVIEW_URL?.trim() ||
+        "https://g.page/r/PLACEHOLDER",
+    },
     update: {},
   });
 
@@ -22,6 +33,9 @@ async function main() {
       update: {},
     });
   }
+
+  const stalledSince = daysAgo(3);
+  const completedSince = daysAgo(2);
 
   const jobs = [
     {
@@ -62,9 +76,11 @@ async function main() {
       channel: "email",
       threadId: "demo-thread-nathan",
       status: JobStatus.AWAITING_CUSTOMER,
-      // Demo only — represents a figure Marcel already typed, not an invented quote.
       quoteAmount: 380,
       isDemo: true,
+      lastOutboundAt: stalledSince,
+      quoteSentAt: stalledSince,
+      awaitingSince: stalledSince,
       photos: [
         { url: "/demo/nathan-door.svg", filename: "outlander-door.jpg" },
       ],
@@ -89,21 +105,65 @@ async function main() {
         { url: "/demo/john-quarter.svg", filename: "crv-quarter.jpg" },
       ],
     },
+    {
+      id: "job-priya",
+      customerName: "Priya Nair",
+      customerEmail: "priya.nair@example.com",
+      customerPhone: "0432 118 440",
+      vehicle: "Mazda 3 — door ding",
+      suburb: "Norwood",
+      address: "15 The Parade, Norwood SA 5067",
+      damageNotes: "Door ding repaired last week. Marked done for the review ask demo.",
+      repairItems: JSON.stringify(["Driver door ding"]),
+      channel: "email",
+      threadId: "demo-thread-priya",
+      status: JobStatus.DONE,
+      quoteAmount: 260,
+      isDemo: true,
+      completedAt: completedSince,
+      lastOutboundAt: daysAgo(5),
+      photos: [] as { url: string; filename: string }[],
+    },
   ];
 
   for (const job of jobs) {
     const { photos, ...data } = job;
-    await prisma.job.upsert({
-      where: { id: job.id },
-      create: {
-        ...data,
-        photos: { create: photos },
-      },
-      update: {},
-    });
+    const existing = await prisma.job.findUnique({ where: { id: job.id } });
+    if (!existing) {
+      await prisma.job.create({
+        data: {
+          ...data,
+          photos: photos.length ? { create: photos } : undefined,
+        },
+      });
+      continue;
+    }
+
+    if (job.id === "job-nathan" && !existing.followUpSentAt) {
+      await prisma.job.update({
+        where: { id: job.id },
+        data: {
+          lastOutboundAt: existing.lastOutboundAt ?? stalledSince,
+          quoteSentAt: existing.quoteSentAt ?? stalledSince,
+          awaitingSince: existing.awaitingSince ?? stalledSince,
+          status: JobStatus.AWAITING_CUSTOMER,
+        },
+      });
+    }
+    if (job.id === "job-priya" && !existing.reviewAskSentAt) {
+      await prisma.job.update({
+        where: { id: job.id },
+        data: {
+          status: JobStatus.DONE,
+          completedAt: existing.completedAt ?? completedSince,
+        },
+      });
+    }
   }
 
-  console.log("Seeded demo jobs: Jenny (Crafers), Nathan (Unley), John (Glenelg).");
+  console.log(
+    "Seeded demo jobs: Jenny, Nathan (follow-up due), John, Priya (review ask due).",
+  );
 }
 
 main()

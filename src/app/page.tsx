@@ -1,11 +1,15 @@
 import { JobBoard } from "@/components/JobBoard";
 import { prisma } from "@/lib/prisma";
+import { getSettings } from "@/lib/settings";
 
 export default async function HomePage() {
-  const jobs = await prisma.job.findMany({
-    include: { photos: true },
-    orderBy: { updatedAt: "desc" },
-  });
+  const [jobs, settings] = await Promise.all([
+    prisma.job.findMany({
+      include: { photos: true },
+      orderBy: { updatedAt: "desc" },
+    }),
+    getSettings(),
+  ]);
 
-  return <JobBoard jobs={jobs} />;
+  return <JobBoard jobs={jobs} settings={settings} />;
 }

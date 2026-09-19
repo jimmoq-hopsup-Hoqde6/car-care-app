@@ -1,4 +1,5 @@
 import { addPriceBandAction, saveSettingsAction } from "@/app/actions/settings";
+import { RunAutomationsButton } from "@/components/RunAutomationsButton";
 import { signIn } from "@/lib/auth";
 import { GOOGLE_SCOPES } from "@/lib/constants";
 import { isDemoMode, isGoogleConfigured } from "@/lib/env";
@@ -17,9 +18,16 @@ const DAY_LABELS = [
 
 export default async function SettingsPage() {
   const settings = await getSettings();
-  const bands = await prisma.priceBand.findMany({
-    orderBy: { sortOrder: "asc" },
-  });
+  const [bands, events] = await Promise.all([
+    prisma.priceBand.findMany({
+      orderBy: { sortOrder: "asc" },
+    }),
+    prisma.automationEvent.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 8,
+      include: { job: { select: { customerName: true } } },
+    }),
+  ]);
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -61,6 +69,39 @@ export default async function SettingsPage() {
             </button>
           </form>
         ) : null}
+      </section>
+
+      <section className="rounded-2xl border border-line bg-card p-4">
+        <h2 className="font-semibold text-ink">Automations</h2>
+        <p className="mt-1 text-sm text-stone-600">
+          Only two emails can send without a tap: a follow-up on a quiet quote,
+          and a Google review ask the day after a job is marked Done. Quotes and
+          booking confirmations still need you to press Send.
+        </p>
+        <p className="mt-2 text-xs text-stone-500">
+          Demo mode queues those emails on the job and never sends them. Live
+          mode uses the connected Gmail account via{" "}
+          <code className="rounded bg-stone-100 px-1">npm run automations:run</code>{" "}
+          or this button.
+        </p>
+        <div className="mt-3">
+          <RunAutomationsButton />
+        </div>
+        {events.length > 0 ? (
+          <ul className="mt-4 space-y-2 text-sm">
+            {events.map((event) => (
+              <li key={event.id} className="rounded-xl bg-white px-3 py-2">
+                <span className="font-medium">{event.job.customerName}</span>
+                {" · "}
+                {event.type === "follow_up" ? "Follow-up" : "Review ask"}
+                {" · "}
+                {event.delivered ? "emailed" : event.demo ? "demo queue" : "not sent"}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-3 text-xs text-stone-500">No automation runs yet.</p>
+        )}
       </section>
 
       <form action={saveSettingsAction} className="space-y-4 rounded-2xl border border-line bg-card p-4">
@@ -133,6 +174,44 @@ export default async function SettingsPage() {
           <input
             name="businessEmail"
             defaultValue={settings.businessEmail}
+            className="mt-1 w-full rounded-xl border border-line px-3 py-2"
+          />
+        </label>
+
+        <h3 className="pt-2 font-semibold text-ink">Automation timing</h3>
+        <p className="text-xs text-stone-500">
+          These only apply to follow-ups and review asks. You can also pin them
+          in <code>.env</code> on first setup.
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="text-sm">
+            Follow-up after (days)
+            <input
+              name="followUpDays"
+              type="number"
+              min={1}
+              max={30}
+              defaultValue={settings.followUpDays}
+              className="mt-1 w-full rounded-xl border border-line px-3 py-2"
+            />
+          </label>
+          <label className="text-sm">
+            Review ask after done (days)
+            <input
+              name="reviewAskDaysAfterJob"
+              type="number"
+              min={0}
+              max={30}
+              defaultValue={settings.reviewAskDaysAfterJob}
+              className="mt-1 w-full rounded-xl border border-line px-3 py-2"
+            />
+          </label>
+        </div>
+        <label className="block text-sm">
+          Google review URL
+          <input
+            name="googleReviewUrl"
+            defaultValue={settings.googleReviewUrl}
             className="mt-1 w-full rounded-xl border border-line px-3 py-2"
           />
         </label>

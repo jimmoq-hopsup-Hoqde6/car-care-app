@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AutomationPanel } from "@/components/AutomationPanel";
 import { StatusBadge } from "@/components/StatusBadge";
 import { StatusSelect } from "@/components/StatusSelect";
+import { getSettings } from "@/lib/settings";
 import { CHANNEL_LABELS } from "@/lib/constants";
 import { formatAdelaide } from "@/lib/booking";
 import { formatAUD } from "@/lib/money";
@@ -14,10 +16,13 @@ export default async function JobPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const job = await prisma.job.findUnique({
-    where: { id },
-    include: { photos: true, drafts: { orderBy: { createdAt: "desc" } } },
-  });
+  const [job, settings] = await Promise.all([
+    prisma.job.findUnique({
+      where: { id },
+      include: { photos: true, drafts: { orderBy: { createdAt: "desc" } } },
+    }),
+    getSettings(),
+  ]);
   if (!job) notFound();
 
   const items = parseRepairItems(job.repairItems);
@@ -112,6 +117,8 @@ export default async function JobPage({
           )}
         </section>
       </div>
+
+      <AutomationPanel job={job} settings={settings} />
 
       <section className="rounded-2xl border border-line bg-card p-4">
         <h2 className="text-sm font-semibold text-ink">Drafts</h2>

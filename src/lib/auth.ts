@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import { GOOGLE_SCOPES } from "./constants";
 import { isGoogleConfigured } from "./env";
+import { persistGoogleAccount } from "./google-tokens";
 
 const googleProvider = isGoogleConfigured()
   ? Google({
@@ -27,6 +28,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.accessToken = account.access_token;
         token.refreshToken = account.refresh_token;
         token.expiresAt = account.expires_at;
+        try {
+          await persistGoogleAccount({
+            email: token.email,
+            accessToken: account.access_token,
+            refreshToken: account.refresh_token,
+            expiresAt: account.expires_at,
+          });
+        } catch {
+          // JWT still holds the session tokens if the local store is unavailable.
+        }
         return token;
       }
 

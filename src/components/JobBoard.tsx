@@ -9,12 +9,20 @@ import {
   STATUS_LABELS,
   type JobStatusValue,
 } from "@/lib/constants";
+import type { AutomationSettings } from "@/lib/automation-status";
 import { formatAUD } from "@/lib/money";
+import { AutomationBadges } from "./AutomationBadges";
 import { StatusBadge } from "./StatusBadge";
 
 type JobWithPhotos = Job & { photos: Photo[] };
 
-export function JobBoard({ jobs }: { jobs: JobWithPhotos[] }) {
+export function JobBoard({
+  jobs,
+  settings,
+}: {
+  jobs: JobWithPhotos[];
+  settings: AutomationSettings;
+}) {
   const [filter, setFilter] = useState<JobStatusValue | "ALL">("ALL");
 
   const grouped = useMemo(() => {
@@ -68,7 +76,9 @@ export function JobBoard({ jobs }: { jobs: JobWithPhotos[] }) {
             Nothing in this column yet.
           </p>
         ) : (
-          visible.map((job) => <JobCard key={job.id} job={job} />)
+          visible.map((job) => (
+            <JobCard key={job.id} job={job} settings={settings} />
+          ))
         )}
       </div>
 
@@ -94,7 +104,9 @@ export function JobBoard({ jobs }: { jobs: JobWithPhotos[] }) {
                   Empty
                 </div>
               ) : (
-                column.jobs.map((job) => <JobCard key={job.id} job={job} />)
+                column.jobs.map((job) => (
+                  <JobCard key={job.id} job={job} settings={settings} />
+                ))
               )}
             </div>
           </section>
@@ -126,7 +138,13 @@ function FilterChip({
   );
 }
 
-function JobCard({ job }: { job: JobWithPhotos }) {
+function JobCard({
+  job,
+  settings,
+}: {
+  job: JobWithPhotos;
+  settings: AutomationSettings;
+}) {
   const photo = job.photos[0];
   return (
     <Link
@@ -160,6 +178,7 @@ function JobCard({ job }: { job: JobWithPhotos }) {
             {job.suburb || "Suburb not set"}
             {job.quoteAmount != null ? ` · ${formatAUD(job.quoteAmount)}` : ""}
           </p>
+          <AutomationBadges job={job} settings={settings} />
         </div>
       </div>
     </Link>
