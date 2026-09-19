@@ -4,6 +4,10 @@ export const ADELAIDE_TZ = "Australia/Adelaide";
 export const DEFAULT_GOOGLE_REVIEW_URL =
   "https://maps.app.goo.gl/UJcUi9ouWQaVn71D8?g_st=ic";
 
+/** Owner mobile for a later SMS phase. Not used by this app. */
+export const OWNER_MOBILE =
+  process.env.OWNER_MOBILE?.trim() || "0435222221";
+
 export const GOOGLE_SCOPES = [
   "openid",
   "email",

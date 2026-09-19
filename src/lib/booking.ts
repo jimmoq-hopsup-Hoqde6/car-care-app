@@ -177,18 +177,24 @@ export function jobEventTitle(job: {
 }
 
 export function jobEventDescription(job: {
+  customerName?: string | null;
   quoteAmount?: number | null;
   vehicle?: string | null;
   damageNotes?: string | null;
   customerEmail?: string | null;
   customerPhone?: string | null;
+  address?: string | null;
+  suburb?: string | null;
 }) {
+  const address = job.address || job.suburb;
   const lines = [
+    job.customerName ? `Customer: ${job.customerName}` : null,
+    job.customerPhone ? `Phone: ${job.customerPhone}` : null,
     job.quoteAmount != null ? `Quote total: ${formatAUD(job.quoteAmount)}` : null,
+    address ? `Address: ${address}` : null,
     job.vehicle ? `Vehicle: ${job.vehicle}` : null,
     job.damageNotes ? `Notes: ${job.damageNotes}` : null,
     job.customerEmail ? `Email: ${job.customerEmail}` : null,
-    job.customerPhone ? `Phone: ${job.customerPhone}` : null,
   ];
   return lines.filter(Boolean).join("\n");
 }
@@ -207,7 +213,7 @@ export function buildConfirmationEmail(job: {
 
 You're booked in for ${when} at ${where}.
 
-Please make sure I have a suitable off-street location, access to a power point, and adequate natural light.
+Please make sure I have off-street parking, access to a power point, and adequate natural light.
 
 Kind regards,
 Marcel Kuhn

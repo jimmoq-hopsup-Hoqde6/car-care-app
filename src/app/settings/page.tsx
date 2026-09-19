@@ -1,7 +1,7 @@
 import { addPriceBandAction, saveSettingsAction } from "@/app/actions/settings";
 import { RunAutomationsButton } from "@/components/RunAutomationsButton";
 import { signIn } from "@/lib/auth";
-import { GOOGLE_SCOPES } from "@/lib/constants";
+import { GOOGLE_SCOPES, OWNER_MOBILE } from "@/lib/constants";
 import { DESK_LABELS } from "@/lib/gmail-labels";
 import { isDemoMode, isGoogleConfigured } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
@@ -179,6 +179,11 @@ export default async function SettingsPage() {
             className="mt-1 w-full rounded-xl border border-line px-3 py-2"
           />
         </label>
+        <p className="rounded-xl bg-stone-50 px-3 py-2 text-sm text-stone-600">
+          Owner mobile for a later SMS phase:{" "}
+          <span className="font-semibold text-ink">{OWNER_MOBILE}</span>. This
+          desk is email and Calendar only — it does not send SMS or WhatsApp.
+        </p>
         <label className="block text-sm">
           Business name
           <input

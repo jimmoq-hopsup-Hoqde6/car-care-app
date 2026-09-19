@@ -1,5 +1,10 @@
 import { JobStatus } from "@prisma/client";
-import { listAvailableSlots } from "../src/lib/booking";
+import {
+  buildConfirmationEmail,
+  jobEventDescription,
+  listAvailableSlots,
+} from "../src/lib/booking";
+import { OWNER_MOBILE } from "../src/lib/constants";
 import { prisma } from "../src/lib/prisma";
 import { recommendSlots } from "../src/lib/recommendations";
 
@@ -49,6 +54,48 @@ async function main() {
     .join(" | ");
   if (!/brighton|somerton park|glenelg/i.test(reason)) {
     throw new Error(`Expected a nearby-suburb reason, got: ${reason}`);
+  }
+
+  const start = new Date("2026-09-24T01:30:00.000Z");
+  const end = new Date("2026-09-24T04:30:00.000Z");
+  const confirmation = buildConfirmationEmail({
+    customerName: "John Hale",
+    address: "41 Jetty Road, Glenelg SA 5045",
+    suburb: "Glenelg",
+    bookedStart: start,
+    bookedEnd: end,
+  });
+  if (!confirmation.startsWith("Hi John,")) {
+    throw new Error("Confirmation must greet Hi John,");
+  }
+  if (!confirmation.includes("off-street parking")) {
+    throw new Error("Confirmation must ask for off-street parking.");
+  }
+  if (!confirmation.includes("Marcel Kuhn")) {
+    throw new Error("Confirmation must sign off Marcel Kuhn.");
+  }
+
+  const eventBody = jobEventDescription({
+    customerName: "John Hale",
+    customerPhone: "0421 990 221",
+    quoteAmount: 520,
+    address: "41 Jetty Road, Glenelg SA 5045",
+    suburb: "Glenelg",
+  });
+  if (!eventBody.includes("Customer: John Hale")) {
+    throw new Error("Calendar event must include the customer name.");
+  }
+  if (!eventBody.includes("Phone: 0421 990 221")) {
+    throw new Error("Calendar event must include the phone.");
+  }
+  if (!eventBody.includes("Quote total:")) {
+    throw new Error("Calendar event must include the quote total.");
+  }
+  if (!eventBody.includes("41 Jetty Road")) {
+    throw new Error("Calendar event must include the address.");
+  }
+  if (OWNER_MOBILE !== "0435222221") {
+    throw new Error(`Expected owner mobile 0435222221, got ${OWNER_MOBILE}`);
   }
 
   console.log(

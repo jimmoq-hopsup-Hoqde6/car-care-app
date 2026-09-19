@@ -7,7 +7,8 @@ It does **not** invent prices. You type the figure. **Quotes and booking confirm
 Two follow-on emails can send on a schedule (see [Automations](#automations-what-sends-on-its-own)): a nudge if a quote sits unanswered, and a Google review ask after a job is marked Done.
 
 Timezone: **Australia/Adelaide**  
-From address: **Info@mobilecarscratchrepairadelaide.com.au**
+From address: **Info@mobilecarscratchrepairadelaide.com.au**  
+Owner mobile (later SMS only — not used here): **0435222221**
 
 ## What you can do
 
@@ -45,6 +46,7 @@ npm run automations:verify  # confirm demo mode did not email anyone
 npm run booking:verify      # confirm demo alerts + suburb-aware slot recommendations
 npm run quote:verify        # confirm the locked quote template wording
 npm run labels:verify       # confirm Gmail job-desk label mapping (no email)
+npm run verify              # run all of the checks above
 ```
 
 ## Connect live Gmail and Calendar
@@ -223,6 +225,12 @@ A typical cron (once a day, Adelaide morning) is enough:
 ```bash
 0 8 * * * cd /path/to/job-desk && npm run automations:run
 ```
+
+## Out of scope (Phase 1)
+
+This desk is **email + Google Calendar only**. Do not expect SMS, WhatsApp, or an iOS app here.
+
+Marcel's owner mobile for a later SMS phase is **0435222221** (`OWNER_MOBILE` in `.env`). It is shown on Settings so it is not lost. This app never sends a text.
 
 ## Settings you can change in the app
 

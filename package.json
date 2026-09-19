@@ -16,7 +16,8 @@
     "automations:verify": "tsx scripts/verify-automations-demo.ts",
     "booking:verify": "tsx scripts/verify-booking-demo.ts",
     "quote:verify": "tsx scripts/verify-quote-template.ts",
-    "labels:verify": "tsx scripts/verify-gmail-labels.ts"
+    "labels:verify": "tsx scripts/verify-gmail-labels.ts",
+    "verify": "npm run quote:verify && npm run booking:verify && npm run labels:verify && npm run automations:verify"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
