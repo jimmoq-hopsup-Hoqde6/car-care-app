@@ -1,5 +1,5 @@
 import { fromZonedTime } from "date-fns-tz";
-import { formatLastActivity } from "../src/lib/activity";
+import { formatBookedSlot, formatLastActivity } from "../src/lib/activity";
 import { ADELAIDE_TZ } from "../src/lib/constants";
 import { prisma } from "../src/lib/prisma";
 
@@ -42,6 +42,12 @@ async function main() {
     formatLastActivity(fromZonedTime("2025-12-30T08:00:00", ADELAIDE_TZ), now) ===
       "30 Dec 2025 · 8:00 am",
     "Other years should include the year",
+  );
+
+  assert(
+    formatBookedSlot(fromZonedTime("2026-09-22T08:00:00", ADELAIDE_TZ)) ===
+      "Tue 22 Sep, 8:00 am",
+    "Booked slot on a card should be compact Adelaide date/time",
   );
 
   const jobs = await prisma.job.findMany({

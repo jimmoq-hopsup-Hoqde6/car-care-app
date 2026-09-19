@@ -30,7 +30,7 @@ export function AutomationPanel({
   const demo = isDemoMode();
 
   return (
-    <section className="rounded-2xl border border-line bg-card p-4">
+    <section className="desk-card p-4">
       <h2 className="text-sm font-semibold text-ink">Automations</h2>
       <p className="mt-1 text-xs text-stone-500">
         Quotes and booking confirmations never send on their own. Follow-ups

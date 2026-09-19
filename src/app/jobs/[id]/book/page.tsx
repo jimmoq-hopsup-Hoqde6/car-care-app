@@ -98,8 +98,8 @@ export default async function BookPage({
         ← {job.customerName}
       </Link>
       <div>
-        <h1 className="text-2xl font-semibold text-ink">Pick a booking</h1>
-        <p className="text-sm text-stone-600">
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">Pick a booking</h1>
+        <p className="mt-1 text-sm text-muted">
           Free slots for the next 14 days, Adelaide time. Default job length is 3
           hours. Recommended times sit near other jobs the same day. Confirmation
           drafts never send themselves.

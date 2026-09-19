@@ -42,8 +42,8 @@ export default async function QuotePage({
         ← {job.customerName}
       </Link>
       <div>
-        <h1 className="text-2xl font-semibold text-ink">Quote composer</h1>
-        <p className="text-sm text-stone-600">
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">Quote composer</h1>
+        <p className="mt-1 text-sm text-muted">
           Phone path: Accept suggestion or type the price → Save draft or Send.
           The email follows your locked standard wording and never sends on its
           own.

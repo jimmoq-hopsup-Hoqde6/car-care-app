@@ -52,7 +52,7 @@ export function BookingPicker({
 
   return (
     <div className="space-y-5">
-      <div className="rounded-2xl border border-line bg-card p-4">
+      <div className="desk-card p-4">
         <p className="text-sm text-stone-600">Calendar title</p>
         <p className="font-semibold text-ink">{eventTitle}</p>
         <p className="mt-1 text-sm text-stone-600">
@@ -158,7 +158,7 @@ export function BookingPicker({
         type="button"
         disabled={!selected || busy || selected.busy}
         onClick={() => void confirm()}
-        className="w-full min-h-11 rounded-full bg-teal px-4 py-3 text-sm font-semibold text-ink disabled:opacity-50"
+        className="w-full min-h-12 rounded-full bg-teal px-4 py-3 text-sm font-semibold text-ink disabled:opacity-50"
       >
         {busy
           ? "Booking…"

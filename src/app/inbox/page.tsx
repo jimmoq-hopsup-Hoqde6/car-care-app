@@ -44,8 +44,10 @@ export default async function InboxPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-semibold text-ink">Inbox triage</h1>
-        <p className="text-sm text-stone-600">
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">
+          Inbox triage
+        </h1>
+        <p className="mt-1 text-sm text-muted">
           {live
             ? "Live Gmail from the last 45 days. Eligible quote, New Quote Request forms, booking and SMS threads are added to the job board automatically. Marketing such as Manheim stays ignored."
             : isGoogleConfigured()
@@ -60,10 +62,10 @@ export default async function InboxPage() {
       {inboxError ? (
         <div
           role="alert"
-          className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-ink"
+          className="desk-card border-amber-200 bg-amber-50 px-4 py-3 text-sm text-ink"
         >
           <p className="font-semibold">Inbox could not load Gmail</p>
-          <p className="mt-1 text-stone-700">{inboxError}</p>
+          <p className="mt-1 text-muted">{inboxError}</p>
           <Link
             href="/settings"
             className="mt-2 inline-block text-sm font-semibold text-teal-dark underline"
@@ -74,7 +76,7 @@ export default async function InboxPage() {
       ) : null}
 
       {imported > 0 ? (
-        <p className="rounded-2xl border border-teal/40 bg-teal/10 px-4 py-2 text-sm text-ink">
+        <p className="desk-card border-teal/30 bg-teal/10 px-4 py-2.5 text-sm text-ink">
           Added {imported} {imported === 1 ? "thread" : "threads"} to the job
           board.
         </p>
@@ -84,14 +86,14 @@ export default async function InboxPage() {
         {active.map((thread) => (
           <article
             key={thread.id}
-            className="rounded-2xl border border-line bg-card p-4"
+            className="desk-card p-4"
           >
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-teal/10 px-2.5 py-0.5 text-xs font-semibold text-teal-dark">
+              <span className="rounded-full bg-teal/15 px-2.5 py-0.5 text-xs font-semibold text-teal-dark ring-1 ring-teal/30">
                 {kindLabel(thread.kind)}
               </span>
               {thread.deskLabelName ? (
-                <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-ink">
+                <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-950 ring-1 ring-amber-200/80">
                   Gmail: {thread.deskLabelName}
                 </span>
               ) : null}
@@ -104,14 +106,16 @@ export default async function InboxPage() {
                 </Link>
               ) : null}
             </div>
-            <h2 className="mt-2 font-semibold text-ink">{thread.subject}</h2>
-            <p className="text-sm text-stone-600">{thread.from}</p>
+            <h2 className="mt-2 font-semibold tracking-tight text-ink">
+              {thread.subject}
+            </h2>
+            <p className="text-sm text-muted">{thread.from}</p>
             <p className="mt-1 text-sm text-stone-500">{thread.snippet}</p>
             {!thread.jobId ? (
               <form action={addThreadToBoard.bind(null, thread.id)} className="mt-3">
                 <button
                   type="submit"
-                  className="inline-flex min-h-11 items-center rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-white"
+                  className="desk-btn bg-ink text-white"
                 >
                   Add to job board
                 </button>
@@ -122,11 +126,13 @@ export default async function InboxPage() {
       </div>
 
       {active.length === 0 && !inboxError ? (
-        <p className="text-sm text-stone-500">No customer threads to show.</p>
+        <p className="desk-card border-dashed px-5 py-8 text-center text-sm text-muted">
+          No customer threads to show.
+        </p>
       ) : null}
 
       {ignored.length > 0 ? (
-        <details className="rounded-2xl border border-dashed border-line bg-white/50 p-4">
+        <details className="desk-card border-dashed p-4">
           <summary className="cursor-pointer text-sm font-semibold text-stone-600">
             Ignored ({ignored.length}) — marketing and auctions
           </summary>

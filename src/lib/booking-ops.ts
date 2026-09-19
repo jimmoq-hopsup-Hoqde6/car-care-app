@@ -66,3 +66,11 @@ export function forgottenReadyToBook<T extends BookingJob>(jobs: T[]) {
       return aTime - bTime;
     });
 }
+
+/** Awaiting-customer jobs with no update for 2+ days (visual stall, not a send). */
+export function isStalledAwaiting(job: BookingJob, now = new Date()) {
+  if (job.status !== "AWAITING_CUSTOMER") return false;
+  const start = lastCustomerMessageAt(job);
+  if (!start) return false;
+  return now.getTime() - start.getTime() >= 48 * 36e5;
+}

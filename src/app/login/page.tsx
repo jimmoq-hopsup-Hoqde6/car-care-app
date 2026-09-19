@@ -47,9 +47,10 @@ export default async function LoginPage({
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-12">
         <div className="mb-8">
           <BrandLogo className="h-14 w-auto max-w-full object-contain object-left sm:h-16" />
+          <div className="mt-5 h-px w-16 bg-teal" aria-hidden />
         </div>
         <h1 className="text-2xl font-semibold tracking-tight">Job desk</h1>
-        <p className="mt-2 text-sm text-white/75">
+        <p className="mt-2 text-sm text-white/70">
           Sign in with Google. Only Marcel&apos;s business accounts can open
           this desk on the web.
         </p>
@@ -73,7 +74,7 @@ export default async function LoginPage({
           >
             <button
               type="submit"
-              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-teal px-4 py-3 text-sm font-semibold text-ink hover:bg-teal/90"
+              className="flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-teal px-4 py-3 text-sm font-semibold text-ink hover:brightness-95"
             >
               Sign in with Google
             </button>

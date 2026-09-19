@@ -63,7 +63,7 @@ export function QuoteComposer({ job, priceBands, items }: Props) {
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
       <section className="space-y-4">
-        <div className="rounded-2xl border border-line bg-card p-4">
+        <div className="desk-card p-4">
           <h2 className="text-sm font-semibold text-ink">Customer</h2>
           <p className="mt-1 text-lg font-semibold">{job.customerName}</p>
           <p className="text-sm text-stone-600">
@@ -72,7 +72,7 @@ export function QuoteComposer({ job, priceBands, items }: Props) {
           <p className="mt-2 text-sm text-stone-600">{job.damageNotes}</p>
         </div>
 
-        <div className="rounded-2xl border border-line bg-card p-4">
+        <div className="desk-card p-4">
           <label className="text-sm font-semibold text-ink" htmlFor="amount">
             Your price (AUD)
           </label>
@@ -156,7 +156,7 @@ export function QuoteComposer({ job, priceBands, items }: Props) {
           ) : null}
         </div>
 
-        <div className="rounded-2xl border border-line bg-card p-4">
+        <div className="desk-card p-4">
           <h2 className="text-sm font-semibold text-ink">Repair items</h2>
           <div className="mt-2 space-y-2">
             {repairItems.map((item, index) => (
@@ -217,7 +217,7 @@ export function QuoteComposer({ job, priceBands, items }: Props) {
             type="button"
             disabled={busy}
             onClick={() => submit(false)}
-            className="flex-1 min-h-11 rounded-full bg-teal px-4 py-3 text-sm font-semibold text-ink disabled:opacity-60"
+            className="flex-1 min-h-12 rounded-full bg-teal px-4 py-3 text-sm font-semibold text-ink disabled:opacity-60"
           >
             {busy ? "Saving…" : "Save as draft"}
           </button>
@@ -233,7 +233,7 @@ export function QuoteComposer({ job, priceBands, items }: Props) {
                 void submit(true);
               }
             }}
-            className="flex-1 min-h-11 rounded-full border border-line bg-white px-4 py-3 text-sm font-semibold text-ink disabled:opacity-60"
+            className="flex-1 min-h-12 rounded-full border border-line bg-white px-4 py-3 text-sm font-semibold text-ink disabled:opacity-60"
           >
             Send now
           </button>

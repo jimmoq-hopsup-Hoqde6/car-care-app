@@ -3,6 +3,7 @@ import {
   bookingNextCta,
   forgottenReadyToBook,
   isReadyToBookNoDate,
+  isStalledAwaiting,
   waitingSinceLabel,
 } from "../src/lib/booking-ops";
 import { isPublicPath } from "../src/lib/auth.config";
@@ -67,6 +68,26 @@ async function main() {
     quoteAmount: 520,
   });
   assert(/follow-up/i.test(wait.sentence), "Awaiting customer mentions follow-up");
+  assert(
+    isStalledAwaiting(
+      {
+        status: "AWAITING_CUSTOMER",
+        lastActivityAt: new Date(Date.now() - 50 * 36e5),
+      },
+      new Date(),
+    ),
+    "Awaiting customer with no update for 48h+ is stalled (visual only)",
+  );
+  assert(
+    !isStalledAwaiting(
+      {
+        status: "AWAITING_CUSTOMER",
+        lastActivityAt: new Date(),
+      },
+      new Date(),
+    ),
+    "Fresh awaiting-customer jobs are not stalled",
+  );
 
   const done = nextActionForJob({
     id: "job-d",

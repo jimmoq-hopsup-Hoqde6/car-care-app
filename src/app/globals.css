@@ -1,14 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f3eee4;
-  --foreground: #1c1915;
+  --background: #f4f5f7;
+  --foreground: #1c1917;
   --ink: #0a0a0a;
   --teal: #2dd4bf;
   --teal-dark: #0f766e;
   --amber: #c47b17;
-  --card: #fffdf8;
-  --line: #e4d8c4;
+  --card: #ffffff;
+  --line: #e7e5e4;
+  --muted: #57534e;
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.05), 0 8px 24px rgb(15 23 42 / 0.04);
 }
 
 @theme inline {
@@ -20,12 +22,14 @@
   --color-amber: var(--amber);
   --color-card: var(--card);
   --color-line: var(--line);
+  --color-muted: var(--muted);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 html {
   background: var(--background);
+  overflow-x: hidden;
 }
 
 html.login-screen,
@@ -37,6 +41,7 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
 button,
@@ -45,4 +50,24 @@ input,
 select,
 textarea {
   touch-action: manipulation;
+}
+
+@layer components {
+  .desk-card {
+    border: 1px solid var(--line);
+    border-radius: 1rem;
+    background: var(--card);
+    box-shadow: var(--shadow-card);
+  }
+
+  .desk-btn {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
 }

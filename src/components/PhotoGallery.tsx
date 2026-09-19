@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { Photo } from "@prisma/client";
 import { addJobPhotosAction, setPrimaryPhotoAction } from "@/app/actions/photos";
 import { photoAlt, primaryPhoto, sortPhotos } from "@/lib/photos";
+import { PhotoFrame } from "./PhotoFrame";
 
 type Props = {
   jobId: string;
@@ -36,14 +37,14 @@ export function PhotoGallery({
   }
 
   return (
-    <section className="rounded-2xl border border-line bg-card p-4">
+    <section className="desk-card p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-sm font-semibold text-ink">{heading}</h2>
-          <p className="mt-0.5 text-xs text-stone-500">
+          <p className="mt-0.5 text-xs text-muted">
             {ordered.length
               ? "Tap a photo for a full-size look before you drive out."
-              : "No repair photos yet — add some so you know the panel."}
+              : "No damage photo yet — add some so you know the panel."}
           </p>
         </div>
         {ordered.length > 1 ? (
@@ -64,29 +65,25 @@ export function PhotoGallery({
               key={photo.id}
               type="button"
               onClick={() => setOpenId(photo.id)}
-              className="group relative overflow-hidden rounded-xl bg-stone-200 ring-1 ring-line"
+              className="group relative overflow-hidden rounded-xl ring-1 ring-line"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <PhotoFrame
                 src={photo.url}
                 alt={photoAlt(photo)}
-                className={
-                  compact
-                    ? "h-20 w-full object-cover"
-                    : "h-36 w-full object-cover sm:h-40"
-                }
-              />
-              {photo.isPrimary || photo.id === primaryPhoto(ordered)?.id ? (
-                <span className="absolute left-1.5 top-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-semibold text-white">
-                  Primary
-                </span>
-              ) : null}
+                className={compact ? "h-20 w-full" : "h-36 w-full sm:h-40"}
+              >
+                {photo.isPrimary || photo.id === primaryPhoto(ordered)?.id ? (
+                  <span className="absolute left-1.5 top-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-semibold text-white">
+                    Primary
+                  </span>
+                ) : null}
+              </PhotoFrame>
             </button>
           ))}
         </div>
       ) : (
-        <div className="mt-3 flex h-28 items-center justify-center rounded-xl border border-dashed border-line bg-white text-sm text-stone-500">
-          No repair photo
+        <div className="mt-3 flex h-36 items-center justify-center rounded-xl border border-dashed border-line bg-stone-50 text-sm font-semibold text-stone-500">
+          No damage photo
         </div>
       )}
 

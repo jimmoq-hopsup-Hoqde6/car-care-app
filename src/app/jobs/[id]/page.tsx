@@ -5,14 +5,21 @@ import { PhotoGallery } from "@/components/PhotoGallery";
 import { SmsThread } from "@/components/SmsThread";
 import { StatusBadge } from "@/components/StatusBadge";
 import { StatusSelect } from "@/components/StatusSelect";
-import { getSettings } from "@/lib/settings";
-import { CHANNEL_LABELS } from "@/lib/constants";
 import { formatLastActivity } from "@/lib/activity";
 import { formatAdelaide } from "@/lib/booking";
+import { isReadyToBookNoDate } from "@/lib/booking-ops";
+import { CHANNEL_LABELS } from "@/lib/constants";
 import { nextActionForJob } from "@/lib/job-next";
 import { formatAUD } from "@/lib/money";
+import { formatAuMobile, toE164Au } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
 import { parseRepairItems } from "@/lib/quote";
+import { getSettings } from "@/lib/settings";
+
+function mapsHref(suburb?: string | null, address?: string | null) {
+  const q = [address, suburb, "Adelaide"].filter(Boolean).join(", ");
+  return `https://maps.google.com/?q=${encodeURIComponent(q)}`;
+}
 
 export default async function JobPage({
   params,
@@ -36,15 +43,12 @@ export default async function JobPage({
     ]);
   } catch {
     return (
-      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6">
+      <div className="desk-card border-amber-200 bg-amber-50 p-6">
         <h1 className="text-xl font-semibold text-ink">Job could not load</h1>
-        <p className="mt-2 text-sm text-stone-700">
+        <p className="mt-2 text-sm text-muted">
           The database may be unreachable. Try the job board again in a moment.
         </p>
-        <Link
-          href="/"
-          className="mt-4 inline-flex min-h-11 items-center rounded-full bg-teal px-4 py-2.5 text-sm font-semibold text-ink"
-        >
+        <Link href="/" className="desk-btn mt-4 bg-teal text-ink">
           Job board
         </Link>
       </div>
@@ -56,6 +60,10 @@ export default async function JobPage({
   const next = nextActionForJob(job);
   const quoteHref = `/jobs/${job.id}/quote`;
   const bookHref = `/jobs/${job.id}/book`;
+  const noDate = isReadyToBookNoDate(job);
+  const phoneDisplay = formatAuMobile(job.customerPhone);
+  const phoneTel = toE164Au(job.customerPhoneE164 || job.customerPhone);
+  const canMap = Boolean(job.address || job.suburb);
 
   return (
     <div className="space-y-5">
@@ -65,76 +73,129 @@ export default async function JobPage({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-semibold text-ink">{job.customerName}</h1>
+            <h1 className="text-2xl font-semibold tracking-tight text-ink">
+              {job.customerName}
+            </h1>
             <StatusBadge status={job.status} />
             {job.photoAskSentAt && job.photos.length === 0 && !job.outOfScope ? (
               <span className="rounded-full bg-teal/15 px-3 py-1 text-xs font-semibold text-teal-dark">
                 Awaiting photos
               </span>
             ) : null}
-            {job.status === "READY_TO_BOOK" && !job.bookedStart && !job.calendarEventId ? (
-              <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">
+            {noDate ? (
+              <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-950">
                 Ready to book — no date
               </span>
             ) : null}
           </div>
-          <p className="mt-1 text-stone-600">
+          <p className="mt-1 text-muted">
             {job.vehicle || "Vehicle not set"} · {job.suburb || "Suburb not set"}
           </p>
           <p className="mt-1 text-sm font-medium text-ink">
-            Last activity · {formatLastActivity(job.lastActivityAt ?? job.updatedAt)}
+            Last activity ·{" "}
+            {formatLastActivity(job.lastActivityAt ?? job.updatedAt)}
           </p>
           <p className="text-xs text-stone-500">Australia/Adelaide</p>
           {job.outOfScope ? (
-            <p className="mt-2 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">
+            <p className="mt-2 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-950">
               Out of scope — bonnet or roof
             </p>
           ) : null}
         </div>
-        <div className="flex flex-col gap-2 sm:items-end">
-          <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 sm:justify-end">
+          {next.href !== quoteHref ? (
             <Link
-              href={next.href}
-              className="inline-flex min-h-11 items-center justify-center rounded-full bg-teal px-4 py-2.5 text-sm font-semibold text-ink"
+              href={quoteHref}
+              className="desk-btn min-h-12 border border-line bg-white px-5 text-ink"
             >
-              {next.cta}
+              Quote
             </Link>
-            {next.href !== quoteHref ? (
-              <Link
-                href={quoteHref}
-                className="inline-flex min-h-11 items-center justify-center rounded-full border border-line bg-white px-4 py-2.5 text-sm font-semibold text-ink"
-              >
-                Quote
-              </Link>
-            ) : (
-              <Link
-                href={bookHref}
-                className="inline-flex min-h-11 items-center justify-center rounded-full border border-line bg-white px-4 py-2.5 text-sm font-semibold text-ink"
-              >
-                Book
-              </Link>
-            )}
-          </div>
+          ) : (
+            <Link
+              href={bookHref}
+              className="desk-btn min-h-12 border border-line bg-white px-5 text-ink"
+            >
+              Book
+            </Link>
+          )}
         </div>
       </div>
 
       <div
-        className={`rounded-2xl border px-4 py-3 ${
+        className={`desk-card overflow-hidden border-l-4 px-4 py-4 ${
           next.tone === "warn"
-            ? "border-amber-300 bg-amber-50"
+            ? "border-amber-200 border-l-amber-400 bg-amber-50"
             : next.tone === "wait"
-              ? "border-line bg-white"
-              : "border-teal/40 bg-teal/10"
+              ? "border-l-stone-300"
+              : "border-teal/30 border-l-teal bg-teal/10"
         }`}
       >
-        <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
           Next
         </p>
-        <p className="mt-1 text-sm font-medium text-ink">{next.sentence}</p>
-        <p className="mt-1 text-xs text-stone-500">
+        <p className="mt-1.5 text-base font-semibold leading-snug text-ink">
+          {next.sentence}
+        </p>
+        <p className="mt-1.5 text-xs text-muted">
           Quotes and booking confirmations never send unless you tap Send.
         </p>
+        <Link
+          href={next.href}
+          className="desk-btn mt-4 min-h-12 w-full bg-teal text-base text-ink shadow-sm hover:brightness-95"
+        >
+          {next.cta}
+        </Link>
       </div>
+
+      {phoneTel || canMap ? (
+        <div
+          className={`grid gap-2 ${phoneTel && canMap ? "grid-cols-2" : "grid-cols-1"}`}
+        >
+          {phoneTel ? (
+            <a
+              href={`tel:${phoneTel}`}
+              className="desk-btn min-h-12 border border-line bg-white text-ink"
+            >
+              Call {phoneDisplay || phoneTel}
+            </a>
+          ) : null}
+          {canMap ? (
+            <a
+              href={mapsHref(job.suburb, job.address)}
+              className="desk-btn min-h-12 border border-line bg-white text-ink"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Maps
+            </a>
+          ) : null}
+        </div>
+      ) : null}
+
+      {job.bookedStart && job.bookedEnd ? (
+        <section className="desk-card border-l-4 border-l-indigo-400 px-4 py-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+            Booked
+          </p>
+          <p className="mt-1 text-lg font-semibold text-ink">
+            {formatAdelaide(job.bookedStart)} –{" "}
+            {formatAdelaide(job.bookedEnd, "h:mm a")}
+          </p>
+          <p className="mt-1 text-sm text-muted">
+            {job.address || job.suburb || "Add an address on the job"}
+          </p>
+        </section>
+      ) : noDate ? (
+        <section className="desk-card border-l-4 border-l-teal border-amber-200 bg-amber-50 px-4 py-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-900">
+            Ready to book — no date
+          </p>
+          <p className="mt-1 text-sm text-ink">
+            No calendar event yet. Use the next action above — the confirmation
+            draft will not send itself.
+          </p>
+        </section>
+      ) : null}
 
       <PhotoGallery jobId={job.id} photos={job.photos} />
 
@@ -145,17 +206,34 @@ export default async function JobPage({
       />
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="rounded-2xl border border-line bg-card p-4">
+        <section className="desk-card p-4">
           <h2 className="text-sm font-semibold text-ink">Details</h2>
-          <dl className="mt-3 space-y-2 text-sm">
+          <dl className="mt-1">
             <Row
               label="Last activity"
               value={formatLastActivity(job.lastActivityAt ?? job.updatedAt)}
             />
-            <Row label="Email" value={job.customerEmail} />
-            <Row label="Phone" value={job.customerPhone} />
-            <Row label="Address" value={job.address} />
-            <Row label="Channel" value={CHANNEL_LABELS[job.channel] ?? job.channel} />
+            <Row
+              label="Email"
+              value={job.customerEmail}
+              href={
+                job.customerEmail ? `mailto:${job.customerEmail}` : undefined
+              }
+            />
+            <Row
+              label="Phone"
+              value={phoneDisplay || job.customerPhone}
+              href={phoneTel ? `tel:${phoneTel}` : undefined}
+            />
+            <Row
+              label="Address"
+              value={job.address}
+              href={canMap ? mapsHref(job.suburb, job.address) : undefined}
+            />
+            <Row
+              label="Channel"
+              value={CHANNEL_LABELS[job.channel] ?? job.channel}
+            />
             <Row
               label="Quote"
               value={
@@ -173,9 +251,9 @@ export default async function JobPage({
               }
             />
           </dl>
-          <p className="mt-4 text-sm text-stone-600">{job.damageNotes}</p>
+          <p className="mt-4 text-sm text-muted">{job.damageNotes}</p>
           {items.length > 0 ? (
-            <ul className="mt-3 list-disc pl-5 text-sm text-stone-700">
+            <ul className="mt-3 list-disc pl-5 text-sm text-ink">
               {items.map((item) => (
                 <li key={item}>{item}</li>
               ))}
@@ -183,13 +261,13 @@ export default async function JobPage({
           ) : null}
         </section>
 
-        <section className="rounded-2xl border border-line bg-card p-4">
+        <section className="desk-card p-4">
           <h2 className="text-sm font-semibold text-ink">Move status</h2>
-          <p className="mt-1 text-xs text-stone-500">
+          <p className="mt-1 text-xs text-muted">
             Updates the matching Gmail job-desk label. This does not email the
             customer.
           </p>
-          <div className="mt-2">
+          <div className="mt-3">
             <StatusSelect jobId={job.id} status={job.status} />
           </div>
         </section>
@@ -197,10 +275,10 @@ export default async function JobPage({
 
       <AutomationPanel job={job} settings={settings} />
 
-      <section className="rounded-2xl border border-line bg-card p-4">
+      <section className="desk-card p-4">
         <h2 className="text-sm font-semibold text-ink">Drafts</h2>
         {job.drafts.length === 0 ? (
-          <p className="mt-2 text-sm text-stone-500">
+          <p className="mt-2 text-sm text-muted">
             No quote or confirmation drafts yet.
           </p>
         ) : (
@@ -210,7 +288,7 @@ export default async function JobPage({
                 key={draft.id}
                 className="rounded-xl border border-line bg-white p-3"
               >
-                <p className="text-xs uppercase tracking-wide text-stone-500">
+                <p className="text-xs uppercase tracking-wide text-muted">
                   {draft.type}
                   {draft.sentAt ? " · sent" : " · draft"}
                   {draft.gmailDraftId ? " · in Gmail" : ""}
@@ -228,11 +306,30 @@ export default async function JobPage({
   );
 }
 
-function Row({ label, value }: { label: string; value?: string | null }) {
+function Row({
+  label,
+  value,
+  href,
+}: {
+  label: string;
+  value?: string | null;
+  href?: string;
+}) {
   return (
-    <div className="flex justify-between gap-4">
-      <dt className="text-stone-500">{label}</dt>
-      <dd className="text-right text-ink">{value || "—"}</dd>
+    <div className="flex justify-between gap-4 border-b border-line/80 py-2.5 last:border-0">
+      <dt className="text-sm text-muted">{label}</dt>
+      <dd className="text-right text-sm font-medium text-ink">
+        {href && value ? (
+          <a
+            href={href}
+            className="text-teal-dark underline-offset-2 hover:underline"
+          >
+            {value}
+          </a>
+        ) : (
+          value || "—"
+        )}
+      </dd>
     </div>
   );
 }

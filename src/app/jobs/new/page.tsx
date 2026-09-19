@@ -16,7 +16,7 @@ export default function NewJobPage() {
       <form
         action={createJob}
         encType="multipart/form-data"
-        className="space-y-3 rounded-2xl border border-line bg-card p-4"
+        className="desk-card space-y-3 p-4"
       >
         <Field name="customerName" label="Customer name" required />
         <Field name="customerEmail" label="Email" type="email" />

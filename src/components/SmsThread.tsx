@@ -41,7 +41,7 @@ export function SmsThread({
   }
 
   return (
-    <section className="rounded-2xl border border-line bg-card p-4">
+    <section className="desk-card p-4">
       <h2 className="text-sm font-semibold text-ink">SMS</h2>
       <p className="mt-1 text-xs text-stone-500">
         Texts use Marcel&apos;s existing mobile 0435 222 221 via MessageMedia.

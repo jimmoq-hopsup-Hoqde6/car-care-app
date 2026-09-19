@@ -37,9 +37,9 @@ export default async function SettingsPage() {
     settings = await getSettings();
   } catch {
     return (
-      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6">
+      <div className="desk-card border-amber-200 bg-amber-50 p-6">
         <h1 className="text-xl font-semibold text-ink">Settings could not load</h1>
-        <p className="mt-2 text-sm text-stone-700">
+        <p className="mt-2 text-sm text-muted">
           The database may be unreachable. Try again in a moment.
         </p>
       </div>
@@ -99,34 +99,47 @@ export default async function SettingsPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-ink">Settings</h1>
-        <p className="text-sm text-stone-600">
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">
+          Settings
+        </h1>
+        <p className="mt-1 text-sm text-muted">
           Hours, job length, and the price bands you choose to store. The app
           still never fills a customer quote for you.
         </p>
       </div>
 
-      <section className="rounded-2xl border border-line bg-card p-4">
+      <section className="desk-card p-4">
         <h2 className="font-semibold text-ink">Connection health</h2>
-        <p className="mt-1 text-sm text-stone-600">
+        <p className="mt-1 text-sm text-muted">
           After Google sign-in on a hosted desk, tap Sync inbox now so Neon is
           not stuck on All (0).
         </p>
-        <ul className="mt-3 space-y-2">
+        <ul className="mt-3 divide-y divide-line overflow-hidden rounded-xl border border-line bg-white">
           {health.rows.map((row) => (
             <li
               key={row.id}
-              className="flex gap-3 rounded-xl bg-white px-3 py-2 text-sm"
+              className="flex items-start justify-between gap-3 px-3.5 py-3 text-sm"
             >
+              <span className="flex min-w-0 gap-3">
+                <span
+                  className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${
+                    row.ok ? "bg-teal" : "bg-amber-400"
+                  }`}
+                  aria-hidden
+                />
+                <span className="min-w-0">
+                  <span className="font-semibold text-ink">{row.label}</span>
+                  <span className="mt-0.5 block text-muted">{row.detail}</span>
+                </span>
+              </span>
               <span
-                className={`mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full ${
-                  row.ok ? "bg-teal" : "bg-amber-400"
+                className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                  row.ok
+                    ? "bg-teal/15 text-teal-dark"
+                    : "bg-amber-50 text-amber-950 ring-1 ring-amber-200/80"
                 }`}
-                aria-hidden
-              />
-              <span>
-                <span className="font-semibold text-ink">{row.label}</span>
-                <span className="block text-stone-600">{row.detail}</span>
+              >
+                {row.ok ? "OK" : "Check"}
               </span>
             </li>
           ))}
@@ -136,7 +149,7 @@ export default async function SettingsPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-line bg-card p-4">
+      <section className="desk-card p-4">
         <h2 className="font-semibold text-ink">Google</h2>
         <p className="mt-1 text-sm text-stone-600">
           {isLoginRequired()
@@ -175,7 +188,7 @@ export default async function SettingsPage() {
         ) : null}
       </section>
 
-      <section className="rounded-2xl border border-line bg-card p-4">
+      <section className="desk-card p-4">
         <h2 className="font-semibold text-ink">Gmail job-desk labels</h2>
         <p className="mt-1 text-sm text-stone-600">
           When a job moves stage, the matching label is applied to the thread
@@ -192,7 +205,7 @@ export default async function SettingsPage() {
         </ul>
       </section>
 
-      <section className="rounded-2xl border border-line bg-card p-4">
+      <section className="desk-card p-4">
         <h2 className="font-semibold text-ink">Automations</h2>
         <p className="mt-1 text-sm text-stone-600">
           Quotes and booking confirmations still need you to press Send. A
@@ -236,7 +249,7 @@ export default async function SettingsPage() {
         )}
       </section>
 
-      <form action={saveSettingsAction} className="space-y-4 rounded-2xl border border-line bg-card p-4">
+      <form action={saveSettingsAction} className="desk-card space-y-4 p-4">
         <h2 className="font-semibold text-ink">Business hours (Adelaide)</h2>
         <div className="grid grid-cols-2 gap-3">
           <label className="text-sm">
@@ -293,7 +306,7 @@ export default async function SettingsPage() {
             className="mt-1 w-full rounded-xl border border-line px-3 py-2"
           />
         </label>
-        <p className="rounded-xl bg-stone-50 px-3 py-2 text-sm text-stone-600">
+        <p className="rounded-xl bg-stone-100/80 px-3 py-2 text-sm text-muted">
           Owner mobile (fixed — the only SMS number):{" "}
           <span className="font-semibold text-ink">
             {formatAuMobile(OWNER_MOBILE)} / {OWNER_MOBILE_E164}
@@ -506,7 +519,7 @@ export default async function SettingsPage() {
         </div>
         <button
           type="submit"
-          className="inline-flex min-h-11 items-center rounded-full bg-teal px-4 py-2.5 text-sm font-semibold text-ink"
+          className="desk-btn min-h-12 bg-teal text-ink"
         >
           Save settings
         </button>

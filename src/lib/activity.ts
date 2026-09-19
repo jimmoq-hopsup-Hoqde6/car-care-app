@@ -50,3 +50,12 @@ export function activityMillis(value: DateLike, fallback?: DateLike): number {
   const date = asActivityDate(value) ?? asActivityDate(fallback);
   return date ? date.getTime() : 0;
 }
+
+/** Compact booked slot for job cards. */
+export function formatBookedSlot(value: DateLike) {
+  const date = asActivityDate(value);
+  if (!date) return "";
+  return formatInTimeZone(date, ADELAIDE_TZ, "EEE d MMM, h:mm a")
+    .replace(" AM", " am")
+    .replace(" PM", " pm");
+}

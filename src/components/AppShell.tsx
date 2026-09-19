@@ -33,7 +33,7 @@ export function AppShell({
 }: Props) {
   return (
     <div className="min-h-full bg-background text-foreground">
-      <header className="sticky top-0 z-20 border-b border-white/10 bg-black text-white">
+      <header className="sticky top-0 z-20 border-b border-white/10 bg-black pt-[max(0px,env(safe-area-inset-top))] text-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2.5">
           <Link href="/" className="min-w-0 shrink" aria-label="Job board">
             <BrandLogo />
@@ -79,7 +79,7 @@ export function AppShell({
         {children}
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-teal/40 bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-white/95 pb-[max(0.4rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgb(15_23_42/0.06)] backdrop-blur md:hidden">
         <div className="grid grid-cols-4">
           {nav.map((item) => {
             const active =
@@ -91,10 +91,16 @@ export function AppShell({
               <Link
                 key={item.href}
                 href={item.href}
-                className={`relative flex min-h-14 flex-col items-center justify-center px-1 text-sm font-medium ${
-                  active ? "text-teal-dark" : "text-ink"
+                className={`relative flex min-h-14 flex-col items-center justify-center px-1 text-[13px] font-semibold ${
+                  active ? "text-teal-dark" : "text-muted"
                 }`}
               >
+                {active ? (
+                  <span
+                    className="absolute inset-x-6 top-0 h-0.5 rounded-full bg-teal"
+                    aria-hidden
+                  />
+                ) : null}
                 {item.label}
                 {alerts ? (
                   <span className="absolute right-3 top-2 min-w-4 rounded-full bg-amber-400 px-1 text-center text-[10px] font-bold text-ink">
