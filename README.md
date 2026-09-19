@@ -21,7 +21,7 @@ The job-desk header uses Marcel's business-card lockup (black background, white 
 - **Quote composer** — you enter the price; the email uses Marcel's locked standard (first-name greeting, 30-day validity, mobile number ask)
 - **Booking picker** — next 14 weekdays, default 8:00 am–4:00 pm, 3-hour jobs; recommends slots near other booked jobs in nearby Adelaide suburbs; creates a Calendar event and a confirmation draft
 
-Sample jobs load automatically: **Jenny Gwynne (BMW bumper, Crafers)**, **Nathan Crowe (Outlander, Unley, follow-up due)**, **John Hale (Honda CR-V, Glenelg, waiting for booking approval)**, **Mia Chen (Corolla, Goodwood, waiting for booking approval)**, **Priya Nair (Mazda 3, Norwood, review ask due)**, **Jamie Collis (Paradise panel repair, no photos, photo ask queued)**, **Sam Vella (Norwood door, photo ask queued)**, plus booked neighbours in **Stirling, Brighton and Somerton Park** so recommendations show in demo.
+Sample jobs load automatically: **Jenny Gwynne (BMW bumper, Crafers)**, **Nathan Crowe (Outlander, Unley, follow-up due)**, **John Hale (Honda CR-V, Glenelg, waiting for booking approval)**, **Mia Chen (Corolla, Goodwood, waiting for booking approval)**, **Priya Nair (Mazda 3, Norwood, review ask due)**, **Jamie Collis (Paradise bonnet, out of scope, decline drafted)**, **Sam Vella (Norwood door, photo ask queued)**, plus booked neighbours in **Stirling, Brighton and Somerton Park** so recommendations show in demo.
 
 ## Run it on your computer (demo, no Google)
 
@@ -208,8 +208,8 @@ Mobile Car Scratch Repair Adelaide
 | --- | --- | --- |
 | Follow-up | Job is **Awaiting customer** (quote sent or waiting) and there has been no customer reply for **2 days** | `FOLLOW_UP_DAYS=2` |
 | Google review ask | The day after you mark a job **Booked → Done** (or otherwise Done) | `REVIEW_ASK_DAYS_AFTER_JOB=1` |
-| Photo ask | Incoming quote has **no usable repair photos** (no image attachments, or the form said no photos) | Settings toggle **Auto-ask for photos when missing** (default on) |
-| Out-of-scope decline | Incoming quote is clearly a **bonnet or roof** | Draft only (toggle off) |
+| Photo ask | **In-scope** quote has **no usable repair photos** (no image attachments, or the form said no photos) | Settings toggle **Auto-ask for photos when missing** (default on) |
+| Out-of-scope decline | Incoming quote is clearly a **bonnet (hood) or roof** | Draft only (toggle **Auto-send out-of-scope declines** off) |
 
 The review email includes Marcel's Google review link (`GOOGLE_REVIEW_URL`, default `https://maps.app.goo.gl/UJcUi9ouWQaVn71D8?g_st=ic`). Change it on Settings if the Maps link ever moves.
 
@@ -217,7 +217,7 @@ Photo-ask and decline emails use a first-name greeting and sign off Marcel Kuhn 
 
 ### Photo ask (approved automatic)
 
-When a quote request has zero usable damage photos, the desk **auto-sends** a short reply asking for pictures. This is the same class as stalled follow-ups and review asks — it does **not** need approval. It never includes a price.
+When an **in-scope** quote request has zero usable damage photos, the desk **auto-sends** a short reply asking for pictures. This is the same class as stalled follow-ups and review asks — it does **not** need approval. It never includes a price. **Bonnet and roof jobs never get a photo-ask.**
 
 Detection: no image attachments on the job, or the website form / notes say “No photos uploaded”. The job stays **Needs quote**, the board shows **Awaiting photos**, `lastActivityAt` is updated, and the Gmail label stays **Quote request**.
 
@@ -226,11 +226,11 @@ Once per thread: `photoAskSentAt` is set after the first ask. A second run does 
 Locked copy (Australian English, first name):
 
 ```
-Hi Jamie,
+Hi Sam,
 
-Thanks for getting in touch about the panel repair in Paradise.
+Thanks for getting in touch about the driver door scratch in Norwood.
 
-To give you an accurate quote, could you please reply with a few clear photos of the damage (close-ups and a wider shot of the panel/bonnet help a lot)? If ceramic coating is on the car, a couple of angles in good light are ideal.
+To give you an accurate quote, could you please reply with a few clear photos of the damage (close-ups and a wider shot of the panel/bonnet help a lot)?
 
 Once I have the pictures I’ll send through a quote.
 
@@ -240,7 +240,7 @@ Mobile Car Scratch Repair Adelaide
 0435 222 221
 ```
 
-Demo seed: **Jamie Collis** (0468923953, jamie_collis@outlook.com, Paradise, Panel Repair, scratches on bonnet + ceramic coating, form showed no photos). Seed queues the photo-ask as sent/queued and **does not email**. Sam Vella is a second no-photo door enquiry.
+Demo seed: **Sam Vella** (Norwood driver door, no photos) queues the photo-ask without emailing.
 
 Each job stores `lastOutboundAt`, `followUpSentAt`, and `reviewAskSentAt` so the same follow-up / review is not sent twice. You can **Skip** a follow-up or review ask on the job page. The board shows Pending / Sent / Skipped / Waiting.
 
@@ -291,15 +291,28 @@ Photos come from:
 
 Demo SVGs live in `public/demo/`. Manual uploads go to `public/uploads/` (not committed).
 
-## Panel scope
+## Panel scope (critical)
 
-**Out of scope (do not quote, do not auto-ask for photos):** bonnets and roofs — the only horizontal panels this mobile service cannot repair.
+These are the **only** two panels Marcel does not repair:
 
-**In scope:** doors, bumpers, guards/fenders, quarters, **tailgates** and **tailgate spoilers**. A tailgate is not the roof.
+| Out of scope — do not quote, do not auto-ask for photos |
+| --- |
+| **Bonnets** (hoods) |
+| **Roofs** |
 
-A polite decline draft is prepared (not sent unless **Auto-send out-of-scope declines** is on). Wording:
+**In scope (quote and photo-ask as usual):** doors, bumpers, guards/fenders, quarters, and explicitly **tailgates** and **tailgate spoilers**. A tailgate or spoiler is **not** the roof.
+
+When inbox triage or a new job is clearly bonnet or roof:
+
+1. The job is flagged **Out of scope** on the board (Needs quote column, amber badge).
+2. A polite decline template is prepared. Default is a **draft for you to send**. Turn on **Auto-send out-of-scope declines** only if you want it to send on its own.
+3. The missing-photo auto-ask does **not** run.
+
+Wording:
 
 > With our mobile service, the only panels we are unable to repair are the horizontal ones — the bonnet and the roof.
+
+Demo seed: **Jamie Collis** (Paradise, scratches on bonnet, no photos) is flagged out of scope with the decline drafted — not emailed, and no photo-ask.
 
 ## Settings you can change in the app
 

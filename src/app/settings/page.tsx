@@ -220,7 +220,8 @@ export default async function SettingsPage() {
           />
           <span>
             Auto-ask for photos when missing. Default on. Sends a short reply
-            asking for pictures — never a price.
+            asking for pictures on in-scope jobs only — never a price, and
+            never on bonnet or roof.
           </span>
         </label>
         <label className="mt-2 flex items-start gap-2 text-sm">

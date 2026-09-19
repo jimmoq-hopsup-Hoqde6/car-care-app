@@ -1,8 +1,9 @@
 /** Marcel repairs doors, bumpers, guards, quarters, tailgates and spoilers.
- *  Bonnets and roofs are the only out-of-scope panels. */
+ *  Bonnets (hoods) and roofs are the only out-of-scope panels.
+ *  A tailgate / tailgate spoiler is not the roof. */
 
 const TAILGATE = /\b(tailgates?|spoilers?)\b/i;
-const HORIZONTAL = /\b(bonnets?|hoods?|roofs?)\b/i;
+const HORIZONTAL = /\b(bonnets?|hoods?|roofs?|sunroofs?)\b/i;
 
 export function jobScopeText(input: {
   vehicle?: string | null;

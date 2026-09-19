@@ -187,74 +187,6 @@ async function processPhotoAndScope(
   now: Date,
 ): Promise<AutomationRunResult["queued"]> {
   const queued: AutomationRunResult["queued"] = [];
-  const usablePhotos = hasUsablePhotos(job.photos, job.damageNotes);
-  const waitingOnPhotos = Boolean(job.photoAskSentAt) && !usablePhotos;
-
-  const needsPhotoAsk =
-    settings.autoAskPhotos &&
-    !job.photoAskSentAt &&
-    !usablePhotos &&
-    job.status === "NEEDS_QUOTE" &&
-    Boolean(job.customerEmail);
-
-  if (needsPhotoAsk && job.customerEmail) {
-    const service =
-      parseRepairItems(job.repairItems)[0] ||
-      job.vehicle ||
-      "panel repair";
-    const subject = photoAskSubject(job.suburb);
-    const body = buildPhotoAskEmail({
-      customerName: job.customerName,
-      suburb: job.suburb,
-      service,
-      notes: job.damageNotes,
-    });
-    const result = await deliverAutomation({
-      type: "photo_ask",
-      to: job.customerEmail,
-      from: settings.businessEmail,
-      subject,
-      body,
-      threadId: job.gmailThreadId ?? job.threadId,
-    });
-    await prisma.emailDraft.create({
-      data: {
-        jobId: job.id,
-        type: "photo_ask",
-        subject,
-        body,
-        sentAt: result.delivered ? now : null,
-      },
-    });
-    await queueEvent({
-      jobId: job.id,
-      type: "photo_ask",
-      subject,
-      body,
-      toEmail: job.customerEmail,
-      delivered: result.delivered,
-      demo,
-      error: result.error,
-    });
-    await prisma.job.update({
-      where: { id: job.id },
-      data: {
-        photoAskSentAt: now,
-        lastOutboundAt: now,
-        lastActivityAt: now,
-      },
-    });
-    await syncJobGmailLabelById(job.id);
-    queued.push({
-      jobId: job.id,
-      customerName: job.customerName,
-      type: "photo_ask",
-      delivered: result.delivered,
-      reason: result.reason,
-    });
-    return queued;
-  }
-
   const outOfScope =
     job.outOfScope ||
     detectOutOfScope({
@@ -267,11 +199,11 @@ async function processPhotoAndScope(
   if (outOfScope && !job.outOfScope) {
     await prisma.job.update({
       where: { id: job.id },
-      data: { outOfScope: true },
+      data: { outOfScope: true, lastActivityAt: now },
     });
   }
 
-  if (outOfScope && !job.declinedAt && !waitingOnPhotos && job.customerEmail) {
+  if (outOfScope && !job.declinedAt && job.customerEmail) {
     const subject = scopeDeclineSubject();
     const body = buildScopeDeclineEmail(job.customerName);
     let delivered = false;
@@ -335,6 +267,73 @@ async function processPhotoAndScope(
       reason,
     });
     return queued;
+  }
+
+  if (outOfScope) return queued;
+
+  const usablePhotos = hasUsablePhotos(job.photos, job.damageNotes);
+  const needsPhotoAsk =
+    settings.autoAskPhotos &&
+    !job.photoAskSentAt &&
+    !usablePhotos &&
+    job.status === "NEEDS_QUOTE" &&
+    Boolean(job.customerEmail);
+
+  if (needsPhotoAsk && job.customerEmail) {
+    const service =
+      parseRepairItems(job.repairItems)[0] ||
+      job.vehicle ||
+      "panel repair";
+    const subject = photoAskSubject(job.suburb);
+    const body = buildPhotoAskEmail({
+      customerName: job.customerName,
+      suburb: job.suburb,
+      service,
+      notes: job.damageNotes,
+    });
+    const result = await deliverAutomation({
+      type: "photo_ask",
+      to: job.customerEmail,
+      from: settings.businessEmail,
+      subject,
+      body,
+      threadId: job.gmailThreadId ?? job.threadId,
+    });
+    await prisma.emailDraft.create({
+      data: {
+        jobId: job.id,
+        type: "photo_ask",
+        subject,
+        body,
+        sentAt: result.delivered ? now : null,
+      },
+    });
+    await queueEvent({
+      jobId: job.id,
+      type: "photo_ask",
+      subject,
+      body,
+      toEmail: job.customerEmail,
+      delivered: result.delivered,
+      demo,
+      error: result.error,
+    });
+    await prisma.job.update({
+      where: { id: job.id },
+      data: {
+        photoAskSentAt: now,
+        lastOutboundAt: now,
+        lastActivityAt: now,
+      },
+    });
+    await syncJobGmailLabelById(job.id);
+    queued.push({
+      jobId: job.id,
+      customerName: job.customerName,
+      type: "photo_ask",
+      delivered: result.delivered,
+      reason: result.reason,
+    });
   }
 
   return queued;

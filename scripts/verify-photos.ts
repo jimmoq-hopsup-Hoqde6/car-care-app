@@ -40,41 +40,49 @@ async function main() {
   });
   const sam = await prisma.job.findUnique({
     where: { id: "job-sam" },
-    include: { photos: true, automations: true },
+    include: { photos: true, automations: true, drafts: true },
   });
-  assert(jamie && jamie.photos.length === 0, "Jamie is the no-photo Paradise enquiry");
+  assert(jamie && jamie.photos.length === 0, "Jamie is the no-photo bonnet enquiry");
   assert(sam && sam.photos.length === 0, "Sam is the in-scope no-photo door enquiry");
   assert(formSaysNoPhotos(jamie?.damageNotes), "Jamie form said no photos uploaded");
   assert(!hasUsablePhotos(jamie?.photos ?? [], jamie?.damageNotes), "Jamie has no usable photos");
-  assert(jamie?.photoAskSentAt, "Jamie photo-ask should be queued once");
-  assert(jamie?.lastActivityAt, "Jamie lastActivityAt should update with the photo-ask");
-  assert(!jamie?.declinedAt, "Jamie photo-ask is not a decline");
+  assert(jamie?.outOfScope, "Jamie bonnet job should be out of scope");
+  assert(jamie?.declinedAt, "Jamie should have a decline drafted");
+  assert(!jamie?.photoAskSentAt, "Out-of-scope jobs must not get a photo-ask");
   assert(
-    jamie?.automations.some((event) => event.type === "photo_ask" && !event.delivered),
-    "Jamie demo photo-ask is queued, not emailed",
+    !jamie?.automations.some((event) => event.type === "photo_ask"),
+    "Jamie must not queue a photo-ask",
   );
   assert(
-    jamie?.drafts.some((draft) => draft.type === "photo_ask"),
-    "Jamie stores the photo-ask copy on the job",
+    jamie?.drafts.some((draft) => draft.type === "scope_decline"),
+    "Jamie stores the decline draft",
   );
-  assert(sam?.photoAskSentAt, "Sam photo-ask should also be queued");
+  assert(
+    jamie?.automations.some((event) => event.type === "scope_decline" && !event.delivered),
+    "Jamie decline is drafted, not emailed",
+  );
+  assert(!sam?.outOfScope, "Sam door job should stay in scope");
+  assert(sam?.photoAskSentAt, "Sam photo-ask should be queued");
+  assert(
+    sam?.automations.some((event) => event.type === "photo_ask" && !event.delivered),
+    "Sam demo photo-ask is queued, not emailed",
+  );
 
-  const ask = jamie?.drafts.find((draft) => draft.type === "photo_ask")?.body
+  const ask = sam?.drafts.find((draft) => draft.type === "photo_ask")?.body
     ?? buildPhotoAskEmail({
-      customerName: "Jamie Collis",
-      suburb: "Paradise",
-      service: "panel repair",
-      notes: jamie?.damageNotes,
+      customerName: "Sam Vella",
+      suburb: "Norwood",
+      service: "driver door scratch",
+      notes: sam?.damageNotes,
     });
-  assert(ask.startsWith("Hi Jamie,"), "Photo ask uses first name");
-  assert(ask.includes("panel repair in Paradise"), "Photo ask mentions service and suburb");
+  assert(ask.startsWith("Hi Sam,"), "Photo ask uses first name");
   assert(ask.includes("panel/bonnet"), "Photo ask asks for panel/bonnet shots");
-  assert(ask.includes("ceramic coating"), "Photo ask mentions coating when present");
   assert(ask.includes("0435 222 221"), "Photo ask signs off with owner mobile");
   assert(!/estimated total|\$\d/i.test(ask), "Photo ask must not invent a price");
 
   const settings = await prisma.appSetting.findUnique({ where: { id: "default" } });
   assert(settings?.autoAskPhotos !== false, "Auto-ask for photos when missing defaults on");
+  assert(!settings?.autoDeclineOutOfScope, "Out-of-scope declines default to draft");
 
   console.log(JSON.stringify({ ok: true, jennyPhotos: jenny!.photos.length }, null, 2));
 }

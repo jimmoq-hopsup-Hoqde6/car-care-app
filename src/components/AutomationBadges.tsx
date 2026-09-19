@@ -19,7 +19,7 @@ export function AutomationBadges({
     job.outOfScope
       ? { key: "scope", label: "Out of scope", phase: "pending" }
       : null,
-    job.photoAskSentAt
+    job.photoAskSentAt && !job.outOfScope
       ? { key: "photos", label: "Awaiting photos", phase: "sent" }
       : null,
     follow !== "n/a" ? { key: "follow", label: `Follow-up ${PHASE_LABELS[follow]}`, phase: follow } : null,

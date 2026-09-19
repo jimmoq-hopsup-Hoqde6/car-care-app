@@ -125,6 +125,7 @@ export async function updateJobDetails(jobId: string, formData: FormData) {
       damageNotes: String(formData.get("damageNotes") ?? "").trim() || null,
     },
   });
+  await runPhotoAndScopeAutomations(jobId);
   revalidatePath("/");
   revalidatePath(`/jobs/${jobId}`);
 }

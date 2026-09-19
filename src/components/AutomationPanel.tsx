@@ -44,14 +44,20 @@ export function AutomationPanel({
             Photo ask
           </p>
           <p className="mt-1 font-semibold text-ink">
-            {job.photoAskSentAt ? "Sent" : "Waiting"}
+            {job.outOfScope
+              ? "Not needed"
+              : job.photoAskSentAt
+                ? "Sent"
+                : "Waiting"}
           </p>
           <p className="mt-1 text-xs text-stone-500">
-            {job.photoAskSentAt
-              ? demo
-                ? `Queued ${when(job.photoAskSentAt)} — demo mode, not emailed.`
-                : `Asked for photos ${when(job.photoAskSentAt)}.`
-              : "Sends once if a quote request has no usable repair photos."}
+            {job.outOfScope
+              ? "Not sent — bonnet and roof jobs are out of scope."
+              : job.photoAskSentAt
+                ? demo
+                  ? `Queued ${when(job.photoAskSentAt)} — demo mode, not emailed.`
+                  : `Asked for photos ${when(job.photoAskSentAt)}.`
+                : "Sends once if an in-scope quote request has no usable repair photos."}
           </p>
         </article>
         <article className="rounded-xl border border-line bg-white p-3">

@@ -13,6 +13,10 @@ assert(
   "Bonnet must be out of scope",
 );
 assert(
+  detectOutOfScope({ vehicle: "Hood scratch" }),
+  "Hood (bonnet) must be out of scope",
+);
+assert(
   detectOutOfScope({ vehicle: "Roof hail dents" }),
   "Roof must be out of scope",
 );
@@ -21,12 +25,24 @@ assert(
   "Tailgate spoiler is in scope — not the roof",
 );
 assert(
+  !detectOutOfScope({ damageNotes: "Scratch on the tailgate" }),
+  "Tailgate is in scope",
+);
+assert(
   !detectOutOfScope({ repairItems: ["Driver door scratch"] }),
   "Door is in scope",
 );
 assert(
   !detectOutOfScope({ vehicle: "Ford Ranger — bumper" }),
   "Bumper is in scope",
+);
+assert(
+  !detectOutOfScope({ damageNotes: "Front guard / fender scuff" }),
+  "Guard/fender is in scope",
+);
+assert(
+  !detectOutOfScope({ repairItems: ["Rear quarter panel scratch"] }),
+  "Quarter is in scope",
 );
 
 const ask = buildPhotoAskEmail({

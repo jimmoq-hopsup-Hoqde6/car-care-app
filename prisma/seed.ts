@@ -199,18 +199,18 @@ async function main() {
       customerName: "Jamie Collis",
       customerEmail: "jamie_collis@outlook.com",
       customerPhone: "0468923953",
-      vehicle: "Panel repair",
+      vehicle: "Panel repair — bonnet",
       suburb: "Paradise",
       address: "12 Silkes Road, Paradise SA 5075",
       damageNotes:
         "Website form: scratches on bonnet, ceramic coating has been applied prior to damage. Form showed: No photos uploaded. Service: Panel Repair.",
-      repairItems: JSON.stringify(["Panel repair"]),
+      repairItems: JSON.stringify(["Scratches on bonnet"]),
       channel: "website",
       threadId: "demo-thread-jamie",
       status: JobStatus.NEEDS_QUOTE,
       quoteAmount: null as number | null,
       isDemo: true,
-      outOfScope: false,
+      outOfScope: true,
       lastActivityAt: adelaideAt(0, 8, 40),
       photos: [] as { url: string; filename: string }[],
     },
@@ -316,13 +316,13 @@ async function main() {
           customerName: "Jamie Collis",
           customerEmail: "jamie_collis@outlook.com",
           customerPhone: "0468923953",
-          vehicle: "Panel repair",
+          vehicle: "Panel repair — bonnet",
           suburb: "Paradise",
           damageNotes:
             "Website form: scratches on bonnet, ceramic coating has been applied prior to damage. Form showed: No photos uploaded. Service: Panel Repair.",
-          repairItems: JSON.stringify(["Panel repair"]),
+          repairItems: JSON.stringify(["Scratches on bonnet"]),
           status: JobStatus.NEEDS_QUOTE,
-          outOfScope: false,
+          outOfScope: true,
           declinedAt: null,
           photoAskSentAt: null,
           lastActivityAt: adelaideAt(0, 8, 40),
@@ -511,7 +511,7 @@ async function main() {
   await runPhotoAndScopeAutomations("job-sam");
 
   console.log(
-    "Seeded demo jobs: Jenny, Nathan, John, Mia, Priya, Jamie (Paradise panel repair, no photos, photo ask queued), Sam (door, photo ask), plus booked neighbours (Stirling, Brighton, Somerton Park) and booking-approval notifications.",
+    "Seeded demo jobs: Jenny, Nathan, John, Mia, Priya, Jamie (Paradise bonnet, out of scope, decline drafted), Sam (door, photo ask), plus booked neighbours (Stirling, Brighton, Somerton Park) and booking-approval notifications.",
   );
 }
 

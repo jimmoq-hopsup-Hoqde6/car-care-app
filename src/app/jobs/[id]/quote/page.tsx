@@ -27,6 +27,12 @@ export default async function QuotePage({
         <p className="text-sm text-stone-600">
           You enter the price. The email follows your locked standard wording.
         </p>
+        {job.outOfScope ? (
+          <p className="mt-2 rounded-xl bg-amber-100 px-3 py-2 text-sm font-medium text-amber-950">
+            Out of scope — bonnet and roof are the only panels this mobile
+            service cannot repair. Use the decline draft instead of quoting.
+          </p>
+        ) : null}
       </div>
       <PhotoGallery jobId={job.id} photos={job.photos} compact />
       <QuoteComposer
