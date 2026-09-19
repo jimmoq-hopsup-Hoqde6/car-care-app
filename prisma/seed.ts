@@ -211,11 +211,26 @@ async function main() {
         },
       });
     }
+    if (job.id === "job-john") {
+      await prisma.job.update({
+        where: { id: job.id },
+        data: {
+          status: JobStatus.READY_TO_BOOK,
+          bookedStart: null,
+          bookedEnd: null,
+          calendarEventId: null,
+          suburb: "Glenelg",
+        },
+      });
+    }
     if (job.id === "job-mia") {
       await prisma.job.update({
         where: { id: job.id },
         data: {
           status: JobStatus.READY_TO_BOOK,
+          bookedStart: null,
+          bookedEnd: null,
+          calendarEventId: null,
           suburb: "Goodwood",
           quoteAmount: existing.quoteAmount ?? 340,
         },
