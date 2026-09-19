@@ -8,6 +8,7 @@ import { createGmailDraft, sendGmailMessage } from "@/lib/google";
 import { parsePrice } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
+import { syncJobGmailLabelById } from "@/lib/gmail-labels";
 import { buildQuoteEmail, quoteSubject } from "@/lib/quote";
 
 export type QuoteResult = {
@@ -110,6 +111,7 @@ export async function saveQuoteAction(input: {
       lastOutboundAt: input.send ? now : job.lastOutboundAt,
     },
   });
+  await syncJobGmailLabelById(job.id);
 
   revalidatePath("/");
   revalidatePath(`/jobs/${job.id}`);

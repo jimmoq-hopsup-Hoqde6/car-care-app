@@ -19,7 +19,7 @@ export default async function InboxPage() {
         <h1 className="text-2xl font-semibold text-ink">Inbox triage</h1>
         <p className="text-sm text-stone-600">
           {live
-            ? "Live Gmail threads from the last 45 days. Marketing such as Manheim is parked below."
+            ? "Live Gmail threads from the last 45 days. Job-desk labels seed the board status. Marketing such as Manheim is parked below."
             : isGoogleConfigured()
               ? "Showing sample threads until you connect Google."
               : "Demo threads. Add Google OAuth keys in .env to use the real inbox."}
@@ -36,6 +36,11 @@ export default async function InboxPage() {
               <span className="rounded-full bg-teal/10 px-2.5 py-0.5 text-xs font-semibold text-teal-dark">
                 {kindLabel(thread.kind)}
               </span>
+              {thread.deskLabelName ? (
+                <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-ink">
+                  Gmail: {thread.deskLabelName}
+                </span>
+              ) : null}
               {thread.jobId ? (
                 <Link
                   href={`/jobs/${thread.jobId}`}

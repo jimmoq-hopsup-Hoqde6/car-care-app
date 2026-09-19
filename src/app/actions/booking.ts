@@ -12,6 +12,7 @@ import {
 } from "@/lib/booking";
 import { isDemoMode } from "@/lib/env";
 import { createGmailDraft } from "@/lib/google";
+import { syncJobGmailLabelById } from "@/lib/gmail-labels";
 import { markJobNotificationsRead } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
@@ -96,6 +97,7 @@ export async function bookSlotAction(input: {
     },
   });
   await markJobNotificationsRead(job.id);
+  await syncJobGmailLabelById(job.id);
 
   revalidatePath("/");
   revalidatePath("/notifications");

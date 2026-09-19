@@ -2,6 +2,7 @@ import { addPriceBandAction, saveSettingsAction } from "@/app/actions/settings";
 import { RunAutomationsButton } from "@/components/RunAutomationsButton";
 import { signIn } from "@/lib/auth";
 import { GOOGLE_SCOPES } from "@/lib/constants";
+import { DESK_LABELS } from "@/lib/gmail-labels";
 import { isDemoMode, isGoogleConfigured } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
@@ -69,6 +70,23 @@ export default async function SettingsPage() {
             </button>
           </form>
         ) : null}
+      </section>
+
+      <section className="rounded-2xl border border-line bg-card p-4">
+        <h2 className="font-semibold text-ink">Gmail job-desk labels</h2>
+        <p className="mt-1 text-sm text-stone-600">
+          When a job moves stage, the matching label is applied to the thread
+          and the other four are removed. Changing a label never emails the
+          customer. Missing labels are created on first sync.
+        </p>
+        <ul className="mt-3 space-y-2 text-sm">
+          {DESK_LABELS.map((label) => (
+            <li key={label.key}>
+              <span className="font-medium text-ink">{label.name}</span>
+              <span className="text-stone-500"> — {label.help}</span>
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section className="rounded-2xl border border-line bg-card p-4">

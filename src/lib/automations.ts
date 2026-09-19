@@ -8,6 +8,7 @@ import {
 } from "./automation-copy";
 import { followUpClockStart, followUpPhase, reviewAskPhase } from "./automation-status";
 import { isDemoMode } from "./env";
+import { syncJobGmailLabelById } from "./gmail-labels";
 import { encodeRfc822 } from "./google";
 import { getStoredOAuthClient } from "./google-tokens";
 import { prisma } from "./prisma";
@@ -174,6 +175,7 @@ export async function runAutomations(now = new Date()): Promise<AutomationRunRes
           lastOutboundAt: sentAt,
         },
       });
+      await syncJobGmailLabelById(job.id);
       queued.push({
         jobId: job.id,
         customerName: job.customerName,
@@ -219,6 +221,7 @@ export async function runAutomations(now = new Date()): Promise<AutomationRunRes
           lastOutboundAt: sentAt,
         },
       });
+      await syncJobGmailLabelById(job.id);
       queued.push({
         jobId: job.id,
         customerName: job.customerName,

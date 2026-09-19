@@ -1,4 +1,13 @@
+import { JobStatus } from "@prisma/client";
 import { MARKETING_SENDERS } from "./constants";
+import {
+  type DeskLabelKey,
+  deskKeysFromLabelIds,
+  deskLabelName,
+  ensureDeskLabels,
+  pickDeskLabel,
+  statusFromDeskLabel,
+} from "./gmail-labels";
 import { getGmail } from "./google";
 import { prisma } from "./prisma";
 
@@ -19,6 +28,9 @@ export type InboxThread = {
   kind: InboxKind;
   ignored: boolean;
   jobId?: string | null;
+  deskLabel?: DeskLabelKey | null;
+  deskLabelName?: string | null;
+  seedStatus?: JobStatus | null;
 };
 
 const KIND_LABELS: Record<InboxKind, string> = {
@@ -89,50 +101,75 @@ function extractEmail(from: string) {
   return (match?.[1] ?? from).trim().toLowerCase();
 }
 
+function withDeskLabel(
+  thread: InboxThread,
+  key: DeskLabelKey | null,
+): InboxThread {
+  if (!key) return thread;
+  return {
+    ...thread,
+    deskLabel: key,
+    deskLabelName: deskLabelName(key),
+    seedStatus: statusFromDeskLabel(key),
+  };
+}
+
 export function demoInboxThreads(): InboxThread[] {
   return [
-    {
-      id: "demo-thread-jenny",
-      from: "Jenny Gwynne <jenny.gwynne@example.com>",
-      fromEmail: "jenny.gwynne@example.com",
-      subject: "Website enquiry — BMW bumper scratch, Crafers",
-      snippet:
-        "Hi, I submitted the form on your website. Car park scrape on the BMW bumper. Photos attached. Jenny",
-      kind: "website_form",
-      ignored: false,
-      jobId: "job-jenny",
-    },
-    {
-      id: "demo-thread-nathan",
-      from: "Nathan Crowe <nathan.crowe@example.com>",
-      fromEmail: "nathan.crowe@example.com",
-      subject: "Re: Quote — Mitsubishi Outlander — Unley",
-      snippet:
-        "Thanks Marcel. I'll check with my wife and come back to you on the quote.",
-      kind: "other",
-      ignored: false,
-      jobId: "job-nathan",
-    },
-    {
-      id: "demo-thread-john",
-      from: "John Hale <john.hale@example.com>",
-      fromEmail: "john.hale@example.com",
-      subject: "Re: Quote — Honda CR-V — Glenelg",
-      snippet: "Yes, Wednesday afternoon is fine.",
-      kind: "time_confirmation",
-      ignored: false,
-      jobId: "job-john",
-    },
-    {
-      id: "demo-thread-mia",
-      from: "Mia Chen <mia.chen@example.com>",
-      fromEmail: "mia.chen@example.com",
-      subject: "Re: Quote — Toyota Corolla — Goodwood",
-      snippet: "Happy with the quote — can you book me in next week after 1pm?",
-      kind: "booking_negotiation",
-      ignored: false,
-      jobId: "job-mia",
-    },
+    withDeskLabel(
+      {
+        id: "demo-thread-jenny",
+        from: "Jenny Gwynne <jenny.gwynne@example.com>",
+        fromEmail: "jenny.gwynne@example.com",
+        subject: "Website enquiry — BMW bumper scratch, Crafers",
+        snippet:
+          "Hi, I submitted the form on your website. Car park scrape on the BMW bumper. Photos attached. Jenny",
+        kind: "website_form",
+        ignored: false,
+        jobId: "job-jenny",
+      },
+      "quote_request",
+    ),
+    withDeskLabel(
+      {
+        id: "demo-thread-nathan",
+        from: "Nathan Crowe <nathan.crowe@example.com>",
+        fromEmail: "nathan.crowe@example.com",
+        subject: "Re: Quote — Mitsubishi Outlander — Unley",
+        snippet:
+          "Thanks Marcel. I'll check with my wife and come back to you on the quote.",
+        kind: "other",
+        ignored: false,
+        jobId: "job-nathan",
+      },
+      "awaiting_customer",
+    ),
+    withDeskLabel(
+      {
+        id: "demo-thread-john",
+        from: "John Hale <john.hale@example.com>",
+        fromEmail: "john.hale@example.com",
+        subject: "Re: Quote — Honda CR-V — Glenelg",
+        snippet: "Yes, Wednesday afternoon is fine.",
+        kind: "time_confirmation",
+        ignored: false,
+        jobId: "job-john",
+      },
+      "ready_to_book",
+    ),
+    withDeskLabel(
+      {
+        id: "demo-thread-mia",
+        from: "Mia Chen <mia.chen@example.com>",
+        fromEmail: "mia.chen@example.com",
+        subject: "Re: Quote — Toyota Corolla — Goodwood",
+        snippet: "Happy with the quote — can you book me in next week after 1pm?",
+        kind: "booking_negotiation",
+        ignored: false,
+        jobId: "job-mia",
+      },
+      "ready_to_book",
+    ),
     {
       id: "demo-thread-manheim",
       from: "Manheim <noreply@manheim.com.au>",
@@ -161,6 +198,13 @@ export async function listInboxThreads(): Promise<InboxThread[]> {
     select: { id: true, customerEmail: true, threadId: true, gmailThreadId: true },
   });
 
+  let resolved: Awaited<ReturnType<typeof ensureDeskLabels>> | null = null;
+  try {
+    resolved = await ensureDeskLabels(gmail);
+  } catch {
+    resolved = null;
+  }
+
   const threads: InboxThread[] = [];
   for (const thread of listed.data.threads ?? []) {
     if (!thread.id) continue;
@@ -186,16 +230,31 @@ export async function listInboxThreads(): Promise<InboxThread[]> {
         row.threadId === thread.id ||
         row.customerEmail?.toLowerCase() === fromEmail,
     );
-    threads.push({
-      id: thread.id,
-      from,
-      fromEmail,
-      subject,
-      snippet,
-      kind,
-      ignored: kind === "marketing",
-      jobId: job?.id ?? null,
-    });
+    const labelIds = [
+      ...new Set(
+        (detail.data.messages ?? []).flatMap(
+          (message) => message.labelIds ?? [],
+        ),
+      ),
+    ];
+    const deskLabel = resolved
+      ? pickDeskLabel(deskKeysFromLabelIds(labelIds, resolved))
+      : null;
+    threads.push(
+      withDeskLabel(
+        {
+          id: thread.id,
+          from,
+          fromEmail,
+          subject,
+          snippet,
+          kind,
+          ignored: kind === "marketing",
+          jobId: job?.id ?? null,
+        },
+        deskLabel,
+      ),
+    );
   }
 
   return threads;

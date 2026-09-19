@@ -95,6 +95,10 @@ export default async function JobPage({
 
         <section className="rounded-2xl border border-line bg-card p-4">
           <h2 className="text-sm font-semibold text-ink">Move status</h2>
+          <p className="mt-1 text-xs text-stone-500">
+            Updates the matching Gmail job-desk label. This does not email the
+            customer.
+          </p>
           <div className="mt-2">
             <StatusSelect jobId={job.id} status={job.status} />
           </div>

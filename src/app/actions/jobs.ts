@@ -3,6 +3,7 @@
 import { JobStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { syncJobGmailLabelById } from "@/lib/gmail-labels";
 import { prisma } from "@/lib/prisma";
 import { parseRepairItems } from "@/lib/quote";
 
@@ -64,6 +65,7 @@ export async function updateJobStatus(jobId: string, status: JobStatus) {
             : null,
     },
   });
+  await syncJobGmailLabelById(jobId);
   revalidatePath("/");
   revalidatePath(`/jobs/${jobId}`);
 }

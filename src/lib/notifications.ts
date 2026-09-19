@@ -1,4 +1,5 @@
 import { JobStatus } from "@prisma/client";
+import { syncJobGmailLabelById } from "./gmail-labels";
 import { needsBookingApproval } from "./inbox";
 import { prisma } from "./prisma";
 
@@ -49,6 +50,7 @@ export async function syncInboxNotifications() {
           where: { id: job.id },
           data: { status: JobStatus.READY_TO_BOOK },
         });
+        await syncJobGmailLabelById(job.id);
       }
       const note = await notifyBookingApproval({
         jobId: job.id,

@@ -3,6 +3,7 @@
 import { JobStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { syncJobGmailLabelById } from "@/lib/gmail-labels";
 import { listInboxThreads, needsBookingApproval } from "@/lib/inbox";
 import { notifyBookingApproval } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
@@ -27,6 +28,9 @@ export async function addThreadToBoard(threadId: string) {
   const id = `job-${Date.now().toString(36)}`;
 
   const bookingReply = needsBookingApproval(thread.kind);
+  const status =
+    thread.seedStatus ??
+    (bookingReply ? JobStatus.READY_TO_BOOK : JobStatus.NEEDS_QUOTE);
   await prisma.job.create({
     data: {
       id,
@@ -36,16 +40,17 @@ export async function addThreadToBoard(threadId: string) {
       channel: thread.kind === "website_form" ? "website" : "email",
       threadId,
       gmailThreadId: threadId.startsWith("demo-") ? null : threadId,
-      status: bookingReply ? JobStatus.READY_TO_BOOK : JobStatus.NEEDS_QUOTE,
+      status,
     },
   });
-  if (bookingReply) {
+  if (status === JobStatus.READY_TO_BOOK || bookingReply) {
     await notifyBookingApproval({
       jobId: id,
       customerName: nameFrom,
       body: thread.snippet,
     });
   }
+  await syncJobGmailLabelById(id);
 
   revalidatePath("/");
   revalidatePath("/inbox");

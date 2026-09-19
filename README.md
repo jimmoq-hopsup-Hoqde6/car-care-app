@@ -12,7 +12,8 @@ From address: **Info@mobilecarscratchrepairadelaide.com.au**
 ## What you can do
 
 - **Job board** — Needs quote, Awaiting customer, Ready to book, Booked, Done
-- **Inbox triage** — quote requests, website form leads, booking replies; marketing such as Manheim is ignored
+- **Inbox triage** — quote requests, website form leads, booking replies; marketing such as Manheim is ignored. Existing Gmail job-desk labels seed the job status.
+- **Gmail labels** — one stage label at a time: Quote request, Awaiting customer, Ready to book, Booked, Follow-up / Review. Label changes never send email.
 - **Notifications** — when a customer accepts a quote or asks to book, a badge tells you they are waiting for your booking approval (nothing is auto-sent)
 - **Quote composer** — you enter the price; the email uses Marcel's locked standard (first-name greeting, 30-day validity, mobile number ask)
 - **Booking picker** — next 14 weekdays, default 8:00 am–4:00 pm, 3-hour jobs; recommends slots near other booked jobs in nearby Adelaide suburbs; creates a Calendar event and a confirmation draft
@@ -43,6 +44,7 @@ npm run automations:run     # queue due follow-ups / review asks (demo: no email
 npm run automations:verify  # confirm demo mode did not email anyone
 npm run booking:verify      # confirm demo alerts + suburb-aware slot recommendations
 npm run quote:verify        # confirm the locked quote template wording
+npm run labels:verify       # confirm Gmail job-desk label mapping (no email)
 ```
 
 ## Connect live Gmail and Calendar
@@ -111,10 +113,29 @@ Restart `npm run dev`, tap **Connect Google**, and sign in.
 
 After that:
 
-- Inbox reads recent Gmail threads (Manheim-style marketing is parked under Ignored)
+- Inbox reads recent Gmail threads (Manheim-style marketing is parked under Ignored) and seeds job status from job-desk labels
+- Board stage changes apply the matching Gmail label and remove the other four
 - Booking reads real free/busy on your primary calendar
 - **Save as draft** writes a Gmail draft (not sent)
 - **Book** creates a calendar event titled like `Job — Jenny Gwynne — BMW 320i front bumper — Crafers` and a confirmation draft
+
+## Gmail labels
+
+These five labels already exist in Marcel's Gmail. The desk uses them as-is and creates any that are missing on first live sync. Only one of these is on a thread at a time.
+
+| Gmail label | Board meaning |
+| --- | --- |
+| `Quote request` | Needs quote / new quote request |
+| `Awaiting customer` | Quote sent, waiting on a reply |
+| `Ready to book` | Customer accepted / picking a slot |
+| `Booked` | Calendar event confirmed |
+| `Follow-up / Review` | Stalled follow-up, or post-job review ask (Done) |
+
+When you move a job on the board (or send a quote draft, book a slot, or a follow-up / review ask is queued), the matching label is applied and the other four job-desk labels are removed from that thread.
+
+On **Add to job board**, if the thread already has one of these labels, that label wins over the snippet classifier.
+
+Label sync never sends a customer email.
 
 ## Notifications (in-app only)
 

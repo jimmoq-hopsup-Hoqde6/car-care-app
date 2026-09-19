@@ -13,16 +13,20 @@ export async function getGoogleAccessToken() {
 
 export async function getOAuthClient() {
   const accessToken = await getGoogleAccessToken();
-  if (!accessToken || !isGoogleConfigured()) return null;
-  const client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-  );
-  client.setCredentials({ access_token: accessToken });
-  return client;
+  if (accessToken && isGoogleConfigured()) {
+    const client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+    );
+    client.setCredentials({ access_token: accessToken });
+    return client;
+  }
+  const { getStoredOAuthClient } = await import("./google-tokens");
+  return getStoredOAuthClient();
 }
 
 export async function getGmail() {
+  if (isDemoMode()) return null;
   const oauth = await getOAuthClient();
   if (!oauth) return null;
   return google.gmail({ version: "v1", auth: oauth });
