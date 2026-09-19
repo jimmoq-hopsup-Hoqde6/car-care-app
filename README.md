@@ -14,7 +14,7 @@ From address: **Info@mobilecarscratchrepairadelaide.com.au**
 - **Job board** — Needs quote, Awaiting customer, Ready to book, Booked, Done
 - **Inbox triage** — quote requests, website form leads, booking replies; marketing such as Manheim is ignored
 - **Notifications** — when a customer accepts a quote or asks to book, a badge tells you they are waiting for your booking approval (nothing is auto-sent)
-- **Quote composer** — you enter the price; the email matches your usual wording (colour-matching, onsite inspection, lifetime guarantee, site requirements)
+- **Quote composer** — you enter the price; the email uses Marcel's locked standard (first-name greeting, 30-day validity, mobile number ask)
 - **Booking picker** — next 14 weekdays, default 8:00 am–4:00 pm, 3-hour jobs; recommends slots near other booked jobs in nearby Adelaide suburbs; creates a Calendar event and a confirmation draft
 
 Sample jobs load automatically: **Jenny Gwynne (BMW bumper, Crafers)**, **Nathan Crowe (Outlander, Unley, follow-up due)**, **John Hale (Honda CR-V, Glenelg, waiting for booking approval)**, **Mia Chen (Corolla, Goodwood, waiting for booking approval)**, **Priya Nair (Mazda 3, Norwood, review ask due)**, plus booked neighbours in **Stirling, Brighton and Somerton Park** so recommendations show in demo.
@@ -42,6 +42,7 @@ npm run db:seed             # put the sample jobs back if you deleted them
 npm run automations:run     # queue due follow-ups / review asks (demo: no email)
 npm run automations:verify  # confirm demo mode did not email anyone
 npm run booking:verify      # confirm demo alerts + suburb-aware slot recommendations
+npm run quote:verify        # confirm the locked quote template wording
 ```
 
 ## Connect live Gmail and Calendar
@@ -139,17 +140,33 @@ Reasons look like “Same afternoon as your Crafers job” or “Nearest free sl
 
 ## Quote wording
 
-The composer always uses this shape:
+The composer always uses Marcel's locked standard (Australian English). The greeting uses the customer's first name — never a bare `Hi ,`. The dollar figure is the number **you** typed.
 
-- Thanks for getting in touch and sharing images
-- Bullet list of repair items
-- Estimated total: $X.XX (the number **you** typed)
-- Digital colour-matching
-- Onsite inspection confirms the final price if more work is needed
-- Lifetime workmanship guarantee
-- Ask for preferred repair dates
-- Off-street location, power point, natural light
-- Kind regards, Marcel Kuhn, Mobile Car Scratch Repair Adelaide
+```
+Hi Jenny,
+
+Thanks for getting in touch and sharing the photos.
+
+Quote
+• Front bumper scratch and scuff
+• Estimated total: $520.00
+
+This quote is valid for 30 days from the date of this email.
+
+I use digital colour-matching technology so the repair blends with the surrounding paintwork.
+
+An onsite inspection confirms the final price if more work is needed.
+
+All work is covered by a lifetime workmanship guarantee.
+
+If you'd like to proceed, please reply with your preferred repair dates and a mobile number.
+
+I'll need off-street parking, access to a power point, and adequate natural light.
+
+Kind regards,
+Marcel Kuhn
+Mobile Car Scratch Repair Adelaide
+```
 
 ## Automations (what sends on its own)
 

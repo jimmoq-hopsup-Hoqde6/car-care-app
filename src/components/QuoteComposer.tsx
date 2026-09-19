@@ -26,6 +26,7 @@ export function QuoteComposer({ job, priceBands, items }: Props) {
     const parsed = Number(amount);
     if (!Number.isFinite(parsed) || parsed <= 0) return null;
     return buildQuoteEmail({
+      customerName: job.customerName,
       repairItems: repairItems.filter((item) => item.trim()),
       total: parsed,
     });
@@ -157,9 +158,9 @@ export function QuoteComposer({ job, priceBands, items }: Props) {
         <div className="rounded-2xl border border-line bg-white p-4">
           <h2 className="text-sm font-semibold text-ink">Email preview</h2>
           <p className="mt-1 text-xs text-stone-500">
-            Matches Marcel&apos;s quote template. Quotes never auto-send — nothing
-            goes out until you tap Send. A follow-up can send later if they stay
-            quiet.
+            Matches Marcel&apos;s locked quote template (first name, 30-day
+            validity, mobile number). Quotes never auto-send — nothing goes out
+            until you tap Send.
           </p>
           <pre className="mt-3 whitespace-pre-wrap font-sans text-sm leading-6 text-stone-800">
             {preview ??

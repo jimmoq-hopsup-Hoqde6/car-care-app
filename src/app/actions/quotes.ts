@@ -43,7 +43,11 @@ export async function saveQuoteAction(input: {
     return { ok: false, message: "Add the customer email before drafting." };
   }
 
-  const body = buildQuoteEmail({ repairItems: items, total: amount });
+  const body = buildQuoteEmail({
+    customerName: job.customerName,
+    repairItems: items,
+    total: amount,
+  });
   const subject = quoteSubject(job.vehicle, job.suburb);
   const settings = await getSettings();
   const session = await auth();

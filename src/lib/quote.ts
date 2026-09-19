@@ -1,22 +1,41 @@
 import { formatAUD } from "./money";
 
 export type QuoteInput = {
+  customerName?: string | null;
   repairItems: string[];
   total: number;
 };
 
-export function buildQuoteEmail({ repairItems, total }: QuoteInput) {
+export function firstName(fullName: string) {
+  return fullName.trim().split(/\s+/).find((part) => part.length > 0) ?? "";
+}
+
+/** Never returns a bare "Hi ,". */
+export function emailGreeting(fullName?: string | null) {
+  const name = firstName(fullName ?? "");
+  return name ? `Hi ${name},` : "Hi there,";
+}
+
+export function buildQuoteEmail({
+  customerName,
+  repairItems,
+  total,
+}: QuoteInput) {
   const items = repairItems
     .map((item) => item.trim())
     .filter(Boolean)
-    .map((item) => `• ${item}`)
-    .join("\n");
+    .map((item) => `• ${item}`);
+  const itemLines = items.length ? items.join("\n") : "• Repair as discussed";
 
-  return `Thanks for getting in touch and sharing images.
+  return `${emailGreeting(customerName)}
 
-${items || "• Repair as discussed"}
+Thanks for getting in touch and sharing the photos.
 
-Estimated total: ${formatAUD(total)}
+Quote
+${itemLines}
+• Estimated total: ${formatAUD(total)}
+
+This quote is valid for 30 days from the date of this email.
 
 I use digital colour-matching technology so the repair blends with the surrounding paintwork.
 
@@ -24,9 +43,9 @@ An onsite inspection confirms the final price if more work is needed.
 
 All work is covered by a lifetime workmanship guarantee.
 
-If you'd like to proceed, please let me know your preferred repair dates.
+If you'd like to proceed, please reply with your preferred repair dates and a mobile number.
 
-I'll need a suitable off-street location, access to a power point, and adequate natural light.
+I'll need off-street parking, access to a power point, and adequate natural light.
 
 Kind regards,
 Marcel Kuhn
@@ -56,6 +75,3 @@ export function parseRepairItems(value: string | null | undefined): string[] {
     .filter(Boolean);
 }
 
-export function firstName(fullName: string) {
-  return fullName.trim().split(/\s+/)[0] ?? fullName;
-}

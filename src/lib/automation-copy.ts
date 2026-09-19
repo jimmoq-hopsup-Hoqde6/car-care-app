@@ -1,5 +1,5 @@
 import { DEFAULT_GOOGLE_REVIEW_URL } from "./constants";
-import { firstName } from "./quote";
+import { emailGreeting } from "./quote";
 
 export function signOff() {
   return `Kind regards,
@@ -8,7 +8,7 @@ Mobile Car Scratch Repair Adelaide`;
 }
 
 export function buildFollowUpEmail(customerName: string) {
-  return `Hi ${firstName(customerName)},
+  return `${emailGreeting(customerName)}
 
 Just checking in on the quote I sent through. Happy to lock in a day if you'd like to go ahead, or answer any questions.
 
@@ -26,7 +26,7 @@ export function buildReviewAskEmail(
   reviewUrl: string = DEFAULT_GOOGLE_REVIEW_URL,
 ) {
   const link = reviewUrl.trim() || DEFAULT_GOOGLE_REVIEW_URL;
-  return `Hi ${firstName(customerName)},
+  return `${emailGreeting(customerName)}
 
 Thanks for having me out — hope the repair is looking good.
 

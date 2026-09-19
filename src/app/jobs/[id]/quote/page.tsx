@@ -24,7 +24,7 @@ export default async function QuotePage({
       <div>
         <h1 className="text-2xl font-semibold text-ink">Quote composer</h1>
         <p className="text-sm text-stone-600">
-          You enter the price. The email follows your usual wording.
+          You enter the price. The email follows your locked standard wording.
         </p>
       </div>
       <QuoteComposer

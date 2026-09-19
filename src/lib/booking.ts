@@ -5,7 +5,7 @@ import { JobStatus } from "@prisma/client";
 import { getCalendar } from "./google";
 import { formatAUD } from "./money";
 import { prisma } from "./prisma";
-import { firstName } from "./quote";
+import { emailGreeting } from "./quote";
 import { getSettings } from "./settings";
 import type { TimeSlot } from "./slots";
 
@@ -203,7 +203,7 @@ export function buildConfirmationEmail(job: {
   const when = `${formatAdelaide(job.bookedStart, "EEEE d MMMM yyyy, h:mm a")} – ${formatAdelaide(job.bookedEnd, "h:mm a")}`;
   const where = job.address || job.suburb || "the address we discussed";
 
-  return `Hi ${firstName(job.customerName)},
+  return `${emailGreeting(job.customerName)}
 
 You're booked in for ${when} at ${where}.
 
