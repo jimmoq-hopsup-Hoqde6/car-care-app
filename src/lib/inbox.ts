@@ -263,7 +263,7 @@ export function demoInboxThreads(): InboxThread[] {
       fromEmail: "kai.bennett@example.com",
       subject: "Quote — rear bumper scratch, Magill",
       snippet:
-        "Hi, rear bumper scratch on a Mazda CX-5 in Magill. Photos attached. Can you quote?",
+        "Hi, rear bumper scratch on a Mazda CX-5 in Magill. Can you quote?",
       kind: "quote_request",
       ignored: false,
     },
