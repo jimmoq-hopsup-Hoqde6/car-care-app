@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { AppShell } from "@/components/AppShell";
 import { auth } from "@/lib/auth";
 import { isDemoMode, isGoogleConfigured } from "@/lib/env";
+import { unreadNotificationCount } from "@/lib/notifications";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -25,6 +26,12 @@ export const dynamic = "force-dynamic";
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const session = await auth();
+  let unreadNotifications = 0;
+  try {
+    unreadNotifications = await unreadNotificationCount();
+  } catch {
+    unreadNotifications = 0;
+  }
   return (
     <html
       lang="en-AU"
@@ -36,6 +43,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           googleConfigured={isGoogleConfigured()}
           googleConnected={Boolean(session?.googleConnected)}
           userEmail={session?.user?.email}
+          unreadNotifications={unreadNotifications}
         >
           {children}
         </AppShell>

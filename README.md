@@ -13,10 +13,11 @@ From address: **Info@mobilecarscratchrepairadelaide.com.au**
 
 - **Job board** — Needs quote, Awaiting customer, Ready to book, Booked, Done
 - **Inbox triage** — quote requests, website form leads, booking replies; marketing such as Manheim is ignored
+- **Notifications** — when a customer accepts a quote or asks to book, a badge tells you they are waiting for your booking approval (nothing is auto-sent)
 - **Quote composer** — you enter the price; the email matches your usual wording (colour-matching, onsite inspection, lifetime guarantee, site requirements)
-- **Booking picker** — next 14 weekdays, default 8:00 am–4:00 pm, 3-hour jobs; creates a Calendar event and a confirmation draft
+- **Booking picker** — next 14 weekdays, default 8:00 am–4:00 pm, 3-hour jobs; recommends slots near other booked jobs in nearby Adelaide suburbs; creates a Calendar event and a confirmation draft
 
-Sample jobs load automatically: **Jenny Gwynne (BMW bumper, Crafers)**, **Nathan Crowe (Outlander, Unley, follow-up due)**, **John Hale (Honda CR-V, Glenelg)**, **Priya Nair (Mazda 3, Norwood, review ask due)**.
+Sample jobs load automatically: **Jenny Gwynne (BMW bumper, Crafers)**, **Nathan Crowe (Outlander, Unley, follow-up due)**, **John Hale (Honda CR-V, Glenelg, waiting for booking approval)**, **Mia Chen (Corolla, Goodwood, waiting for booking approval)**, **Priya Nair (Mazda 3, Norwood, review ask due)**, plus booked neighbours in **Stirling, Brighton and Somerton Park** so recommendations show in demo.
 
 ## Run it on your computer (demo, no Google)
 
@@ -31,7 +32,7 @@ npm run dev
 
 4. Open [http://localhost:3000](http://localhost:3000).
 
-The first start creates a local `.env` (no secrets) and a SQLite file with the three sample jobs. You can write quotes and “book” slots in demo mode. Nothing is emailed and nothing is written to Google until you connect OAuth.
+The first start creates a local `.env` (no secrets) and a SQLite file with the sample jobs, booked neighbours, and two unread booking-approval notifications. You can write quotes and “book” slots in demo mode. Nothing is emailed and nothing is written to Google until you connect OAuth.
 
 Useful extras:
 
@@ -40,6 +41,7 @@ npm run setup               # rebuild the local database and sample jobs
 npm run db:seed             # put the sample jobs back if you deleted them
 npm run automations:run     # queue due follow-ups / review asks (demo: no email)
 npm run automations:verify  # confirm demo mode did not email anyone
+npm run booking:verify      # confirm demo alerts + suburb-aware slot recommendations
 ```
 
 ## Connect live Gmail and Calendar
@@ -112,6 +114,28 @@ After that:
 - Booking reads real free/busy on your primary calendar
 - **Save as draft** writes a Gmail draft (not sent)
 - **Book** creates a calendar event titled like `Job — Jenny Gwynne — BMW 320i front bumper — Crafers` and a confirmation draft
+
+## Notifications (in-app only)
+
+When a customer reply looks like they accepted a quote, asked to book, or confirmed a day, the desk:
+
+- moves the job toward **Ready to book** if it was still awaiting them
+- stores an unread notification in SQLite
+- shows a badge on the bell (header) and a list at `/notifications`
+
+This does **not** email anyone. You still open the job and pick a slot yourself. Demo mode seeds two “waiting for your booking approval” notes (John and Mia).
+
+## Booking recommendations
+
+The booking screen still lists free slots from Google Calendar free/busy (or the demo busy blocks: Monday morning and Wednesday afternoon). It also treats your own **Booked** jobs as busy.
+
+Recommended slots (top 2–3) prefer:
+
+1. Same suburb, same day
+2. Nearby cluster (hills / south / inner south / east / north / west / CBD)
+3. Any other free weekday slot
+
+Reasons look like “Same afternoon as your Crafers job” or “Nearest free slot after Unley”. Default hours stay Monday–Friday 8:00–16:00 Adelaide, 3-hour jobs, next 14 weekdays — change those on Settings.
 
 ## Quote wording
 

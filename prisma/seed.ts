@@ -1,10 +1,34 @@
+import { addDays } from "date-fns";
+import { fromZonedTime, toZonedTime } from "date-fns-tz";
 import { PrismaClient, JobStatus } from "@prisma/client";
-import { DEFAULT_GOOGLE_REVIEW_URL } from "../src/lib/constants";
+import { ADELAIDE_TZ, DEFAULT_GOOGLE_REVIEW_URL } from "../src/lib/constants";
 
 const prisma = new PrismaClient();
 
 function daysAgo(days: number) {
   return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+}
+
+function pad(value: number) {
+  return String(value).padStart(2, "0");
+}
+
+function nextAdelaideWeekday(weekday: number, hour: number, durationHours = 3) {
+  const zoned = toZonedTime(new Date(), ADELAIDE_TZ);
+  for (let offset = 1; offset <= 14; offset += 1) {
+    const day = addDays(zoned, offset);
+    if (day.getDay() !== weekday) continue;
+    const start = fromZonedTime(
+      `${day.getFullYear()}-${pad(day.getMonth() + 1)}-${pad(day.getDate())}T${pad(hour)}:00:00`,
+      ADELAIDE_TZ,
+    );
+    return {
+      start,
+      end: new Date(start.getTime() + durationHours * 60 * 60 * 1000),
+    };
+  }
+  const fallback = new Date();
+  return { start: fallback, end: new Date(fallback.getTime() + durationHours * 3600000) };
 }
 
 async function main() {
@@ -134,6 +158,24 @@ async function main() {
       lastOutboundAt: daysAgo(5),
       photos: [] as { url: string; filename: string }[],
     },
+    {
+      id: "job-mia",
+      customerName: "Mia Chen",
+      customerEmail: "mia.chen@example.com",
+      customerPhone: "0407 331 220",
+      vehicle: "Toyota Corolla — rear bumper",
+      suburb: "Goodwood",
+      address: "18 Albert Street, Goodwood SA 5034",
+      damageNotes:
+        "Happy with the quote — asked to book next week after 1pm. Seeded so the alerts list has a second booking-approval note.",
+      repairItems: JSON.stringify(["Rear bumper scratch"]),
+      channel: "email",
+      threadId: "demo-thread-mia",
+      status: JobStatus.READY_TO_BOOK,
+      quoteAmount: 340,
+      isDemo: true,
+      photos: [] as { url: string; filename: string }[],
+    },
   ];
 
   for (const job of jobs) {
@@ -169,10 +211,125 @@ async function main() {
         },
       });
     }
+    if (job.id === "job-mia") {
+      await prisma.job.update({
+        where: { id: job.id },
+        data: {
+          status: JobStatus.READY_TO_BOOK,
+          suburb: "Goodwood",
+          quoteAmount: existing.quoteAmount ?? 340,
+        },
+      });
+    }
+  }
+
+  const tuesday = nextAdelaideWeekday(2, 8);
+  const wednesday = nextAdelaideWeekday(3, 8);
+  const thursday = nextAdelaideWeekday(4, 8);
+
+  const nearbyBooked = [
+    {
+      id: "job-liam",
+      customerName: "Liam Walsh",
+      customerEmail: "liam.walsh@example.com",
+      customerPhone: "0401 223 889",
+      vehicle: "Toyota HiLux — tailgate",
+      suburb: "Stirling",
+      address: "4 Mount Barker Road, Stirling SA 5152",
+      damageNotes: "Seeded booked hills job so Crafers recommendations have a neighbour.",
+      repairItems: JSON.stringify(["Tailgate scratch"]),
+      channel: "email",
+      status: JobStatus.BOOKED,
+      quoteAmount: 410,
+      isDemo: true,
+      bookedStart: tuesday.start,
+      bookedEnd: tuesday.end,
+      calendarEventId: "demo-liam-stirling",
+    },
+    {
+      id: "job-tom",
+      customerName: "Tom Brennan",
+      customerEmail: "tom.brennan@example.com",
+      customerPhone: "0418 667 201",
+      vehicle: "Ford Ranger — bumper",
+      suburb: "Brighton",
+      address: "22 The Esplanade, Brighton SA 5048",
+      damageNotes: "Seeded booked southern job so Glenelg recommendations sit nearby.",
+      repairItems: JSON.stringify(["Front bumper scuff"]),
+      channel: "email",
+      status: JobStatus.BOOKED,
+      quoteAmount: 360,
+      isDemo: true,
+      bookedStart: wednesday.start,
+      bookedEnd: wednesday.end,
+      calendarEventId: "demo-tom-brighton",
+    },
+    {
+      id: "job-eve",
+      customerName: "Eve Tan",
+      customerEmail: "eve.tan@example.com",
+      customerPhone: "0422 109 554",
+      vehicle: "Hyundai i30 — door",
+      suburb: "Somerton Park",
+      address: "9 Whyte Street, Somerton Park SA 5044",
+      damageNotes: "Seeded booked coastal job for Thursday clustering.",
+      repairItems: JSON.stringify(["Door scratch"]),
+      channel: "email",
+      status: JobStatus.BOOKED,
+      quoteAmount: 290,
+      isDemo: true,
+      bookedStart: thursday.start,
+      bookedEnd: thursday.end,
+      calendarEventId: "demo-eve-somerton",
+    },
+  ];
+
+  for (const job of nearbyBooked) {
+    await prisma.job.upsert({
+      where: { id: job.id },
+      create: job,
+      update: {
+        bookedStart: job.bookedStart,
+        bookedEnd: job.bookedEnd,
+        status: JobStatus.BOOKED,
+        suburb: job.suburb,
+      },
+    });
+  }
+
+  const notes = [
+    {
+      id: "ntf-john-book",
+      jobId: "job-john",
+      type: "booking_approval",
+      title: "John Hale is waiting for your booking approval",
+      body: "Yes, Wednesday afternoon is fine.",
+      href: "/jobs/job-john/book",
+    },
+    {
+      id: "ntf-mia-book",
+      jobId: "job-mia",
+      type: "booking_approval",
+      title: "Mia Chen is waiting for your booking approval",
+      body: "Happy with the quote — can you book me in next week after 1pm?",
+      href: "/jobs/job-mia/book",
+    },
+  ];
+
+  await prisma.notification.deleteMany({
+    where: { id: { in: ["ntf-nathan-book"] } },
+  });
+
+  for (const note of notes) {
+    await prisma.notification.upsert({
+      where: { id: note.id },
+      create: note,
+      update: {},
+    });
   }
 
   console.log(
-    "Seeded demo jobs: Jenny, Nathan (follow-up due), John, Priya (review ask due).",
+    "Seeded demo jobs: Jenny, Nathan, John, Mia, Priya, plus booked neighbours (Stirling, Brighton, Somerton Park) and booking-approval notifications.",
   );
 }
 

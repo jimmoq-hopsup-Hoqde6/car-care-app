@@ -12,6 +12,7 @@ import {
 } from "@/lib/booking";
 import { isDemoMode } from "@/lib/env";
 import { createGmailDraft } from "@/lib/google";
+import { markJobNotificationsRead } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 
@@ -94,8 +95,10 @@ export async function bookSlotAction(input: {
       status: JobStatus.BOOKED,
     },
   });
+  await markJobNotificationsRead(job.id);
 
   revalidatePath("/");
+  revalidatePath("/notifications");
   revalidatePath(`/jobs/${job.id}`);
   revalidatePath(`/jobs/${job.id}/book`);
 

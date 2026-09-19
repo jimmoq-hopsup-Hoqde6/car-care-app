@@ -34,6 +34,10 @@ export function kindLabel(kind: InboxKind) {
   return KIND_LABELS[kind];
 }
 
+export function needsBookingApproval(kind: InboxKind) {
+  return kind === "booking_negotiation" || kind === "time_confirmation";
+}
+
 export function classifyThread(input: {
   from: string;
   subject: string;
@@ -50,13 +54,20 @@ export function classifyThread(input: {
   ) {
     return "website_form";
   }
-  if (
-    /\b(yes|wednesday|thursday|friday|tuesday|monday|afternoon|morning|that works|book me)\b/.test(
+  const bookingIntent =
+    /\b(yes|wednesday|thursday|friday|tuesday|monday|afternoon|morning|that works|book me|book in|booking|available|fortnight|sounds good|go ahead|happy to|lock in|please book|when are you free|can we book)\b/.test(
       haystack,
-    ) &&
-    /\b(confirm|fine|works|book|wednesday|afternoon|morning)\b/.test(haystack)
-  ) {
-    if (haystack.includes("confirm") || haystack.includes("fine")) {
+    );
+  const bookingConfirm =
+    /\b(confirm|fine|works|book|wednesday|thursday|friday|tuesday|monday|afternoon|morning|free|available)\b/.test(
+      haystack,
+    );
+  if (bookingIntent && bookingConfirm) {
+    if (
+      haystack.includes("confirm") ||
+      haystack.includes("fine") ||
+      haystack.includes("yes,")
+    ) {
       return "time_confirmation";
     }
     return "booking_negotiation";
@@ -97,8 +108,8 @@ export function demoInboxThreads(): InboxThread[] {
       fromEmail: "nathan.crowe@example.com",
       subject: "Re: Quote — Mitsubishi Outlander — Unley",
       snippet:
-        "Thanks Marcel. When are you free over the next fortnight? After 1pm is easier.",
-      kind: "booking_negotiation",
+        "Thanks Marcel. I'll check with my wife and come back to you on the quote.",
+      kind: "other",
       ignored: false,
       jobId: "job-nathan",
     },
@@ -111,6 +122,16 @@ export function demoInboxThreads(): InboxThread[] {
       kind: "time_confirmation",
       ignored: false,
       jobId: "job-john",
+    },
+    {
+      id: "demo-thread-mia",
+      from: "Mia Chen <mia.chen@example.com>",
+      fromEmail: "mia.chen@example.com",
+      subject: "Re: Quote — Toyota Corolla — Goodwood",
+      snippet: "Happy with the quote — can you book me in next week after 1pm?",
+      kind: "booking_negotiation",
+      ignored: false,
+      jobId: "job-mia",
     },
     {
       id: "demo-thread-manheim",

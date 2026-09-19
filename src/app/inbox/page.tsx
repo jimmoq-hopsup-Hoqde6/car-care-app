@@ -3,10 +3,12 @@ import { addThreadToBoard } from "@/app/actions/inbox";
 import { auth } from "@/lib/auth";
 import { isDemoMode, isGoogleConfigured } from "@/lib/env";
 import { kindLabel, listInboxThreads } from "@/lib/inbox";
+import { syncInboxNotifications } from "@/lib/notifications";
 
 export default async function InboxPage() {
   const session = await auth();
   const threads = await listInboxThreads();
+  await syncInboxNotifications();
   const active = threads.filter((thread) => !thread.ignored);
   const ignored = threads.filter((thread) => thread.ignored);
   const live = Boolean(session?.googleConnected) && !isDemoMode();

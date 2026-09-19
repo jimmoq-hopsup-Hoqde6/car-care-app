@@ -1,8 +1,10 @@
 import { addDays, addHours } from "date-fns";
 import { formatInTimeZone, fromZonedTime, toZonedTime } from "date-fns-tz";
 import { ADELAIDE_TZ } from "./constants";
+import { JobStatus } from "@prisma/client";
 import { getCalendar } from "./google";
 import { formatAUD } from "./money";
+import { prisma } from "./prisma";
 import { firstName } from "./quote";
 import { getSettings } from "./settings";
 import type { TimeSlot } from "./slots";
@@ -43,7 +45,11 @@ export async function listAvailableSlots(days = 14): Promise<TimeSlot[]> {
   const windowStart = now;
   const windowEnd = addDays(now, days);
 
-  const busy = await loadBusyPeriods(windowStart, windowEnd, settings.timezone);
+  const busy = await loadBusyPeriods(
+    windowStart,
+    windowEnd,
+    settings.timezone,
+  );
 
   const slots: TimeSlot[] = [];
   for (let offset = 0; offset < days; offset += 1) {
@@ -80,26 +86,41 @@ async function loadBusyPeriods(
   timeZone: string,
 ): Promise<{ start: Date; end: Date }[]> {
   const calendar = await getCalendar();
+  let periods: { start: Date; end: Date }[] = [];
   if (!calendar) {
-    return demoBusyPeriods(timeMin);
+    periods = demoBusyPeriods(timeMin);
+  } else {
+    const result = await calendar.freebusy.query({
+      requestBody: {
+        timeMin: timeMin.toISOString(),
+        timeMax: timeMax.toISOString(),
+        timeZone,
+        items: [{ id: "primary" }],
+      },
+    });
+    const calBusy = result.data.calendars?.primary?.busy ?? [];
+    periods = calBusy
+      .filter((block) => block.start && block.end)
+      .map((block) => ({
+        start: new Date(block.start as string),
+        end: new Date(block.end as string),
+      }));
   }
 
-  const result = await calendar.freebusy.query({
-    requestBody: {
-      timeMin: timeMin.toISOString(),
-      timeMax: timeMax.toISOString(),
-      timeZone,
-      items: [{ id: "primary" }],
+  const booked = await prisma.job.findMany({
+    where: {
+      status: { in: [JobStatus.BOOKED, JobStatus.DONE] },
+      bookedStart: { not: null },
+      bookedEnd: { not: null },
     },
+    select: { bookedStart: true, bookedEnd: true },
   });
-
-  const calBusy = result.data.calendars?.primary?.busy ?? [];
-  return calBusy
-    .filter((block) => block.start && block.end)
-    .map((block) => ({
-      start: new Date(block.start as string),
-      end: new Date(block.end as string),
-    }));
+  for (const job of booked) {
+    if (job.bookedStart && job.bookedEnd) {
+      periods.push({ start: job.bookedStart, end: job.bookedEnd });
+    }
+  }
+  return periods;
 }
 
 function demoBusyPeriods(from: Date) {

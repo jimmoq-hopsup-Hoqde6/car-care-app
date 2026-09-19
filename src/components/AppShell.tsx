@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { signIn, signOut } from "@/lib/auth";
+import { NotificationBell } from "./NotificationBell";
 
 type Props = {
   children: React.ReactNode;
@@ -7,11 +8,13 @@ type Props = {
   googleConfigured: boolean;
   googleConnected: boolean;
   userEmail?: string | null;
+  unreadNotifications: number;
 };
 
 const nav = [
   { href: "/", label: "Jobs" },
   { href: "/inbox", label: "Inbox" },
+  { href: "/notifications", label: "Alerts" },
   { href: "/settings", label: "Settings" },
 ];
 
@@ -21,6 +24,7 @@ export function AppShell({
   googleConfigured,
   googleConnected,
   userEmail,
+  unreadNotifications,
 }: Props) {
   return (
     <div className="min-h-full bg-background text-foreground">
@@ -34,6 +38,8 @@ export function AppShell({
               Mobile Car Scratch Repair
             </p>
           </Link>
+          <div className="flex items-center gap-2">
+            <NotificationBell unread={unreadNotifications} />
           <nav className="hidden items-center gap-1 md:flex">
             {nav.map((item) => (
               <Link
@@ -50,6 +56,7 @@ export function AppShell({
               userEmail={userEmail}
             />
           </nav>
+          </div>
         </div>
         {demo ? (
           <p className="bg-amber-500 px-4 py-1.5 text-center text-xs font-medium text-ink">
@@ -64,7 +71,7 @@ export function AppShell({
       </main>
 
       <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-card/95 backdrop-blur md:hidden">
-        <div className="grid grid-cols-3">
+        <div className="grid grid-cols-4">
           {nav.map((item) => (
             <Link
               key={item.href}

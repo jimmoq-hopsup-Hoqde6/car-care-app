@@ -13,7 +13,8 @@
     "setup": "npm run db:prepare",
     "db:seed": "prisma db seed",
     "automations:run": "tsx scripts/run-automations.ts",
-    "automations:verify": "tsx scripts/verify-automations-demo.ts"
+    "automations:verify": "tsx scripts/verify-automations-demo.ts",
+    "booking:verify": "tsx scripts/verify-booking-demo.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

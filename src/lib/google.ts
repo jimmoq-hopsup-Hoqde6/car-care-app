@@ -3,8 +3,12 @@ import { auth } from "./auth";
 import { isDemoMode, isGoogleConfigured } from "./env";
 
 export async function getGoogleAccessToken() {
-  const session = await auth();
-  return session?.accessToken ?? null;
+  try {
+    const session = await auth();
+    return session?.accessToken ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export async function getOAuthClient() {

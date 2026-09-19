@@ -14,7 +14,17 @@ export function BookingPicker({
   slots: TimeSlot[];
   eventTitle: string;
 }) {
-  const [selected, setSelected] = useState<TimeSlot | null>(null);
+  const recommended = useMemo(
+    () =>
+      slots
+        .filter((slot) => slot.recommended && !slot.busy)
+        .sort((a, b) => (a.recommendRank ?? 9) - (b.recommendRank ?? 9))
+        .slice(0, 3),
+    [slots],
+  );
+  const [selected, setSelected] = useState<TimeSlot | null>(
+    recommended[0] ?? null,
+  );
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -50,6 +60,50 @@ export function BookingPicker({
         </p>
       </div>
 
+      {recommended.length > 0 ? (
+        <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+          <h2 className="text-sm font-semibold text-ink">
+            Recommended for {job.suburb || "this suburb"}
+          </h2>
+          <p className="mt-1 text-xs text-stone-600">
+            Based on other booked jobs the same day and nearby Adelaide areas.
+            You still pick and approve the slot.
+          </p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-3">
+            {recommended.map((slot) => {
+              const isOn = selected?.startIso === slot.startIso;
+              return (
+                <button
+                  key={slot.startIso}
+                  type="button"
+                  onClick={() => setSelected(slot)}
+                  className={`rounded-xl border px-3 py-3 text-left text-sm ${
+                    isOn
+                      ? "border-teal bg-teal text-white"
+                      : "border-amber-300 bg-white text-ink"
+                  }`}
+                >
+                  <span className="block text-[10px] font-bold uppercase tracking-wide">
+                    Recommended
+                  </span>
+                  <span className="mt-1 block font-semibold">
+                    {slot.dayLabel}
+                  </span>
+                  <span className="block">{slot.label}</span>
+                  {slot.recommendReason ? (
+                    <span
+                      className={`mt-1 block text-xs ${isOn ? "text-white/85" : "text-stone-600"}`}
+                    >
+                      {slot.recommendReason}
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
+
       <div className="space-y-4">
         {grouped.map(([day, daySlots]) => (
           <section key={day}>
@@ -68,12 +122,16 @@ export function BookingPicker({
                         ? "cursor-not-allowed border-line bg-stone-100 text-stone-400"
                         : isOn
                           ? "border-teal bg-teal text-white"
-                          : "border-line bg-white text-ink"
+                          : slot.recommended
+                            ? "border-amber-300 bg-amber-50 text-ink"
+                            : "border-line bg-white text-ink"
                     }`}
                   >
                     <span className="block font-medium">{slot.label}</span>
                     {slot.busy ? (
                       <span className="text-xs">Busy</span>
+                    ) : slot.recommended ? (
+                      <span className="text-xs">Recommended</span>
                     ) : null}
                   </button>
                 );
@@ -91,7 +149,7 @@ export function BookingPicker({
 
       <button
         type="button"
-        disabled={!selected || busy}
+        disabled={!selected || busy || selected.busy}
         onClick={() => void confirm()}
         className="w-full rounded-full bg-teal px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
       >
