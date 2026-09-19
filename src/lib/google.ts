@@ -70,28 +70,36 @@ export async function createGmailDraft(input: {
 }) {
   const gmail = await getGmail();
   if (!gmail) return null;
-  const raw = encodeRfc822(input);
-  const result = await gmail.users.drafts.create({
-    userId: "me",
-    requestBody: {
-      message: {
-        raw,
-        threadId: input.threadId ?? undefined,
+  try {
+    const raw = encodeRfc822(input);
+    const result = await gmail.users.drafts.create({
+      userId: "me",
+      requestBody: {
+        message: {
+          raw,
+          threadId: input.threadId ?? undefined,
+        },
       },
-    },
-  });
-  return result.data.id ?? null;
+    });
+    return result.data.id ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export async function sendGmailDraft(draftId: string) {
   if (isDemoMode()) return false;
   const gmail = await getGmail();
   if (!gmail) return false;
-  await gmail.users.drafts.send({
-    userId: "me",
-    requestBody: { id: draftId },
-  });
-  return true;
+  try {
+    await gmail.users.drafts.send({
+      userId: "me",
+      requestBody: { id: draftId },
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function sendGmailMessage(input: {
@@ -104,12 +112,16 @@ export async function sendGmailMessage(input: {
   if (isDemoMode()) return false;
   const gmail = await getGmail();
   if (!gmail) return false;
-  await gmail.users.messages.send({
-    userId: "me",
-    requestBody: {
-      raw: encodeRfc822(input),
-      threadId: input.threadId ?? undefined,
-    },
-  });
-  return true;
+  try {
+    await gmail.users.messages.send({
+      userId: "me",
+      requestBody: {
+        raw: encodeRfc822(input),
+        threadId: input.threadId ?? undefined,
+      },
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }

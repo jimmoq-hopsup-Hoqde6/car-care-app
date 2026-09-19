@@ -13,8 +13,10 @@ import type { AutomationSettings } from "@/lib/automation-status";
 import { activityMillis, formatLastActivity } from "@/lib/activity";
 import { formatAUD } from "@/lib/money";
 import { primaryPhoto } from "@/lib/photos";
+import { nextActionForJob } from "@/lib/job-next";
 import { AutomationBadges } from "./AutomationBadges";
 import { StatusBadge } from "./StatusBadge";
+import { SyncInboxButton } from "./SyncInboxButton";
 
 type ActivitySort = "newest" | "stalled";
 
@@ -26,9 +28,19 @@ type JobWithPhotos = Job & {
 export function JobBoard({
   jobs,
   settings,
+  demo = false,
+  googleConnected = false,
+  unreadApprovals = 0,
+  inboxError,
+  imported = 0,
 }: {
   jobs: JobWithPhotos[];
   settings: AutomationSettings;
+  demo?: boolean;
+  googleConnected?: boolean;
+  unreadApprovals?: number;
+  inboxError?: string;
+  imported?: number;
 }) {
   const [filter, setFilter] = useState<JobStatusValue | "ALL">("ALL");
   const [sort, setSort] = useState<ActivitySort>("newest");
@@ -78,14 +90,85 @@ export function JobBoard({
             />
           </div>
         </div>
-        <Link
-          href="/jobs/new"
-          className="inline-flex items-center justify-center rounded-full bg-teal px-4 py-2.5 text-sm font-semibold text-ink shadow-sm hover:brightness-95"
-        >
-          New job
-        </Link>
+        <div className="flex flex-col gap-2 sm:items-end">
+          <Link
+            href="/jobs/new"
+            className="inline-flex min-h-11 items-center justify-center rounded-full bg-teal px-4 py-2.5 text-sm font-semibold text-ink shadow-sm hover:brightness-95"
+          >
+            New job
+          </Link>
+          {jobs.length > 0 ? (
+            <SyncInboxButton className="inline-flex min-h-11 items-center justify-center rounded-full border border-line bg-white px-4 py-2.5 text-sm font-semibold text-ink disabled:opacity-60" />
+          ) : null}
+        </div>
       </div>
 
+      {inboxError ? (
+        <div
+          role="alert"
+          className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-ink"
+        >
+          <p className="font-semibold">Inbox could not load Gmail</p>
+          <p className="mt-1 text-stone-700">{inboxError}</p>
+          <Link
+            href="/settings"
+            className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-teal-dark underline"
+          >
+            Open Settings to reconnect Google
+          </Link>
+        </div>
+      ) : null}
+
+      {imported > 0 ? (
+        <p className="rounded-2xl border border-teal/40 bg-teal/10 px-4 py-2 text-sm text-ink">
+          Added {imported} {imported === 1 ? "thread" : "threads"} to the job
+          board.
+        </p>
+      ) : null}
+
+      {unreadApprovals > 0 ? (
+        <Link
+          href="/notifications"
+          className="flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-ink"
+        >
+          <span>
+            {unreadApprovals} waiting for your booking approval
+            {unreadApprovals === 1 ? "" : "s"} — pick a slot, nothing auto-sends.
+          </span>
+          <span className="shrink-0 text-teal-dark">Open alerts</span>
+        </Link>
+      ) : null}
+
+      {jobs.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-line bg-card p-6">
+          <h2 className="text-lg font-semibold text-ink">No jobs on the board yet</h2>
+          <p className="mt-2 text-sm text-stone-600">
+            {demo
+              ? "Sample jobs usually load in demo. Use Inbox or New job to add work."
+              : googleConnected
+                ? "Sign-in worked. Sync Inbox to pull eligible Gmail threads onto this board — marketing such as Manheim stays ignored."
+                : "Connect Google, then tap Sync inbox now so this hosted board is not stuck on All (0)."}
+          </p>
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <SyncInboxButton />
+            <Link
+              href="/inbox"
+              className="inline-flex min-h-11 items-center justify-center rounded-full border border-line bg-white px-4 py-2.5 text-sm font-semibold text-ink"
+            >
+              Open Inbox
+            </Link>
+            <Link
+              href="/settings"
+              className="inline-flex min-h-11 items-center justify-center rounded-full border border-line bg-white px-4 py-2.5 text-sm font-semibold text-ink"
+            >
+              Settings
+            </Link>
+          </div>
+        </div>
+      ) : null}
+
+      {jobs.length > 0 ? (
+        <>
       <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:hidden">
         <FilterChip
           active={filter === "ALL"}
@@ -144,6 +227,8 @@ export function JobBoard({
           </section>
         ))}
       </div>
+        </>
+      ) : null}
     </div>
   );
 }
@@ -161,7 +246,7 @@ function SortChip({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
+      className={`min-h-11 rounded-full px-3 py-2.5 text-sm font-semibold ${
         active ? "bg-teal text-ink" : "bg-white text-ink ring-1 ring-line"
       }`}
     >
@@ -183,7 +268,7 @@ function FilterChip({
     <button
       type="button"
       onClick={onClick}
-      className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ${
+      className={`min-h-11 shrink-0 rounded-full px-3 py-2.5 text-sm font-semibold ${
         active ? "bg-ink text-white" : "bg-white text-ink ring-1 ring-line"
       }`}
     >
@@ -237,9 +322,11 @@ function JobCard({
         ) : null}
       </div>
       <div className="p-3">
-        <div className="flex items-start justify-between gap-2">
-          <p className="truncate font-semibold text-ink">{job.customerName}</p>
-          <StatusBadge status={job.status} />
+        <div className="flex min-w-0 items-start justify-between gap-2">
+          <p className="min-w-0 truncate font-semibold text-ink">{job.customerName}</p>
+          <div className="shrink-0">
+            <StatusBadge status={job.status} />
+          </div>
         </div>
         <p className="truncate text-xs text-stone-500">
           Last: {formatLastActivity(job.lastActivityAt ?? job.updatedAt, new Date(), { compact: true })}
@@ -250,6 +337,9 @@ function JobCard({
         <p className="truncate text-xs text-stone-500">
           {job.suburb || "Suburb not set"}
           {job.quoteAmount != null ? ` · ${formatAUD(job.quoteAmount)}` : ""}
+        </p>
+        <p className="mt-1 text-xs font-medium text-teal-dark">
+          {nextActionForJob(job).cta}
         </p>
         <AutomationBadges job={job} settings={settings} />
       </div>

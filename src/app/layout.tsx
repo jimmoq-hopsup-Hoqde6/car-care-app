@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
+import type { Session } from "next-auth";
 import { AppShell } from "@/components/AppShell";
 import { auth } from "@/lib/auth";
 import {
@@ -39,7 +40,12 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const session = await auth();
+  let session: Session | null = null;
+  try {
+    session = await auth();
+  } catch {
+    session = null;
+  }
   const loginRequired = isLoginRequired();
   const signedIn = isEmailAllowed(session?.user?.email);
   const pathname = (await headers()).get("x-pathname") ?? "";
@@ -69,6 +75,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             userEmail={session?.user?.email}
             unreadNotifications={unreadNotifications}
             loginRequired={loginRequired}
+            currentPath={pathname}
           >
             {children}
           </AppShell>

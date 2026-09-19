@@ -169,12 +169,13 @@ export function createMessageMediaAdapter(input: {
           message?: string;
         } | null;
         if (!response.ok) {
+          const raw = json?.message || `HTTP ${response.status}`;
           return {
             status: "failed",
             delivered: false,
             demo: false,
             reason: "MessageMedia send failed",
-            error: json?.message || `HTTP ${response.status}`,
+            error: raw,
           };
         }
         const sent = json?.messages?.[0];

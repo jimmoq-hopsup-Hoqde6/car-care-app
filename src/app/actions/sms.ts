@@ -5,7 +5,7 @@ import { isDemoMode } from "@/lib/env";
 import { formatAuMobile, ownerMobileE164, toE164Au } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
 import { isApprovalSmsType } from "@/lib/sms/copy";
-import { sendSms } from "@/lib/sms/provider";
+import { friendlySmsError, sendSms } from "@/lib/sms/provider";
 import type { SmsType } from "@/lib/sms/types";
 
 export type SmsActionResult = {
@@ -54,6 +54,7 @@ export async function saveSmsAction(input: {
     error = result.error;
     reason = result.reason;
     if (result.status === "failed") {
+      const message = friendlySmsError(result.reason, result.error);
       await prisma.smsMessage.create({
         data: {
           jobId: job.id,
@@ -67,10 +68,10 @@ export async function saveSmsAction(input: {
           delivered: false,
           demo,
           type,
-          error,
+          error: message,
         },
       });
-      return { ok: false, message: result.error || result.reason };
+      return { ok: false, message };
     }
   }
 

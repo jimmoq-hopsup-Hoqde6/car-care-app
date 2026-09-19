@@ -1,13 +1,20 @@
 import Link from "next/link";
+import type { Session } from "next-auth";
 import { addThreadToBoard } from "@/app/actions/inbox";
 import { auth } from "@/lib/auth";
 import { importEligibleInbox } from "@/lib/board-import";
 import { isDemoMode, isGoogleConfigured } from "@/lib/env";
 import { kindLabel, type InboxThread } from "@/lib/inbox";
 import { syncInboxNotifications } from "@/lib/notifications";
+import { SyncInboxButton } from "@/components/SyncInboxButton";
 
 export default async function InboxPage() {
-  const session = await auth();
+  let session: Session | null = null;
+  try {
+    session = await auth();
+  } catch {
+    session = null;
+  }
   let threads: InboxThread[] = [];
   let imported = 0;
   let inboxError: string | undefined;
@@ -45,6 +52,9 @@ export default async function InboxPage() {
               ? "Showing sample threads until you connect Google. Eligible ones still land on the demo board automatically."
               : "Demo threads. Eligible quote requests are added to the board automatically. Add Google OAuth keys in .env to use the live inbox."}
         </p>
+        <div className="mt-3">
+          <SyncInboxButton />
+        </div>
       </div>
 
       {inboxError ? (
@@ -101,7 +111,7 @@ export default async function InboxPage() {
               <form action={addThreadToBoard.bind(null, thread.id)} className="mt-3">
                 <button
                   type="submit"
-                  className="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-white"
+                  className="inline-flex min-h-11 items-center rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-white"
                 >
                   Add to job board
                 </button>

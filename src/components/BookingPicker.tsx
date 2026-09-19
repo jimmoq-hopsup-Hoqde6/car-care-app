@@ -60,6 +60,13 @@ export function BookingPicker({
         </p>
       </div>
 
+      {recommended.length === 0 && slots.every((slot) => slot.busy) ? (
+        <p className="rounded-2xl border border-dashed border-line bg-card p-4 text-sm text-stone-600">
+          No free weekday slots in the next 14 days. Widen hours in Settings, or
+          reconnect Google if Calendar did not load.
+        </p>
+      ) : null}
+
       {recommended.length > 0 ? (
         <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
           <h2 className="text-sm font-semibold text-ink">
@@ -151,7 +158,7 @@ export function BookingPicker({
         type="button"
         disabled={!selected || busy || selected.busy}
         onClick={() => void confirm()}
-        className="w-full rounded-full bg-teal px-4 py-3 text-sm font-semibold text-ink disabled:opacity-50"
+        className="w-full min-h-11 rounded-full bg-teal px-4 py-3 text-sm font-semibold text-ink disabled:opacity-50"
       >
         {busy
           ? "Booking…"

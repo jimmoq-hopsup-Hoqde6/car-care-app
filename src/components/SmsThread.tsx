@@ -20,6 +20,7 @@ export function SmsThread({
   const [body, setBody] = useState("");
   const [type, setType] = useState<SmsType>("reply");
   const [message, setMessage] = useState<string | null>(null);
+  const [ok, setOk] = useState(true);
   const [busy, setBusy] = useState(false);
   const canText = Boolean(customerPhone);
 
@@ -33,6 +34,7 @@ export function SmsThread({
     setBusy(true);
     setMessage(null);
     const result = await saveSmsAction({ jobId, body, send, type });
+    setOk(result.ok);
     setMessage(result.message);
     if (result.ok && send) setBody("");
     setBusy(false);
@@ -72,6 +74,11 @@ export function SmsThread({
                   : ""}
               </p>
               <p className="mt-1 whitespace-pre-wrap text-ink">{item.body}</p>
+              {item.error ? (
+                <p className="mt-1 text-xs font-medium text-amber-800">
+                  {item.error}
+                </p>
+              ) : null}
             </article>
           ))
         )}
@@ -108,7 +115,11 @@ export function SmsThread({
       </label>
 
       {message ? (
-        <p className="mt-2 rounded-xl bg-teal/10 px-3 py-2 text-sm text-teal-dark">
+        <p
+          className={`mt-2 rounded-xl px-3 py-2 text-sm ${
+            ok ? "bg-teal/10 text-teal-dark" : "bg-amber-50 text-amber-950"
+          }`}
+        >
           {message}
         </p>
       ) : null}
@@ -118,7 +129,7 @@ export function SmsThread({
           type="button"
           disabled={busy || !canText}
           onClick={() => void submit(false)}
-          className="flex-1 rounded-full border border-line bg-white px-4 py-2 text-sm font-semibold text-ink disabled:opacity-60"
+          className="flex-1 min-h-11 rounded-full border border-line bg-white px-4 py-2.5 text-sm font-semibold text-ink disabled:opacity-60"
         >
           Save SMS draft
         </button>
@@ -126,7 +137,7 @@ export function SmsThread({
           type="button"
           disabled={busy || !canText}
           onClick={() => void submit(true)}
-          className="flex-1 rounded-full bg-teal px-4 py-2 text-sm font-semibold text-ink disabled:opacity-60"
+          className="flex-1 min-h-11 rounded-full bg-teal px-4 py-2.5 text-sm font-semibold text-ink disabled:opacity-60"
         >
           {isApprovalSmsType(type) ? "Send SMS (approval)" : "Send SMS"}
         </button>

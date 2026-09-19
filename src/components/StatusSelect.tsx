@@ -17,7 +17,7 @@ export function StatusSelect({
       onChange={(event) => {
         void updateJobStatus(jobId, event.target.value as JobStatus);
       }}
-      className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm"
+      className="min-h-11 w-full rounded-xl border border-line bg-white px-3 py-2 text-sm"
     >
       {JOB_STATUSES.map((value) => (
         <option key={value} value={value}>

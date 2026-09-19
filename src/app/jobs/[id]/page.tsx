@@ -9,6 +9,7 @@ import { getSettings } from "@/lib/settings";
 import { CHANNEL_LABELS } from "@/lib/constants";
 import { formatLastActivity } from "@/lib/activity";
 import { formatAdelaide } from "@/lib/booking";
+import { nextActionForJob } from "@/lib/job-next";
 import { formatAUD } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 import { parseRepairItems } from "@/lib/quote";
@@ -19,20 +20,42 @@ export default async function JobPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [job, settings] = await Promise.all([
-    prisma.job.findUnique({
-      where: { id },
-      include: {
-        photos: true,
-        drafts: { orderBy: { createdAt: "desc" } },
-        smsMessages: { orderBy: { createdAt: "asc" } },
-      },
-    }),
-    getSettings(),
-  ]);
+  let job;
+  let settings;
+  try {
+    [job, settings] = await Promise.all([
+      prisma.job.findUnique({
+        where: { id },
+        include: {
+          photos: true,
+          drafts: { orderBy: { createdAt: "desc" } },
+          smsMessages: { orderBy: { createdAt: "asc" } },
+        },
+      }),
+      getSettings(),
+    ]);
+  } catch {
+    return (
+      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6">
+        <h1 className="text-xl font-semibold text-ink">Job could not load</h1>
+        <p className="mt-2 text-sm text-stone-700">
+          The database may be unreachable. Try the job board again in a moment.
+        </p>
+        <Link
+          href="/"
+          className="mt-4 inline-flex min-h-11 items-center rounded-full bg-teal px-4 py-2.5 text-sm font-semibold text-ink"
+        >
+          Job board
+        </Link>
+      </div>
+    );
+  }
   if (!job) notFound();
 
   const items = parseRepairItems(job.repairItems);
+  const next = nextActionForJob(job);
+  const quoteHref = `/jobs/${job.id}/quote`;
+  const bookHref = `/jobs/${job.id}/book`;
 
   return (
     <div className="space-y-5">
@@ -40,7 +63,7 @@ export default async function JobPage({
         ← Job board
       </Link>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
+        <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-2xl font-semibold text-ink">{job.customerName}</h1>
             <StatusBadge status={job.status} />
@@ -63,20 +86,49 @@ export default async function JobPage({
             </p>
           ) : null}
         </div>
-        <div className="flex gap-2">
-          <Link
-            href={`/jobs/${job.id}/quote`}
-            className="rounded-full bg-teal px-4 py-2.5 text-sm font-semibold text-ink"
-          >
-            Quote
-          </Link>
-          <Link
-            href={`/jobs/${job.id}/book`}
-            className="rounded-full border border-line bg-white px-4 py-2.5 text-sm font-semibold text-ink"
-          >
-            Book
-          </Link>
+        <div className="flex flex-col gap-2 sm:items-end">
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href={next.href}
+              className="inline-flex min-h-11 items-center justify-center rounded-full bg-teal px-4 py-2.5 text-sm font-semibold text-ink"
+            >
+              {next.cta}
+            </Link>
+            {next.href !== quoteHref ? (
+              <Link
+                href={quoteHref}
+                className="inline-flex min-h-11 items-center justify-center rounded-full border border-line bg-white px-4 py-2.5 text-sm font-semibold text-ink"
+              >
+                Quote
+              </Link>
+            ) : (
+              <Link
+                href={bookHref}
+                className="inline-flex min-h-11 items-center justify-center rounded-full border border-line bg-white px-4 py-2.5 text-sm font-semibold text-ink"
+              >
+                Book
+              </Link>
+            )}
+          </div>
         </div>
+      </div>
+
+      <div
+        className={`rounded-2xl border px-4 py-3 ${
+          next.tone === "warn"
+            ? "border-amber-300 bg-amber-50"
+            : next.tone === "wait"
+              ? "border-line bg-white"
+              : "border-teal/40 bg-teal/10"
+        }`}
+      >
+        <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
+          Next
+        </p>
+        <p className="mt-1 text-sm font-medium text-ink">{next.sentence}</p>
+        <p className="mt-1 text-xs text-stone-500">
+          Quotes and booking confirmations never send unless you tap Send.
+        </p>
       </div>
 
       <PhotoGallery jobId={job.id} photos={job.photos} />

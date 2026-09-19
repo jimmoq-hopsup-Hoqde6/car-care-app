@@ -1,3 +1,4 @@
+import { isPublicPath } from "../src/lib/auth.config";
 import {
   autoImportEligibleInbox,
   findJobForThread,
@@ -75,6 +76,10 @@ async function main() {
   assert(
     /could not be loaded/i.test(friendlyInboxError(new Error("unexpected"))),
     "Unknown Gmail errors stay friendly",
+  );
+  assert(
+    isPublicPath("/api/inbox/sync"),
+    "Cron can hit /api/inbox/sync without a login session",
   );
 
   const loaded = await loadInbox();

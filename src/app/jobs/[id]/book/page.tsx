@@ -13,28 +13,62 @@ export default async function BookPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const job = await prisma.job.findUnique({
-    where: { id },
-    include: { photos: true },
-  });
+  let job;
+  try {
+    job = await prisma.job.findUnique({
+      where: { id },
+      include: { photos: true },
+    });
+  } catch {
+    return (
+      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6">
+        <h1 className="text-xl font-semibold text-ink">Booking could not load</h1>
+        <p className="mt-2 text-sm text-stone-700">
+          The database may be unreachable. Nothing was sent.
+        </p>
+        <Link
+          href="/"
+          className="mt-4 inline-flex min-h-11 items-center rounded-full bg-teal px-4 py-2.5 text-sm font-semibold text-ink"
+        >
+          Job board
+        </Link>
+      </div>
+    );
+  }
   if (!job) notFound();
-  const [openSlots, bookedJobs] = await Promise.all([
-    listAvailableSlots(14),
-    prisma.job.findMany({
-      where: {
-        status: { in: [JobStatus.BOOKED, JobStatus.DONE] },
-        bookedStart: { not: null },
-        id: { not: job.id },
-      },
-      select: {
-        id: true,
-        customerName: true,
-        suburb: true,
-        bookedStart: true,
-        bookedEnd: true,
-      },
-    }),
-  ]);
+  let openSlots: Awaited<ReturnType<typeof listAvailableSlots>> = [];
+  let bookedJobs: Array<{
+    id: string;
+    customerName: string;
+    suburb: string | null;
+    bookedStart: Date | null;
+    bookedEnd: Date | null;
+  }> = [];
+  let calendarNote: string | null = null;
+  try {
+    [openSlots, bookedJobs] = await Promise.all([
+      listAvailableSlots(14),
+      prisma.job.findMany({
+        where: {
+          status: { in: [JobStatus.BOOKED, JobStatus.DONE] },
+          bookedStart: { not: null },
+          id: { not: job.id },
+        },
+        select: {
+          id: true,
+          customerName: true,
+          suburb: true,
+          bookedStart: true,
+          bookedEnd: true,
+        },
+      }),
+    ]);
+  } catch {
+    calendarNote =
+      "Calendar could not be reached. Reconnect Google in Settings if this keeps happening. You can still pick a slot from weekdays on the board.";
+    openSlots = [];
+    bookedJobs = [];
+  }
 
   const ranked = recommendSlots(
     job.suburb,
@@ -67,8 +101,14 @@ export default async function BookPage({
         <h1 className="text-2xl font-semibold text-ink">Pick a booking</h1>
         <p className="text-sm text-stone-600">
           Free slots for the next 14 days, Adelaide time. Default job length is 3
-          hours. Recommended times sit near other jobs the same day.
+          hours. Recommended times sit near other jobs the same day. Confirmation
+          drafts never send themselves.
         </p>
+        {calendarNote ? (
+          <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-ink">
+            {calendarNote}
+          </p>
+        ) : null}
       </div>
       <PhotoGallery jobId={job.id} photos={job.photos} compact />
       <BookingPicker job={job} slots={slots} eventTitle={jobEventTitle(job)} />

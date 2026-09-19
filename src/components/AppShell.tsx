@@ -11,6 +11,7 @@ type Props = {
   userEmail?: string | null;
   unreadNotifications: number;
   loginRequired?: boolean;
+  currentPath?: string;
 };
 
 const nav = [
@@ -28,6 +29,7 @@ export function AppShell({
   userEmail,
   unreadNotifications,
   loginRequired = false,
+  currentPath = "",
 }: Props) {
   return (
     <div className="min-h-full bg-background text-foreground">
@@ -43,9 +45,17 @@ export function AppShell({
               <Link
                 key={item.href}
                 href={item.href}
-                className="rounded-full px-3 py-1.5 text-sm text-white/85 hover:bg-white/10"
+                className={`rounded-full px-3 py-2 text-sm ${
+                  currentPath === item.href ||
+                  (item.href !== "/" && currentPath.startsWith(item.href))
+                    ? "bg-white/15 text-white"
+                    : "text-white/85 hover:bg-white/10"
+                }`}
               >
                 {item.label}
+                {item.href === "/notifications" && unreadNotifications > 0
+                  ? ` (${unreadNotifications > 9 ? "9+" : unreadNotifications})`
+                  : ""}
               </Link>
             ))}
           </nav>
@@ -65,21 +75,35 @@ export function AppShell({
         ) : null}
       </header>
 
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-24 pt-5 md:pb-10">
+      <main className="mx-auto w-full min-w-0 max-w-7xl flex-1 overflow-x-hidden px-4 pb-24 pt-5 md:pb-10">
         {children}
       </main>
 
       <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-teal/40 bg-card/95 backdrop-blur md:hidden">
         <div className="grid grid-cols-4">
-          {nav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="px-2 py-3 text-center text-sm font-medium text-ink"
-            >
-              {item.label}
-            </Link>
-          ))}
+          {nav.map((item) => {
+            const active =
+              currentPath === item.href ||
+              (item.href !== "/" && currentPath.startsWith(item.href));
+            const alerts =
+              item.href === "/notifications" && unreadNotifications > 0;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`relative flex min-h-14 flex-col items-center justify-center px-1 text-sm font-medium ${
+                  active ? "text-teal-dark" : "text-ink"
+                }`}
+              >
+                {item.label}
+                {alerts ? (
+                  <span className="absolute right-3 top-2 min-w-4 rounded-full bg-amber-400 px-1 text-center text-[10px] font-bold text-ink">
+                    {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                  </span>
+                ) : null}
+              </Link>
+            );
+          })}
         </div>
       </nav>
     </div>
@@ -107,7 +131,7 @@ function AuthButton({
       >
         <button
           type="submit"
-          className="rounded-full bg-white/10 px-3 py-1.5 text-sm text-white/90"
+          className="inline-flex min-h-11 items-center rounded-full bg-white/10 px-3 py-2 text-sm text-white/90"
         >
           Sign out
         </button>
@@ -119,7 +143,7 @@ function AuthButton({
     return (
       <Link
         href="/settings"
-        className="rounded-full bg-white/10 px-3 py-1.5 text-sm text-white/90"
+        className="inline-flex min-h-11 items-center rounded-full bg-white/10 px-3 py-2 text-sm text-white/90"
       >
         Connect Google
       </Link>
@@ -136,7 +160,7 @@ function AuthButton({
       >
         <button
           type="submit"
-          className="rounded-full bg-white/10 px-3 py-1.5 text-sm text-white/90"
+          className="inline-flex min-h-11 items-center rounded-full bg-white/10 px-3 py-2 text-sm text-white/90"
         >
           {userEmail ? userEmail.split("@")[0] : "Disconnect"}
         </button>
@@ -153,7 +177,7 @@ function AuthButton({
     >
       <button
         type="submit"
-        className="rounded-full bg-amber-400 px-3 py-1.5 text-sm font-semibold text-ink"
+        className="inline-flex min-h-11 items-center rounded-full bg-amber-400 px-3 py-2 text-sm font-semibold text-ink"
       >
         Connect Google
       </button>

@@ -73,7 +73,7 @@ export default async function LoginPage({
           >
             <button
               type="submit"
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-teal px-4 py-3 text-sm font-semibold text-ink hover:bg-teal/90"
+              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-teal px-4 py-3 text-sm font-semibold text-ink hover:bg-teal/90"
             >
               Sign in with Google
             </button>

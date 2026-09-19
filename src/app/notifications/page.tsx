@@ -7,10 +7,24 @@ import { formatAdelaide } from "@/lib/booking";
 import { prisma } from "@/lib/prisma";
 
 export default async function NotificationsPage() {
-  const notes = await prisma.notification.findMany({
-    orderBy: [{ readAt: "asc" }, { createdAt: "desc" }],
-    include: { job: { select: { customerName: true, suburb: true } } },
-  });
+  let notes: Array<{
+    id: string;
+    title: string;
+    body: string;
+    href: string | null;
+    jobId: string | null;
+    readAt: Date | null;
+    createdAt: Date;
+    job: { customerName: string; suburb: string | null } | null;
+  }> = [];
+  try {
+    notes = await prisma.notification.findMany({
+      orderBy: [{ readAt: "asc" }, { createdAt: "desc" }],
+      include: { job: { select: { customerName: true, suburb: true } } },
+    });
+  } catch {
+    notes = [];
+  }
   const unread = notes.filter((note) => !note.readAt).length;
 
   return (
@@ -27,7 +41,7 @@ export default async function NotificationsPage() {
           <form action={markAllNotificationsRead}>
             <button
               type="submit"
-              className="rounded-full border border-line bg-white px-4 py-2 text-sm font-semibold"
+              className="min-h-11 rounded-full border border-line bg-white px-4 py-2.5 text-sm font-semibold"
             >
               Mark all read
             </button>
@@ -61,7 +75,7 @@ export default async function NotificationsPage() {
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Link
                     href={href}
-                    className="rounded-full bg-teal px-3 py-1.5 text-xs font-semibold text-ink"
+                    className="inline-flex min-h-11 items-center rounded-full bg-teal px-4 py-2.5 text-sm font-semibold text-ink"
                   >
                     Open booking
                   </Link>
@@ -69,7 +83,7 @@ export default async function NotificationsPage() {
                     <form action={markNotificationRead.bind(null, note.id)}>
                       <button
                         type="submit"
-                        className="rounded-full border border-line px-3 py-1.5 text-xs font-semibold"
+                        className="min-h-11 rounded-full border border-line px-4 py-2.5 text-sm font-semibold"
                       >
                         Mark read
                       </button>

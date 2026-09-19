@@ -90,21 +90,25 @@ async function loadBusyPeriods(
   if (!calendar) {
     periods = demoBusyPeriods(timeMin);
   } else {
-    const result = await calendar.freebusy.query({
-      requestBody: {
-        timeMin: timeMin.toISOString(),
-        timeMax: timeMax.toISOString(),
-        timeZone,
-        items: [{ id: "primary" }],
-      },
-    });
-    const calBusy = result.data.calendars?.primary?.busy ?? [];
-    periods = calBusy
-      .filter((block) => block.start && block.end)
-      .map((block) => ({
-        start: new Date(block.start as string),
-        end: new Date(block.end as string),
-      }));
+    try {
+      const result = await calendar.freebusy.query({
+        requestBody: {
+          timeMin: timeMin.toISOString(),
+          timeMax: timeMax.toISOString(),
+          timeZone,
+          items: [{ id: "primary" }],
+        },
+      });
+      const calBusy = result.data.calendars?.primary?.busy ?? [];
+      periods = calBusy
+        .filter((block) => block.start && block.end)
+        .map((block) => ({
+          start: new Date(block.start as string),
+          end: new Date(block.end as string),
+        }));
+    } catch {
+      periods = demoBusyPeriods(timeMin);
+    }
   }
 
   const booked = await prisma.job.findMany({
@@ -238,22 +242,25 @@ export async function createCalendarEvent(input: {
   const calendar = await getCalendar();
   if (!calendar) return `demo-event-${Date.now()}`;
 
-  const result = await calendar.events.insert({
-    calendarId: "primary",
-    requestBody: {
-      summary: input.title,
-      location: input.location ?? undefined,
-      description: input.description,
-      start: {
-        dateTime: input.start.toISOString(),
-        timeZone: input.timezone,
+  try {
+    const result = await calendar.events.insert({
+      calendarId: "primary",
+      requestBody: {
+        summary: input.title,
+        location: input.location ?? undefined,
+        description: input.description,
+        start: {
+          dateTime: input.start.toISOString(),
+          timeZone: input.timezone,
+        },
+        end: {
+          dateTime: input.end.toISOString(),
+          timeZone: input.timezone,
+        },
       },
-      end: {
-        dateTime: input.end.toISOString(),
-        timeZone: input.timezone,
-      },
-    },
-  });
-
-  return result.data.id ?? null;
+    });
+    return result.data.id ?? null;
+  } catch {
+    return `local-event-${Date.now()}`;
+  }
 }

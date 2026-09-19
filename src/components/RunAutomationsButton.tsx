@@ -26,7 +26,7 @@ export function RunAutomationsButton() {
           );
           setBusy(false);
         }}
-        className="rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+        className="inline-flex min-h-11 items-center rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
       >
         {busy ? "Running…" : "Run automations now"}
       </button>

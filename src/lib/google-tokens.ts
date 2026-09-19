@@ -49,17 +49,21 @@ export async function getStoredOAuthClient() {
   const expiring =
     !row.expiresAt || Date.now() > row.expiresAt * 1000 - 60_000;
   if (expiring && row.refreshToken) {
-    const refreshed = await client.refreshAccessToken();
-    const creds = refreshed.credentials;
-    await persistGoogleAccount({
-      email: row.email,
-      accessToken: creds.access_token,
-      refreshToken: creds.refresh_token ?? row.refreshToken,
-      expiresAt: creds.expiry_date
-        ? Math.floor(creds.expiry_date / 1000)
-        : null,
-    });
-    client.setCredentials(creds);
+    try {
+      const refreshed = await client.refreshAccessToken();
+      const creds = refreshed.credentials;
+      await persistGoogleAccount({
+        email: row.email,
+        accessToken: creds.access_token,
+        refreshToken: creds.refresh_token ?? row.refreshToken,
+        expiresAt: creds.expiry_date
+          ? Math.floor(creds.expiry_date / 1000)
+          : null,
+      });
+      client.setCredentials(creds);
+    } catch {
+      return client;
+    }
   }
 
   return client;

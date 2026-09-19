@@ -4,7 +4,7 @@ export function NotificationBell({ unread }: { unread: number }) {
   return (
     <Link
       href="/notifications"
-      className="relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white"
+      className="relative inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white"
       aria-label={
         unread
           ? `${unread} unread notification${unread === 1 ? "" : "s"}`

@@ -5,6 +5,10 @@ import { createMessageMediaAdapter } from "./messagemedia";
 import { twilioAdapter } from "./twilio";
 import type { InboundSms, OutboundSms, SmsAdapter, SmsSendResult } from "./types";
 
+/** Live Vercel webhook Marcel already uses. AUTH_URL still wins when set. */
+export const PRODUCTION_SMS_WEBHOOK =
+  "https://car-care-app-green.vercel.app/api/sms/messagemedia";
+
 export function publicAppUrl() {
   return (
     process.env.AUTH_URL?.replace(/\/$/, "") ||
@@ -15,6 +19,26 @@ export function publicAppUrl() {
 
 export function smsWebhookUrl() {
   return `${publicAppUrl()}/api/sms/messagemedia`;
+}
+
+export function friendlySmsError(reason?: string | null, error?: string | null) {
+  const text = `${reason ?? ""} ${error ?? ""}`.toLowerCase();
+  if (
+    /not authorised|not authorized|unregistered|source_number|invalid source|number is not/.test(
+      text,
+    )
+  ) {
+    return "MessageMedia did not accept 0435 222 221 as the sender. Authorise it under Numbers → My own numbers, then try again.";
+  }
+  if (/unauthorized|401|403|invalid.*key|invalid.*secret|credential/.test(text)) {
+    return "MessageMedia credentials were refused. Check the API key and secret in Settings.";
+  }
+  if (/destination|invalid.*mobile|not a valid australian/.test(text)) {
+    return "That destination is not a valid Australian mobile.";
+  }
+  if (error?.trim()) return error.trim();
+  if (reason?.trim()) return reason.trim();
+  return "The text could not be sent. Try again, or check MessageMedia in Settings.";
 }
 
 export async function getSmsCredentials() {

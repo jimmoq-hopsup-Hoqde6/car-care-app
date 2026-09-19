@@ -1,9 +1,16 @@
 import { addPriceBandAction, saveSettingsAction } from "@/app/actions/settings";
 import { RunAutomationsButton } from "@/components/RunAutomationsButton";
-import { signIn } from "@/lib/auth";
+import { SyncInboxButton } from "@/components/SyncInboxButton";
+import { auth, signIn } from "@/lib/auth";
+import type { Session } from "next-auth";
+import { getConnectionHealth } from "@/lib/connection-health";
 import { GOOGLE_SCOPES, OWNER_MOBILE } from "@/lib/constants";
 import { formatAuMobile, OWNER_MOBILE_E164 } from "@/lib/phone";
-import { smsWebhookUrl } from "@/lib/sms/provider";
+import {
+  getSmsCredentials,
+  PRODUCTION_SMS_WEBHOOK,
+  smsWebhookUrl,
+} from "@/lib/sms/provider";
 import { DESK_LABELS } from "@/lib/gmail-labels";
 import {
   allowedEmails,
@@ -25,17 +32,69 @@ const DAY_LABELS = [
 ];
 
 export default async function SettingsPage() {
-  const settings = await getSettings();
-  const [bands, events] = await Promise.all([
-    prisma.priceBand.findMany({
-      orderBy: { sortOrder: "asc" },
-    }),
-    prisma.automationEvent.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 8,
-      include: { job: { select: { customerName: true } } },
-    }),
-  ]);
+  let settings;
+  try {
+    settings = await getSettings();
+  } catch {
+    return (
+      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6">
+        <h1 className="text-xl font-semibold text-ink">Settings could not load</h1>
+        <p className="mt-2 text-sm text-stone-700">
+          The database may be unreachable. Try again in a moment.
+        </p>
+      </div>
+    );
+  }
+  let bands: Awaited<ReturnType<typeof prisma.priceBand.findMany>> = [];
+  let events: Array<{
+    id: string;
+    type: string;
+    delivered: boolean;
+    demo: boolean;
+    job: { customerName: string };
+  }> = [];
+  try {
+    [bands, events] = await Promise.all([
+      prisma.priceBand.findMany({
+        orderBy: { sortOrder: "asc" },
+      }),
+      prisma.automationEvent.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 8,
+        include: { job: { select: { customerName: true } } },
+      }),
+    ]);
+  } catch {
+    bands = [];
+    events = [];
+  }
+
+  let session: Session | null = null;
+  try {
+    session = await auth();
+  } catch {
+    session = null;
+  }
+
+  let health;
+  try {
+    health = await getConnectionHealth({
+      sessionEmail: session?.user?.email,
+      googleConnected: Boolean(session?.googleConnected),
+    });
+  } catch {
+    health = { demo: isDemoMode(), rows: [] };
+  }
+
+  let smsConfigured = Boolean(
+    settings.hasMessageMediaKey && settings.hasMessageMediaSecret,
+  );
+  try {
+    smsConfigured = (await getSmsCredentials()).configured;
+  } catch {
+    smsConfigured = false;
+  }
+  const webhook = smsWebhookUrl();
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -46,6 +105,36 @@ export default async function SettingsPage() {
           still never fills a customer quote for you.
         </p>
       </div>
+
+      <section className="rounded-2xl border border-line bg-card p-4">
+        <h2 className="font-semibold text-ink">Connection health</h2>
+        <p className="mt-1 text-sm text-stone-600">
+          After Google sign-in on a hosted desk, tap Sync inbox now so Neon is
+          not stuck on All (0).
+        </p>
+        <ul className="mt-3 space-y-2">
+          {health.rows.map((row) => (
+            <li
+              key={row.id}
+              className="flex gap-3 rounded-xl bg-white px-3 py-2 text-sm"
+            >
+              <span
+                className={`mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full ${
+                  row.ok ? "bg-teal" : "bg-amber-400"
+                }`}
+                aria-hidden
+              />
+              <span>
+                <span className="font-semibold text-ink">{row.label}</span>
+                <span className="block text-stone-600">{row.detail}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-4">
+          <SyncInboxButton />
+        </div>
+      </section>
 
       <section className="rounded-2xl border border-line bg-card p-4">
         <h2 className="font-semibold text-ink">Google</h2>
@@ -78,7 +167,7 @@ export default async function SettingsPage() {
           >
             <button
               type="submit"
-              className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white"
+              className="inline-flex min-h-11 items-center rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-white"
             >
               Connect Google
             </button>
@@ -268,10 +357,29 @@ export default async function SettingsPage() {
         </label>
 
         <h3 className="pt-2 font-semibold text-ink">SMS (MessageMedia)</h3>
-        <p className="text-xs text-stone-500">
-          Outbound uses <code>source_number</code> {OWNER_MOBILE_E164}. Inbound
-          webhook: <code>{smsWebhookUrl()}</code>. Quotes and booking confirms
-          never auto-text.
+        <p
+          className={`mt-2 rounded-xl px-3 py-2 text-sm ${
+            smsConfigured
+              ? "bg-teal/10 text-ink"
+              : "bg-amber-50 text-ink"
+          }`}
+        >
+          {smsConfigured
+            ? "MessageMedia is configured (env keys or saved Settings secrets)."
+            : "MessageMedia is not configured — texts save on the job but will not send live."}{" "}
+          Owner mobile {formatAuMobile(OWNER_MOBILE)} / {OWNER_MOBILE_E164}.
+        </p>
+        <p className="mt-2 text-xs text-stone-500">
+          Inbound webhook on this host: <code>{webhook}</code>
+        </p>
+        <p className="mt-1 text-xs text-stone-500">
+          Production Vercel webhook:{" "}
+          <code>{PRODUCTION_SMS_WEBHOOK}</code>
+        </p>
+        <p className="mt-1 text-xs text-stone-500">
+          Quotes and booking confirms never auto-text. If send fails with an
+          unauthorised number, add 0435 222 221 under MessageMedia Numbers → My
+          own numbers.
         </p>
         <label className="mt-2 block text-sm">
           MessageMedia API key
@@ -393,7 +501,7 @@ export default async function SettingsPage() {
         </div>
         <button
           type="submit"
-          className="rounded-full bg-teal px-4 py-2.5 text-sm font-semibold text-ink"
+          className="inline-flex min-h-11 items-center rounded-full bg-teal px-4 py-2.5 text-sm font-semibold text-ink"
         >
           Save settings
         </button>

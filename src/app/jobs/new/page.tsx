@@ -68,7 +68,7 @@ export default function NewJobPage() {
         </label>
         <button
           type="submit"
-          className="w-full rounded-full bg-teal py-3 text-sm font-semibold text-ink"
+          className="w-full min-h-11 rounded-full bg-teal py-3 text-sm font-semibold text-ink"
         >
           Save job
         </button>

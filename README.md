@@ -16,14 +16,24 @@ The job-desk header uses Marcel's business-card lockup (black background, white 
 
 - **Phone / web login** — hosted mode shows a branded Google Sign-In page; only Marcel's allowlisted accounts get in. Local demo stays open. See [Deploy for phone access](#deploy-for-phone-access).
 - **Job board** — Needs quote, Awaiting customer, Ready to book, Booked, Done. Each card shows a **repair photo** thumbnail (or “No repair photo”) and **last activity** in Adelaide time (`Last: 19 Sep · 11:58 am`). Toggle **Newest activity** or **Stalled first**.
-- **Inbox triage** — quote requests, website forms, booking replies and SMS **land on the job board automatically** when you open Inbox (and on the daily automation run). Marketing such as Manheim is never added. Existing Gmail job-desk labels seed the board status. If Gmail fails, Inbox shows a reconnect message instead of crashing.
-- **Gmail labels** — one stage label at a time: Quote request, Awaiting customer, Ready to book, Booked, Follow-up / Review. Label changes never send email.
-- **Notifications** — when a customer accepts a quote or asks to book, a badge tells you they are waiting for your booking approval (nothing is auto-sent)
+- **Inbox triage** — quote requests, website forms, booking replies and SMS **land on the job board automatically** when you open the (empty) job board, open Inbox, tap **Sync inbox now**, or hit `/api/inbox/sync` (same cron secret as automations). Marketing such as Manheim is never added. If Gmail fails, the desk shows a reconnect message instead of crashing.
+- **Notifications** — unread booking approvals sit in an amber bar on the job board and on Alerts (phone tab badge). Nothing is auto-sent.
 - **Quote composer** — you enter the price or tap **Accept suggestion**; the email uses Marcel's locked standard (first-name greeting, 30-day validity, mobile number ask). Suggestions never send themselves.
 - **Booking picker** — next 14 weekdays, default 8:00 am–4:00 pm, 3-hour jobs; recommends slots near other booked jobs in nearby Adelaide suburbs; creates a Calendar event and a confirmation draft
-- **SMS** — same job card as email, via MessageMedia on **0435 222 221**. Unknown numbers become Needs quote. Demo threads do not call the live API.
+- **SMS** — same job card as email, via MessageMedia on **0435 222 221**. Unknown numbers become Needs quote. Live webhook: `https://car-care-app-green.vercel.app/api/sms/messagemedia`.
+- **Gmail labels** — one stage label at a time: Quote request, Awaiting customer, Ready to book, Booked, Follow-up / Review. Label changes never send email.
 
-Sample jobs load automatically: **Jenny Gwynne (BMW bumper, Crafers)**, **Nathan Crowe (Outlander, Unley, follow-up due)**, **John Hale (Honda CR-V, Glenelg, waiting for booking approval)**, **Mia Chen (Corolla, Goodwood, waiting for booking approval)**, **Priya Nair (Mazda 3, Norwood, review ask due)**, **Jamie Collis (Paradise bonnet, out of scope, decline drafted)**, **Sam Vella (Norwood door, photo ask queued + SMS)**, **Alex Rowe (Payneham bumper + guard, $650 suggestion)**, **Taylor Nguyen (Prospect SMS thread)**, plus booked neighbours in **Stirling, Brighton and Somerton Park** so recommendations show in demo. Opening Inbox also auto-adds **Kai Bennett (Magill bumper)** if that thread is not already a job.
+## Expert workflow (phone)
+
+1. Sign in with an allowlisted Google account (hosted) or open the demo locally.
+2. If the board is empty, tap **Sync inbox now** (Settings, Inbox, or the empty-board card) so Neon is not stuck on All (0). Opening the job board after sign-in also auto-imports when there are no jobs yet.
+3. **Needs quote** → open the job → **Write quote** → Accept suggestion or type the price → **Save draft** or **Send**. Quotes never auto-send.
+4. **Ready to book** (Alerts) → **Pick a slot** (suburb-aware) → confirmation draft. Booking confirms never auto-send.
+5. SMS stays on the same job. Failed sends explain an unauthorised 0435 222 221 if MessageMedia rejected the sender.
+
+Settings **Connection health** shows Google login, Gmail token, Calendar, MessageMedia, and the owner mobile.
+
+Sample jobs load automatically: **Jenny Gwynne (BMW bumper, Crafers)**, **Nathan Crowe (Outlander, Unley, follow-up due)**, **John Hale (Honda CR-V, Glenelg, waiting for booking approval)**, **Mia Chen (Corolla, Goodwood, waiting for booking approval)**, **Priya Nair (Mazda 3, Norwood, review ask due)**, **Jamie Collis (Paradise bonnet, out of scope, decline drafted)**, **Sam Vella (Norwood door, photo ask queued + SMS)**, **Alex Rowe (Payneham bumper + guard, $650 suggestion)**, **Taylor Nguyen (Prospect SMS thread)**, plus booked neighbours in **Stirling, Brighton and Somerton Park** so recommendations show in demo. Opening the job board or Inbox also auto-adds **Kai Bennett (Magill bumper)** if that thread is not already a job.
 
 ## Run it on your computer (demo, no Google)
 
@@ -57,6 +67,7 @@ npm run pricing:verify      # confirm smart price suggestions stay internal
 npm run sms:verify          # confirm SMS E.164 matching + demo MessageMedia no-op
 npm run login:verify        # confirm demo stays open and hosted allowlist login
 npm run inbox:verify        # confirm eligible Gmail/demo threads auto-add; Manheim does not
+npm run desk:verify         # confirm next-action CTAs, connection health, SMS error copy
 npm run verify              # run all of the checks above
 ```
 
@@ -280,7 +291,7 @@ That finds due jobs and:
 - **Demo mode (`DEMO_MODE=true`)** — writes a queue entry on the job and **does not email anyone**
 - **Live, Google connected** — sends via Gmail using the stored OAuth tokens
 
-You can also tap **Run automations now** on Settings, or hit `GET`/`POST` `/api/automations/run` from a host cron. If you set `AUTOMATIONS_SECRET` in `.env`, send `Authorization: Bearer …`.
+You can also tap **Run automations now** on Settings, or hit `GET`/`POST` `/api/automations/run` from a host cron. Inbox-only sync is `GET`/`POST` `/api/inbox/sync`. If you set `AUTOMATIONS_SECRET` in `.env`, send `Authorization: Bearer …` to either URL.
 
 A typical cron (once a day, Adelaide morning) is enough:
 
@@ -312,8 +323,6 @@ Settings stores the API key/secret (or use `MESSAGEMEDIA_API_KEY` / `MESSAGEMEDI
 - **Demo mode never calls MessageMedia.** Taylor Nguyen (Prospect door) and Sam Vella show seeded SMS threads.
 
 WhatsApp and iOS are still out of scope.
-
-## Last activity
 
 ## Last activity
 
@@ -437,11 +446,12 @@ In the same Google Cloud OAuth **Web application** client you used locally:
 | `OWNER_MOBILE` | `0435222221` |
 | `MESSAGEMEDIA_API_KEY` | optional, for live SMS |
 | `MESSAGEMEDIA_API_SECRET` | optional, for live SMS |
-| `AUTOMATIONS_SECRET` | optional Bearer token for `/api/automations/run` |
+| `AUTOMATIONS_SECRET` | optional Bearer token for `/api/automations/run` and `/api/inbox/sync` |
 
 5. Deploy. Open the URL on your phone. You should see the branded login page, then the job board after Google Sign-In with an allowlisted account.
 6. After the first URL is known, confirm `AUTH_URL` / `NEXTAUTH_URL` match it (including `https://`) and redeploy if you had to fix them.
-7. MessageMedia inbound webhook (if using SMS): `{NEXTAUTH_URL}/api/sms/messagemedia`.
+7. MessageMedia inbound webhook (if using SMS): `{NEXTAUTH_URL}/api/sms/messagemedia` (production: `https://car-care-app-green.vercel.app/api/sms/messagemedia`).
+8. After Google Sign-In, open the job board or tap **Sync inbox now**. Eligible threads land without **Add to job board**. Optional cron: `GET /api/inbox/sync` with the same Bearer secret as automations.
 
 ### 4. If login does not appear
 
@@ -452,7 +462,7 @@ In the same Google Cloud OAuth **Web application** client you used locally:
 ### Hosted limits to know
 
 - Repair photos you **upload** on Vercel are ephemeral (serverless disk). Photos already in the repo demo set, and photos pulled from Gmail into the database URL field, are fine. For lasting uploads later, use a blob store.
-- Automations still need a daily ping: Vercel Cron to `GET /api/automations/run` (Adelaide morning), or any cron hitting that URL with `Authorization: Bearer $AUTOMATIONS_SECRET`.
+- Automations still need a daily ping: Vercel Cron to `GET /api/automations/run` (Adelaide morning), or any cron hitting that URL with `Authorization: Bearer $AUTOMATIONS_SECRET`. The same secret works on `GET /api/inbox/sync` if you want inbox import without the rest of the automation run.
 
 A small always-on VPS (SQLite on disk) also works: set the same env vars, `AUTH_URL` to that origin, and add the Google redirect URI.
 

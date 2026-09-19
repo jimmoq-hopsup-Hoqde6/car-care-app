@@ -27,6 +27,7 @@ export function isPublicPath(pathname: string) {
   if (pathname.startsWith("/api/auth")) return true;
   if (pathname.startsWith("/api/sms")) return true;
   if (pathname.startsWith("/api/automations/run")) return true;
+  if (pathname.startsWith("/api/inbox/sync")) return true;
   if (pathname.startsWith("/brand/")) return true;
   if (pathname.startsWith("/demo/")) return true;
   if (pathname.startsWith("/uploads/")) return true;

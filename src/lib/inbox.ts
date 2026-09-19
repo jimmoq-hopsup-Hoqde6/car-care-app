@@ -9,6 +9,7 @@ import {
   statusFromDeskLabel,
 } from "./gmail-labels";
 import { getGmail } from "./google";
+import { isDemoMode } from "./env";
 import { prisma } from "./prisma";
 
 export type InboxKind =
@@ -365,7 +366,15 @@ export async function loadInbox(): Promise<InboxListResult> {
   try {
     const gmail = await getGmail();
     if (!gmail) {
-      return { threads: demoInboxThreads(), source: "demo" };
+      if (isDemoMode()) {
+        return { threads: demoInboxThreads(), source: "demo" };
+      }
+      return {
+        threads: [],
+        source: "gmail",
+        error:
+          "Gmail is not connected. Connect Google in Settings, then tap Sync inbox now.",
+      };
     }
     const threads = await listGmailThreads();
     return { threads, source: "gmail" };

@@ -107,7 +107,7 @@ export function QuoteComposer({ job, priceBands, items }: Props) {
                   setAmount(String(suggestion.total));
                   setAccepted(true);
                 }}
-                className="mt-3 rounded-full bg-teal px-3 py-1.5 text-xs font-semibold text-ink"
+                className="mt-3 inline-flex min-h-11 items-center rounded-full bg-teal px-4 py-2.5 text-sm font-semibold text-ink"
               >
                 {accepted ? "Suggestion accepted — edit if needed" : "Accept suggestion"}
               </button>
@@ -145,7 +145,7 @@ export function QuoteComposer({ job, priceBands, items }: Props) {
                     onClick={() => {
                       if (band.amount != null) setAmount(String(band.amount));
                     }}
-                    className="rounded-full border border-line px-3 py-1.5 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50"
+                    className="min-h-11 rounded-full border border-line px-3 py-2 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {band.name}
                     {band.amount != null ? ` · ${formatAUD(band.amount)}` : " · set in Settings"}
@@ -217,7 +217,7 @@ export function QuoteComposer({ job, priceBands, items }: Props) {
             type="button"
             disabled={busy}
             onClick={() => submit(false)}
-            className="flex-1 rounded-full bg-teal px-4 py-3 text-sm font-semibold text-ink disabled:opacity-60"
+            className="flex-1 min-h-11 rounded-full bg-teal px-4 py-3 text-sm font-semibold text-ink disabled:opacity-60"
           >
             {busy ? "Saving…" : "Save as draft"}
           </button>
@@ -233,7 +233,7 @@ export function QuoteComposer({ job, priceBands, items }: Props) {
                 void submit(true);
               }
             }}
-            className="flex-1 rounded-full border border-line bg-white px-4 py-3 text-sm font-semibold text-ink disabled:opacity-60"
+            className="flex-1 min-h-11 rounded-full border border-line bg-white px-4 py-3 text-sm font-semibold text-ink disabled:opacity-60"
           >
             Send now
           </button>

@@ -74,6 +74,14 @@ async function main() {
   assert(ingested.kind === "inbound", "Webhook accepts MessageMedia payload");
   assert(ingested.kind === "inbound" && ingested.jobId === "job-tom", "Inbound matches Tom by mobile");
 
+  const { friendlySmsError } = await import("../src/lib/sms/provider");
+  assert(
+    /My own numbers/i.test(
+      friendlySmsError("failed", "The source_number is not authorised"),
+    ),
+    "Unauthorised MessageMedia number is explained in Australian English",
+  );
+
   console.log(
     JSON.stringify(
       {
