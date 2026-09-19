@@ -21,7 +21,7 @@ The job-desk header uses Marcel's business-card lockup (black background, white 
 - **Quote composer** — you enter the price; the email uses Marcel's locked standard (first-name greeting, 30-day validity, mobile number ask)
 - **Booking picker** — next 14 weekdays, default 8:00 am–4:00 pm, 3-hour jobs; recommends slots near other booked jobs in nearby Adelaide suburbs; creates a Calendar event and a confirmation draft
 
-Sample jobs load automatically: **Jenny Gwynne (BMW bumper, Crafers)**, **Nathan Crowe (Outlander, Unley, follow-up due)**, **John Hale (Honda CR-V, Glenelg, waiting for booking approval)**, **Mia Chen (Corolla, Goodwood, waiting for booking approval)**, **Priya Nair (Mazda 3, Norwood, review ask due)**, **Jamie Collis (Paradise bonnet, out of scope, no photos)**, **Sam Vella (Norwood door, photo ask queued)**, plus booked neighbours in **Stirling, Brighton and Somerton Park** so recommendations show in demo.
+Sample jobs load automatically: **Jenny Gwynne (BMW bumper, Crafers)**, **Nathan Crowe (Outlander, Unley, follow-up due)**, **John Hale (Honda CR-V, Glenelg, waiting for booking approval)**, **Mia Chen (Corolla, Goodwood, waiting for booking approval)**, **Priya Nair (Mazda 3, Norwood, review ask due)**, **Jamie Collis (Paradise panel repair, no photos, photo ask queued)**, **Sam Vella (Norwood door, photo ask queued)**, plus booked neighbours in **Stirling, Brighton and Somerton Park** so recommendations show in demo.
 
 ## Run it on your computer (demo, no Google)
 
@@ -208,12 +208,39 @@ Mobile Car Scratch Repair Adelaide
 | --- | --- | --- |
 | Follow-up | Job is **Awaiting customer** (quote sent or waiting) and there has been no customer reply for **2 days** | `FOLLOW_UP_DAYS=2` |
 | Google review ask | The day after you mark a job **Booked → Done** (or otherwise Done) | `REVIEW_ASK_DAYS_AFTER_JOB=1` |
-| Photo ask | Quote request is **in scope** and has **no usable repair photos** | Settings toggle on |
+| Photo ask | Incoming quote has **no usable repair photos** (no image attachments, or the form said no photos) | Settings toggle **Auto-ask for photos when missing** (default on) |
 | Out-of-scope decline | Incoming quote is clearly a **bonnet or roof** | Draft only (toggle off) |
 
 The review email includes Marcel's Google review link (`GOOGLE_REVIEW_URL`, default `https://maps.app.goo.gl/UJcUi9ouWQaVn71D8?g_st=ic`). Change it on Settings if the Maps link ever moves.
 
 Photo-ask and decline emails use a first-name greeting and sign off Marcel Kuhn / Mobile Car Scratch Repair Adelaide / 0435 222 221. They never include a price. Each job stores `photoAskSentAt` and `declinedAt` so the same email is not sent twice.
+
+### Photo ask (approved automatic)
+
+When a quote request has zero usable damage photos, the desk **auto-sends** a short reply asking for pictures. This is the same class as stalled follow-ups and review asks — it does **not** need approval. It never includes a price.
+
+Detection: no image attachments on the job, or the website form / notes say “No photos uploaded”. The job stays **Needs quote**, the board shows **Awaiting photos**, `lastActivityAt` is updated, and the Gmail label stays **Quote request**.
+
+Once per thread: `photoAskSentAt` is set after the first ask. A second run does not nag.
+
+Locked copy (Australian English, first name):
+
+```
+Hi Jamie,
+
+Thanks for getting in touch about the panel repair in Paradise.
+
+To give you an accurate quote, could you please reply with a few clear photos of the damage (close-ups and a wider shot of the panel/bonnet help a lot)? If ceramic coating is on the car, a couple of angles in good light are ideal.
+
+Once I have the pictures I’ll send through a quote.
+
+Kind regards,
+Marcel Kuhn
+Mobile Car Scratch Repair Adelaide
+0435 222 221
+```
+
+Demo seed: **Jamie Collis** (0468923953, jamie_collis@outlook.com, Paradise, Panel Repair, scratches on bonnet + ceramic coating, form showed no photos). Seed queues the photo-ask as sent/queued and **does not email**. Sam Vella is a second no-photo door enquiry.
 
 Each job stores `lastOutboundAt`, `followUpSentAt`, and `reviewAskSentAt` so the same follow-up / review is not sent twice. You can **Skip** a follow-up or review ask on the job page. The board shows Pending / Sent / Skipped / Waiting.
 

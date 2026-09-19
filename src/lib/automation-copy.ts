@@ -60,7 +60,7 @@ export function buildPhotoAskEmail(input: {
 
 Thanks for getting in touch about ${about}.
 
-To give you an accurate quote, could you please reply with a few clear photos of the damage (close-ups and a wider shot of the panel help a lot)?${coating}
+To give you an accurate quote, could you please reply with a few clear photos of the damage (close-ups and a wider shot of the panel/bonnet help a lot)?${coating}
 
 Once I have the pictures I’ll send through a quote.
 

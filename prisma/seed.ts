@@ -60,6 +60,7 @@ async function main() {
       followUpDays: Number(process.env.FOLLOW_UP_DAYS || 2),
       reviewAskDaysAfterJob: Number(process.env.REVIEW_ASK_DAYS_AFTER_JOB || 1),
       googleReviewUrl: reviewUrl,
+      autoAskPhotos: true,
     },
     update: replacePlaceholder ? { googleReviewUrl: reviewUrl } : {},
   });
@@ -197,19 +198,19 @@ async function main() {
       id: "job-jamie",
       customerName: "Jamie Collis",
       customerEmail: "jamie_collis@outlook.com",
-      customerPhone: "0468 923 953",
-      vehicle: "Panel repair — bonnet",
+      customerPhone: "0468923953",
+      vehicle: "Panel repair",
       suburb: "Paradise",
       address: "12 Silkes Road, Paradise SA 5075",
       damageNotes:
         "Website form: scratches on bonnet, ceramic coating has been applied prior to damage. Form showed: No photos uploaded. Service: Panel Repair.",
-      repairItems: JSON.stringify(["Scratches on bonnet"]),
+      repairItems: JSON.stringify(["Panel repair"]),
       channel: "website",
       threadId: "demo-thread-jamie",
       status: JobStatus.NEEDS_QUOTE,
       quoteAmount: null as number | null,
       isDemo: true,
-      outOfScope: true,
+      outOfScope: false,
       lastActivityAt: adelaideAt(0, 8, 40),
       photos: [] as { url: string; filename: string }[],
     },
@@ -312,10 +313,25 @@ async function main() {
       await prisma.job.update({
         where: { id: job.id },
         data: {
+          customerName: "Jamie Collis",
+          customerEmail: "jamie_collis@outlook.com",
+          customerPhone: "0468923953",
+          vehicle: "Panel repair",
+          suburb: "Paradise",
+          damageNotes:
+            "Website form: scratches on bonnet, ceramic coating has been applied prior to damage. Form showed: No photos uploaded. Service: Panel Repair.",
+          repairItems: JSON.stringify(["Panel repair"]),
           status: JobStatus.NEEDS_QUOTE,
-          outOfScope: true,
+          outOfScope: false,
+          declinedAt: null,
           lastActivityAt: adelaideAt(0, 8, 40),
         },
+      });
+      await prisma.automationEvent.deleteMany({
+        where: { jobId: "job-jamie", type: "scope_decline" },
+      });
+      await prisma.emailDraft.deleteMany({
+        where: { jobId: "job-jamie", type: "scope_decline" },
       });
     }
     if (job.id === "job-sam") {
@@ -493,7 +509,7 @@ async function main() {
   await runPhotoAndScopeAutomations("job-sam");
 
   console.log(
-    "Seeded demo jobs: Jenny, Nathan, John, Mia, Priya, Jamie (bonnet, out of scope), Sam (door, photo ask), plus booked neighbours (Stirling, Brighton, Somerton Park) and booking-approval notifications.",
+    "Seeded demo jobs: Jenny, Nathan, John, Mia, Priya, Jamie (Paradise panel repair, no photos, photo ask queued), Sam (door, photo ask), plus booked neighbours (Stirling, Brighton, Somerton Park) and booking-approval notifications.",
   );
 }
 

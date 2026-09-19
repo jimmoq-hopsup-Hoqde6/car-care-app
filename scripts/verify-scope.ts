@@ -38,6 +38,7 @@ const ask = buildPhotoAskEmail({
 assert(ask.startsWith("Hi Jamie,"), "Photo ask uses first name");
 assert(!ask.includes("Hi ,"), "Photo ask must never emit Hi ,");
 assert(ask.includes("Paradise"), "Photo ask mentions suburb");
+assert(ask.includes("panel/bonnet"), "Photo ask asks for panel/bonnet shots");
 assert(ask.includes("ceramic coating"), "Photo ask mentions coating when present");
 assert(ask.includes("0435 222 221"), "Photo ask signs off with owner mobile");
 assert(!/estimated total|\$\d/i.test(ask), "Photo ask must not invent a price");

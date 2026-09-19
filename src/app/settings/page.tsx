@@ -219,7 +219,7 @@ export default async function SettingsPage() {
             className="mt-1"
           />
           <span>
-            Auto-ask for photos when missing (default on). Sends a short reply
+            Auto-ask for photos when missing. Default on. Sends a short reply
             asking for pictures — never a price.
           </span>
         </label>

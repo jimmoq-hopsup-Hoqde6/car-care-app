@@ -20,7 +20,7 @@ export function AutomationBadges({
       ? { key: "scope", label: "Out of scope", phase: "pending" }
       : null,
     job.photoAskSentAt
-      ? { key: "photos", label: "Photo ask sent", phase: "sent" }
+      ? { key: "photos", label: "Awaiting photos", phase: "sent" }
       : null,
     follow !== "n/a" ? { key: "follow", label: `Follow-up ${PHASE_LABELS[follow]}`, phase: follow } : null,
     review !== "n/a" ? { key: "review", label: `Review ${PHASE_LABELS[review]}`, phase: review } : null,

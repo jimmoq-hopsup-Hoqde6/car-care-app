@@ -39,6 +39,11 @@ export default async function JobPage({
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-2xl font-semibold text-ink">{job.customerName}</h1>
             <StatusBadge status={job.status} />
+            {job.photoAskSentAt && job.photos.length === 0 ? (
+              <span className="rounded-full bg-teal/15 px-3 py-1 text-xs font-semibold text-teal-dark">
+                Awaiting photos
+              </span>
+            ) : null}
           </div>
           <p className="mt-1 text-stone-600">
             {job.vehicle || "Vehicle not set"} · {job.suburb || "Suburb not set"}
