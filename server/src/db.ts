@@ -34,9 +34,17 @@ db.exec(`
   );
 `);
 
+function daysAgo(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return d.toISOString().slice(0, 10);
+}
+
 /**
  * Insert a small amount of realistic sample data the first time the app runs
- * so the dashboard is not empty on a fresh environment.
+ * so the dashboard is not empty on a fresh environment. Dates are relative to
+ * "now" so the seeded reminders always show a realistic mix of statuses
+ * (on track, due soon, and overdue).
  */
 export function seedIfEmpty(): void {
   const { count } = db.prepare("SELECT COUNT(*) AS count FROM vehicles").get() as {
@@ -69,27 +77,39 @@ export function seedIfEmpty(): void {
       mileage: 98120,
     });
 
+    // Recent oil change -> "On track".
     insertService.run({
       vehicle_id: daily.lastInsertRowid,
       type: "Oil Change",
-      performed_on: "2025-11-02",
-      mileage: 57800,
+      performed_on: daysAgo(45),
+      mileage: 61900,
       cost: 64.99,
       notes: "Full synthetic 0W-20.",
     });
+    // Tire rotation close to its mileage interval -> "Due soon".
     insertService.run({
       vehicle_id: daily.lastInsertRowid,
       type: "Tire Rotation",
-      performed_on: "2026-02-15",
-      mileage: 61200,
+      performed_on: daysAgo(60),
+      mileage: 55300,
       cost: 25,
       notes: "Rotated and balanced.",
+    });
+    // (Air Filter and Brake Pads have no record -> "Overdue".)
+
+    insertService.run({
+      vehicle_id: weekend.lastInsertRowid,
+      type: "Oil Change",
+      performed_on: daysAgo(20),
+      mileage: 97800,
+      cost: 79.5,
+      notes: "Diesel oil + filter.",
     });
     insertService.run({
       vehicle_id: weekend.lastInsertRowid,
       type: "Brake Pads",
-      performed_on: "2025-08-20",
-      mileage: 94000,
+      performed_on: daysAgo(30),
+      mileage: 97000,
       cost: 240.5,
       notes: "Front pads and rotors replaced.",
     });

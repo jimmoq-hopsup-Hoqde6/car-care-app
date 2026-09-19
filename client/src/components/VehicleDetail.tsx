@@ -111,9 +111,11 @@ export function VehicleDetail({ vehicle, onChanged }: Props) {
                 </span>
               </div>
               <p className="mt-2 text-sm text-slate-400">
-                {r.milesRemaining > 0
-                  ? `${r.milesRemaining.toLocaleString()} mi until due (at ${r.dueAtMileage.toLocaleString()} mi)`
-                  : `${Math.abs(r.milesRemaining).toLocaleString()} mi past due`}
+                {r.milesRemaining <= 0
+                  ? `${Math.abs(r.milesRemaining).toLocaleString()} mi past due`
+                  : r.status === "overdue"
+                    ? "Past due — service interval elapsed"
+                    : `${r.milesRemaining.toLocaleString()} mi until due (at ${r.dueAtMileage.toLocaleString()} mi)`}
               </p>
               <p className="mt-1 text-xs text-slate-500">
                 {r.lastPerformedOn
