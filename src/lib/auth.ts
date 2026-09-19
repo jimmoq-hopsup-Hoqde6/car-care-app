@@ -1,28 +1,12 @@
 import NextAuth from "next-auth";
-import Google from "next-auth/providers/google";
-import { GOOGLE_SCOPES } from "./constants";
+import { authConfig } from "./auth.config";
 import { isGoogleConfigured } from "./env";
 import { persistGoogleAccount } from "./google-tokens";
 
-const googleProvider = isGoogleConfigured()
-  ? Google({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      authorization: {
-        params: {
-          scope: GOOGLE_SCOPES.join(" "),
-          access_type: "offline",
-          prompt: "consent",
-        },
-      },
-    })
-  : null;
-
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  providers: googleProvider ? [googleProvider] : [],
-  trustHost: true,
-  session: { strategy: "jwt" },
+  ...authConfig,
   callbacks: {
+    ...authConfig.callbacks,
     async jwt({ token, account }) {
       if (account) {
         token.accessToken = account.access_token;

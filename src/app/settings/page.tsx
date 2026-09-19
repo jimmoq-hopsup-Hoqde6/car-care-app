@@ -5,7 +5,12 @@ import { GOOGLE_SCOPES, OWNER_MOBILE } from "@/lib/constants";
 import { formatAuMobile, OWNER_MOBILE_E164 } from "@/lib/phone";
 import { smsWebhookUrl } from "@/lib/sms/provider";
 import { DESK_LABELS } from "@/lib/gmail-labels";
-import { isDemoMode, isGoogleConfigured } from "@/lib/env";
+import {
+  allowedEmails,
+  isDemoMode,
+  isGoogleConfigured,
+  isLoginRequired,
+} from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 
@@ -45,11 +50,18 @@ export default async function SettingsPage() {
       <section className="rounded-2xl border border-line bg-card p-4">
         <h2 className="font-semibold text-ink">Google</h2>
         <p className="mt-1 text-sm text-stone-600">
-          {isGoogleConfigured()
-            ? isDemoMode()
-              ? "OAuth keys are present, but DEMO_MODE is on. Set DEMO_MODE=false in .env to use live Gmail and Calendar."
-              : "Keys are configured. Use Connect Google in the header."
-            : "No OAuth keys yet. Copy .env.example to .env and add your Google client ID and secret."}
+          {isLoginRequired()
+            ? "This hosted desk is gated. Sign in with an allowlisted Google account. The same sign-in can connect Gmail and Calendar."
+            : isGoogleConfigured()
+              ? isDemoMode()
+                ? "OAuth keys are present, but DEMO_MODE is on. Local demo stays open without login. Set DEMO_MODE=false once you host the desk."
+                : "Keys are configured. Use Connect Google in the header."
+              : "No OAuth keys yet. Copy .env.example to .env and add your Google client ID and secret."}
+        </p>
+        <p className="mt-2 text-xs text-stone-500">
+          Who can sign in ({isLoginRequired() ? "login required" : "login not required here"}
+          ): {allowedEmails().join(", ")}. Change{" "}
+          <code>AUTH_ALLOWLIST</code> on the host — it is not edited here.
         </p>
         <ul className="mt-3 list-disc pl-5 text-xs text-stone-500">
           {GOOGLE_SCOPES.map((scope) => (

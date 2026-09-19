@@ -10,6 +10,7 @@ type Props = {
   googleConnected: boolean;
   userEmail?: string | null;
   unreadNotifications: number;
+  loginRequired?: boolean;
 };
 
 const nav = [
@@ -26,6 +27,7 @@ export function AppShell({
   googleConnected,
   userEmail,
   unreadNotifications,
+  loginRequired = false,
 }: Props) {
   return (
     <div className="min-h-full bg-background text-foreground">
@@ -46,12 +48,13 @@ export function AppShell({
                 {item.label}
               </Link>
             ))}
+          </nav>
             <AuthButton
               googleConfigured={googleConfigured}
               googleConnected={googleConnected}
               userEmail={userEmail}
+              loginRequired={loginRequired}
             />
-          </nav>
           </div>
         </div>
         {demo ? (
@@ -87,11 +90,31 @@ function AuthButton({
   googleConfigured,
   googleConnected,
   userEmail,
+  loginRequired,
 }: {
   googleConfigured: boolean;
   googleConnected: boolean;
   userEmail?: string | null;
+  loginRequired: boolean;
 }) {
+  if (loginRequired && userEmail) {
+    return (
+      <form
+        action={async () => {
+          "use server";
+          await signOut({ redirectTo: "/login" });
+        }}
+      >
+        <button
+          type="submit"
+          className="rounded-full bg-white/10 px-3 py-1.5 text-sm text-white/90"
+        >
+          Sign out
+        </button>
+      </form>
+    );
+  }
+
   if (!googleConfigured) {
     return (
       <Link

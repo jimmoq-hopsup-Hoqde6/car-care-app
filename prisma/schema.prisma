@@ -2,6 +2,8 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// Local demo uses SQLite. Hosted Vercel must use Postgres (Neon / Vercel Postgres).
+// `scripts/sync-prisma-provider.js` rewrites this provider from DATABASE_URL at build.
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")

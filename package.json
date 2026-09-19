@@ -5,11 +5,11 @@
   "scripts": {
     "dev": "next dev",
     "predev": "npm run db:prepare",
-    "build": "prisma generate && next build",
+    "build": "node scripts/sync-prisma-provider.js && prisma generate && node scripts/hosted-db-push.js && next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate",
-    "db:prepare": "node scripts/ensure-env.js && prisma generate && prisma db push && prisma db seed",
+    "postinstall": "node scripts/sync-prisma-provider.js && prisma generate",
+    "db:prepare": "node scripts/ensure-env.js && node scripts/sync-prisma-provider.js && prisma generate && prisma db push && prisma db seed",
     "setup": "npm run db:prepare",
     "db:seed": "prisma db seed",
     "automations:run": "tsx scripts/run-automations.ts",
@@ -22,7 +22,8 @@
     "scope:verify": "tsx scripts/verify-scope.ts",
     "pricing:verify": "tsx scripts/verify-pricing.ts",
     "sms:verify": "tsx scripts/verify-sms.ts",
-    "verify": "npm run quote:verify && npm run booking:verify && npm run labels:verify && npm run automations:verify && npm run activity:verify && npm run photos:verify && npm run scope:verify && npm run pricing:verify && npm run sms:verify"
+    "login:verify": "tsx scripts/verify-login.ts",
+    "verify": "npm run quote:verify && npm run booking:verify && npm run labels:verify && npm run automations:verify && npm run activity:verify && npm run photos:verify && npm run scope:verify && npm run pricing:verify && npm run sms:verify && npm run login:verify"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

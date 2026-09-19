@@ -14,6 +14,7 @@ The job-desk header uses Marcel's business-card lockup (black background, white 
 
 ## What you can do
 
+- **Phone / web login** — hosted mode shows a branded Google Sign-In page; only Marcel's allowlisted accounts get in. Local demo stays open. See [Deploy for phone access](#deploy-for-phone-access).
 - **Job board** — Needs quote, Awaiting customer, Ready to book, Booked, Done. Each card shows a **repair photo** thumbnail (or “No repair photo”) and **last activity** in Adelaide time (`Last: 19 Sep · 11:58 am`). Toggle **Newest activity** or **Stalled first**.
 - **Inbox triage** — quote requests, website form leads, booking replies; marketing such as Manheim is ignored. Existing Gmail job-desk labels seed the job status.
 - **Gmail labels** — one stage label at a time: Quote request, Awaiting customer, Ready to book, Booked, Follow-up / Review. Label changes never send email.
@@ -54,6 +55,7 @@ npm run photos:verify       # confirm demo repair photos + Jamie/Sam intake
 npm run scope:verify        # confirm bonnet/roof out of scope + photo-ask/decline copy
 npm run pricing:verify      # confirm smart price suggestions stay internal
 npm run sms:verify          # confirm SMS E.164 matching + demo MessageMedia no-op
+npm run login:verify        # confirm demo stays open and hosted allowlist login
 npm run verify              # run all of the checks above
 ```
 
@@ -104,7 +106,10 @@ Then edit `.env`:
 ```env
 DATABASE_URL="file:./dev.db"
 AUTH_SECRET="paste-output-of-openssl-rand-base64-32"
+NEXTAUTH_SECRET="paste-the-same-value"
 AUTH_URL="http://localhost:3000"
+NEXTAUTH_URL="http://localhost:3000"
+AUTH_ALLOWLIST="info@mobilecarscratchrepairadelaide.com.au,moogly88@gmail.com"
 DEMO_MODE="false"
 GOOGLE_CLIENT_ID="....apps.googleusercontent.com"
 GOOGLE_CLIENT_SECRET="...."
@@ -113,7 +118,7 @@ REVIEW_ASK_DAYS_AFTER_JOB="1"
 GOOGLE_REVIEW_URL="https://maps.app.goo.gl/UJcUi9ouWQaVn71D8?g_st=ic"
 ```
 
-Create a fresh `AUTH_SECRET`:
+Create a fresh `AUTH_SECRET` / `NEXTAUTH_SECRET` (same value in both is fine):
 
 ```bash
 openssl rand -base64 32
@@ -376,10 +381,78 @@ Demo seed: **Jamie Collis** (Paradise, scratches on bonnet, no photos) is flagge
 - Auto-send out-of-scope declines (default off — draft only)
 - Price bands for suggestions (bumper $420, bumper + guard $650, door $650, guard blend +$250, trim replace-only)
 
-## Deploy later
+## Deploy for phone access
 
-Any Node host works (Vercel, a small VPS). Use the same env vars, point `AUTH_URL` at the live site, and add that origin plus `/api/auth/callback/google` to the Google client. For a hosted database you can switch Prisma from SQLite to Postgres later.
+The job desk is a website. Host it (Vercel is the shortest path) so Marcel can open it on his phone. **SQLite will not persist on Vercel serverless** — use Postgres for real jobs.
+
+### What you get
+
+- A branded **Sign in with Google** page (MobileCar ScratchRepair ADELAIDE lockup)
+- Only allowlisted accounts can open the desk: **info@mobilecarscratchrepairadelaide.com.au** and **moogly88@gmail.com** (change `AUTH_ALLOWLIST` if needed)
+- After sign-in, the job board, quotes, SMS, inbox, and settings work as they do on your computer
+- Local demo (`DEMO_MODE=true`, or no `AUTH_SECRET` / `NEXTAUTH_SECRET`) stays open without a login
+
+### 1. Create a Postgres database (required on Vercel)
+
+1. Open [Neon](https://neon.tech/) (free tier is enough) or **Vercel → Storage → Create Database → Postgres**.
+2. Copy the connection string. On Neon, prefer the **pooled** host (`-pooler`) for serverless.
+3. You will paste it as `DATABASE_URL` in step 3. Example shape only (not a real secret):
+
+```env
+DATABASE_URL="postgresql://USER:PASSWORD@HOST/DB?sslmode=require"
+```
+
+Turso / libSQL also works if you already use it; this repo expects a Postgres `DATABASE_URL` on the host. The build rewrites Prisma from SQLite to Postgres when the URL starts with `postgres`.
+
+### 2. Google OAuth for the live site
+
+In the same Google Cloud OAuth **Web application** client you used locally:
+
+1. Authorised JavaScript origins — add `https://YOUR-APP.vercel.app` (and a custom domain if you add one).
+2. Authorised redirect URIs — add `https://YOUR-APP.vercel.app/api/auth/callback/google`.
+3. Keep Marcel's two Google accounts as **test users** until the app is verified (it does not need to be verified for those two people).
+
+### 3. Deploy on Vercel
+
+1. Push this repo to GitHub (already done if you are on the project remote).
+2. Open [Vercel](https://vercel.com/) → **Add New → Project** → import the repo.
+3. Framework preset: **Next.js**. Build command is `npm run build` (creates tables on Postgres via `prisma db push`).
+4. Add environment variables (generate your own secrets — do not reuse examples):
+
+| Name | Value |
+| --- | --- |
+| `DATABASE_URL` | Neon / Vercel Postgres URL from step 1 |
+| `AUTH_SECRET` | output of `openssl rand -base64 32` |
+| `NEXTAUTH_SECRET` | the **same** string as `AUTH_SECRET` |
+| `AUTH_URL` | `https://YOUR-APP.vercel.app` (update after the first deploy if the URL is new) |
+| `NEXTAUTH_URL` | the **same** URL as `AUTH_URL` |
+| `AUTH_ALLOWLIST` | `info@mobilecarscratchrepairadelaide.com.au,moogly88@gmail.com` |
+| `DEMO_MODE` | `false` |
+| `GOOGLE_CLIENT_ID` | from Google Cloud |
+| `GOOGLE_CLIENT_SECRET` | from Google Cloud |
+| `GOOGLE_REVIEW_URL` | `https://maps.app.goo.gl/UJcUi9ouWQaVn71D8?g_st=ic` |
+| `OWNER_MOBILE` | `0435222221` |
+| `MESSAGEMEDIA_API_KEY` | optional, for live SMS |
+| `MESSAGEMEDIA_API_SECRET` | optional, for live SMS |
+| `AUTOMATIONS_SECRET` | optional Bearer token for `/api/automations/run` |
+
+5. Deploy. Open the URL on your phone. You should see the branded login page, then the job board after Google Sign-In with an allowlisted account.
+6. After the first URL is known, confirm `AUTH_URL` / `NEXTAUTH_URL` match it (including `https://`) and redeploy if you had to fix them.
+7. MessageMedia inbound webhook (if using SMS): `{NEXTAUTH_URL}/api/sms/messagemedia`.
+
+### 4. If login does not appear
+
+- `DEMO_MODE=true` keeps the desk open on purpose (handy for a sample-data preview).
+- Missing `AUTH_SECRET` and `NEXTAUTH_SECRET` also skips the gate — Auth.js cannot issue a session without a secret.
+- A Google account that is not on `AUTH_ALLOWLIST` is sent back to `/login` with an allowlist message.
+
+### Hosted limits to know
+
+- Repair photos you **upload** on Vercel are ephemeral (serverless disk). Photos already in the repo demo set, and photos pulled from Gmail into the database URL field, are fine. For lasting uploads later, use a blob store.
+- Automations still need a daily ping: Vercel Cron to `GET /api/automations/run` (Adelaide morning), or any cron hitting that URL with `Authorization: Bearer $AUTOMATIONS_SECRET`.
+
+A small always-on VPS (SQLite on disk) also works: set the same env vars, `AUTH_URL` to that origin, and add the Google redirect URI.
 
 ## Stack
 
-Next.js App Router, TypeScript, Tailwind, Prisma, SQLite, Auth.js (Google OAuth).
+Next.js App Router, TypeScript, Tailwind, Prisma (SQLite locally, Postgres on Vercel), Auth.js (Google Sign-In + Gmail/Calendar).
