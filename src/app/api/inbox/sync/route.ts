@@ -1,17 +1,12 @@
 import { NextResponse } from "next/server";
 import { importEligibleInbox } from "@/lib/board-import";
+import { cronAuthorised } from "@/lib/cron-auth";
 
 export const dynamic = "force-dynamic";
-
-function authorised(request: Request) {
-  const secret = process.env.AUTOMATIONS_SECRET?.trim();
-  if (!secret) return true;
-  const header = request.headers.get("authorization");
-  return header === `Bearer ${secret}`;
-}
+export const maxDuration = 60;
 
 async function handle(request: Request) {
-  if (!authorised(request)) {
+  if (!cronAuthorised(request)) {
     return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
   }
   try {

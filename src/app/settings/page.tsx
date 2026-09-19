@@ -203,8 +203,10 @@ export default async function SettingsPage() {
         <p className="mt-2 text-xs text-stone-500">
           Demo mode queues those emails on the job and never sends them. Live
           mode uses the connected Gmail account via{" "}
-          <code className="rounded bg-stone-100 px-1">npm run automations:run</code>{" "}
-          or this button.
+          <code className="rounded bg-stone-100 px-1">npm run automations:run</code>
+          , this button, or Vercel Cron (`vercel.json`, 22:30 UTC / Adelaide
+          morning). If a daily run 401s, set <code>CRON_SECRET</code> to the
+          same value as <code>AUTOMATIONS_SECRET</code> on the host.
         </p>
         <div className="mt-3">
           <RunAutomationsButton />

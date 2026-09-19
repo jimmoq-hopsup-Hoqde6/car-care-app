@@ -1,5 +1,6 @@
 import { nextActionForJob } from "../src/lib/job-next";
 import { isPublicPath } from "../src/lib/auth.config";
+import { cronAuthorised } from "../src/lib/cron-auth";
 import { friendlyInboxError } from "../src/lib/inbox";
 import { getConnectionHealth } from "../src/lib/connection-health";
 import {
@@ -8,6 +9,8 @@ import {
 } from "../src/lib/sms/provider";
 import { handleSmsWebhookPayload } from "../src/lib/sms/inbound";
 import { prisma } from "../src/lib/prisma";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 function assert(condition: unknown, message: string) {
   if (!condition) throw new Error(message);
@@ -64,6 +67,69 @@ async function main() {
     isPublicPath("/api/inbox/sync"),
     "Inbox sync endpoint is reachable without a session (cron)",
   );
+  assert(
+    isPublicPath("/api/automations/run"),
+    "Automations run endpoint is reachable without a session (cron)",
+  );
+
+  const vercel = JSON.parse(
+    readFileSync(join(process.cwd(), "vercel.json"), "utf8"),
+  ) as { crons?: Array<{ path: string; schedule: string }> };
+  const inboxCron = vercel.crons?.find((job) => job.path === "/api/inbox/sync");
+  const autoCron = vercel.crons?.find(
+    (job) => job.path === "/api/automations/run",
+  );
+  assert(inboxCron?.schedule === "15 22 * * *", "Inbox cron is 22:15 UTC");
+  assert(autoCron?.schedule === "30 22 * * *", "Automations cron is 22:30 UTC");
+
+  const savedAutomations = process.env.AUTOMATIONS_SECRET;
+  const savedCron = process.env.CRON_SECRET;
+  try {
+    delete process.env.AUTOMATIONS_SECRET;
+    delete process.env.CRON_SECRET;
+    assert(
+      cronAuthorised(new Request("https://example.com/api/automations/run")),
+      "No secret — cron routes stay open for local demo",
+    );
+
+    process.env.AUTOMATIONS_SECRET = "desk-automations";
+    assert(
+      !cronAuthorised(new Request("https://example.com/api/automations/run")),
+      "Secret set without Bearer is refused",
+    );
+    assert(
+      cronAuthorised(
+        new Request("https://example.com/api/automations/run", {
+          headers: { authorization: "Bearer desk-automations" },
+        }),
+      ),
+      "AUTOMATIONS_SECRET Bearer is accepted",
+    );
+
+    delete process.env.AUTOMATIONS_SECRET;
+    process.env.CRON_SECRET = "desk-vercel-cron";
+    assert(
+      cronAuthorised(
+        new Request("https://example.com/api/automations/run", {
+          headers: { authorization: "Bearer desk-vercel-cron" },
+        }),
+      ),
+      "Vercel CRON_SECRET Bearer is accepted",
+    );
+    assert(
+      !cronAuthorised(
+        new Request("https://example.com/api/automations/run", {
+          headers: { authorization: "Bearer desk-automations" },
+        }),
+      ),
+      "Wrong Bearer is refused",
+    );
+  } finally {
+    if (savedAutomations === undefined) delete process.env.AUTOMATIONS_SECRET;
+    else process.env.AUTOMATIONS_SECRET = savedAutomations;
+    if (savedCron === undefined) delete process.env.CRON_SECRET;
+    else process.env.CRON_SECRET = savedCron;
+  }
   assert(
     /My own numbers/i.test(
       friendlySmsError("MessageMedia send failed", "source_number is not authorised"),

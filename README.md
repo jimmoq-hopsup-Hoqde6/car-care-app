@@ -291,9 +291,18 @@ That finds due jobs and:
 - **Demo mode (`DEMO_MODE=true`)** — writes a queue entry on the job and **does not email anyone**
 - **Live, Google connected** — sends via Gmail using the stored OAuth tokens
 
-You can also tap **Run automations now** on Settings, or hit `GET`/`POST` `/api/automations/run` from a host cron. Inbox-only sync is `GET`/`POST` `/api/inbox/sync`. If you set `AUTOMATIONS_SECRET` in `.env`, send `Authorization: Bearer …` to either URL.
+You can also tap **Run automations now** on Settings (always works while you are signed in — no Bearer header). Host cron or `GET`/`POST` `/api/automations/run` and `/api/inbox/sync` accept `Authorization: Bearer $AUTOMATIONS_SECRET`. Vercel Cron cannot set custom headers; it sends `Authorization: Bearer $CRON_SECRET` automatically when that env var is set. Use the **same string** for `CRON_SECRET` and `AUTOMATIONS_SECRET`. Do not put the secret in `vercel.json`.
 
-A typical cron (once a day, Adelaide morning) is enough:
+Production (`https://car-care-app-green.vercel.app`) uses Vercel Cron from `vercel.json`, once a day at **22:30 UTC** (inbox sync at **22:15 UTC**, slightly earlier). Vercel cron is UTC only:
+
+| UTC | Adelaide winter (ACST, UTC+9:30) | Adelaide summer (ACDT, UTC+10:30) |
+| --- | --- | --- |
+| 22:15 | 07:45 | 08:45 |
+| 22:30 | 08:00 | 09:00 |
+
+That stays **Adelaide morning** all year. On the Hobby plan the job may fire anywhere inside that UTC hour; it is still morning in Adelaide.
+
+A typical self-hosted cron (once a day, Adelaide morning) is:
 
 ```bash
 0 8 * * * cd /path/to/job-desk && npm run automations:run
@@ -446,12 +455,14 @@ In the same Google Cloud OAuth **Web application** client you used locally:
 | `OWNER_MOBILE` | `0435222221` |
 | `MESSAGEMEDIA_API_KEY` | optional, for live SMS |
 | `MESSAGEMEDIA_API_SECRET` | optional, for live SMS |
-| `AUTOMATIONS_SECRET` | optional Bearer token for `/api/automations/run` and `/api/inbox/sync` |
+| `AUTOMATIONS_SECRET` | optional Bearer token for curl / host cron to `/api/automations/run` and `/api/inbox/sync` |
+| `CRON_SECRET` | optional. **Set this on Vercel to the same value as `AUTOMATIONS_SECRET`.** Vercel Cron sends it as `Authorization: Bearer …` automatically. Leave it out of `vercel.json`. |
 
 5. Deploy. Open the URL on your phone. You should see the branded login page, then the job board after Google Sign-In with an allowlisted account.
 6. After the first URL is known, confirm `AUTH_URL` / `NEXTAUTH_URL` match it (including `https://`) and redeploy if you had to fix them.
 7. MessageMedia inbound webhook (if using SMS): `{NEXTAUTH_URL}/api/sms/messagemedia` (production: `https://car-care-app-green.vercel.app/api/sms/messagemedia`).
-8. After Google Sign-In, open the job board or tap **Sync inbox now**. Eligible threads land without **Add to job board**. Optional cron: `GET /api/inbox/sync` with the same Bearer secret as automations.
+8. After Google Sign-In, open the job board or tap **Sync inbox now**. Eligible threads land without **Add to job board**.
+9. Confirm **Cron Jobs** on the Vercel project (from `vercel.json`): `GET /api/inbox/sync` at `15 22 * * *` UTC, then `GET /api/automations/run` at `30 22 * * *` UTC (Adelaide morning — 08:00 ACST / 09:00 ACDT). If either secret is set, set **both** `CRON_SECRET` and `AUTOMATIONS_SECRET` to the same value so Vercel Cron is authorised. Backup: Settings → **Run automations now**.
 
 ### 4. If login does not appear
 
@@ -462,7 +473,7 @@ In the same Google Cloud OAuth **Web application** client you used locally:
 ### Hosted limits to know
 
 - Repair photos you **upload** on Vercel are ephemeral (serverless disk). Photos already in the repo demo set, and photos pulled from Gmail into the database URL field, are fine. For lasting uploads later, use a blob store.
-- Automations still need a daily ping: Vercel Cron to `GET /api/automations/run` (Adelaide morning), or any cron hitting that URL with `Authorization: Bearer $AUTOMATIONS_SECRET`. The same secret works on `GET /api/inbox/sync` if you want inbox import without the rest of the automation run.
+- Daily automations are in `vercel.json` (Adelaide morning via 22:30 UTC). After deploy, Vercel → Project → **Cron Jobs** should list `/api/inbox/sync` and `/api/automations/run`. If those URLs return 401, `CRON_SECRET` is missing or does not match `AUTOMATIONS_SECRET`. Settings → **Run automations now** still works while you are signed in.
 
 A small always-on VPS (SQLite on disk) also works: set the same env vars, `AUTH_URL` to that origin, and add the Google redirect URI.
 
