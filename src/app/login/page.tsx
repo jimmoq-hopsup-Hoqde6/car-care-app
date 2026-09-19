@@ -43,7 +43,7 @@ export default async function LoginPage({
   const allowlist = allowedEmails();
 
   return (
-    <div className="flex min-h-full flex-col bg-black text-white">
+    <div className="flex min-h-screen flex-col bg-black text-white">
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-12">
         <div className="mb-8">
           <BrandLogo className="h-14 w-auto max-w-full object-contain object-left sm:h-16" />
