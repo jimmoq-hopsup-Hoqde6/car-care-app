@@ -1,5 +1,13 @@
 import { buildPhotoAskEmail, SCOPE_DECLINE_FRAMING } from "../src/lib/automation-copy";
+import { importThreadToBoard } from "../src/lib/board-import";
+import {
+  collectGmailImageParts,
+  decodeGmailData,
+  looksLikeImagePart,
+  storeGmailImageBuffers,
+} from "../src/lib/gmail-photos";
 import { formSaysNoPhotos, hasUsablePhotos, primaryPhoto, sortPhotos, usablePhotoUrl } from "../src/lib/photos";
+import { createJobPhoto, sniffImageMime } from "../src/lib/photo-store";
 import { prisma } from "../src/lib/prisma";
 
 function assert(condition: unknown, message: string) {
@@ -9,9 +17,62 @@ function assert(condition: unknown, message: string) {
 async function main() {
   assert(usablePhotoUrl("/demo/jenny-bumper.svg"), "Demo SVG URLs are usable thumbs");
   assert(usablePhotoUrl("/api/photos/abc"), "Neon-hosted photo URLs are usable");
+  assert(
+    usablePhotoUrl("data:image/jpeg;base64,/9j/aaaa"),
+    "Inline JPEG data URLs are usable thumbs",
+  );
   assert(!usablePhotoUrl(""), "Blank URL is not a thumb");
   assert(!usablePhotoUrl("pending"), "Pending URL is not a thumb");
   assert(!usablePhotoUrl("javascript:alert(1)"), "Script URLs are never shown");
+  assert(sniffImageMime("image/jpg") === "image/jpeg", "image/jpg is treated as JPEG");
+  assert(sniffImageMime("image/pjpeg") === "image/jpeg", "image/pjpeg is treated as JPEG");
+  assert(
+    sniffImageMime("application/octet-stream", "scratch.JPG") === "image/jpeg",
+    "A .JPG filename is treated as JPEG",
+  );
+  assert(
+    looksLikeImagePart({
+      mimeType: "application/octet-stream",
+      filename: "bumper.JPG",
+      body: { attachmentId: "att-1" },
+    }),
+    "Gmail octet-stream JPEG attachments are detected",
+  );
+  assert(
+    looksLikeImagePart({
+      mimeType: "image/jpg",
+      filename: "door.jpg",
+      body: { data: "abc" },
+    }),
+    "image/jpg parts are detected",
+  );
+  const nested = collectGmailImageParts({
+    mimeType: "multipart/mixed",
+    parts: [
+      {
+        mimeType: "multipart/related",
+        parts: [
+          { mimeType: "text/html", body: { data: "aGVsbG8=" } },
+          {
+            mimeType: "image/jpeg",
+            filename: "scratch.jpg",
+            body: { attachmentId: "att-jpeg" },
+          },
+        ],
+      },
+    ],
+  });
+  assert(nested.length === 1 && nested[0].filename === "scratch.jpg", "Nested Gmail JPEG parts are found");
+  const jpegBytes = Buffer.alloc(4096, 0);
+  jpegBytes[0] = 0xff;
+  jpegBytes[1] = 0xd8;
+  jpegBytes[2] = 0xff;
+  jpegBytes[3] = 0xe0;
+  jpegBytes[4094] = 0xff;
+  jpegBytes[4095] = 0xd9;
+  const encoded = jpegBytes.toString("base64url");
+  const decoded = decodeGmailData(encoded);
+  assert(decoded[0] === 0xff && decoded[1] === 0xd8, "Gmail base64url JPEG data decodes");
   assert(
     !primaryPhoto([{ id: "x", url: "   " }]),
     "Empty URL does not become a board thumb",
@@ -110,6 +171,48 @@ async function main() {
   const settings = await prisma.appSetting.findUnique({ where: { id: "default" } });
   assert(settings?.autoAskPhotos === false, "Photo-ask auto-send stays off by default");
   assert(!settings?.autoDeclineOutOfScope, "Out-of-scope declines default to draft");
+
+  const stamp = Date.now().toString(36);
+  const jpegThread = {
+    id: `demo-thread-verify-jpeg-${stamp}`,
+    from: "Ivy Shaw <ivy.shaw@example.com>",
+    fromEmail: "ivy.shaw@example.com",
+    subject: "Quote — door scratch, Burnside",
+    snippet: "Long scratch on the driver door. Photos attached.",
+    kind: "quote_request" as const,
+    ignored: false,
+  };
+  const jpegImport = await importThreadToBoard(jpegThread);
+  assert(jpegImport.created, "A real customer JPEG thread creates a job");
+  const stored = await storeGmailImageBuffers(jpegImport.jobId, [
+    { buffer: jpegBytes, mimeType: "image/jpg", filename: "scratch.JPG" },
+  ]);
+  assert(stored === 1, "Gmail JPEG attachment is stored on the job");
+  const jpegJob = await prisma.job.findUnique({
+    where: { id: jpegImport.jobId },
+    include: { photos: true },
+  });
+  const thumb = primaryPhoto(jpegJob?.photos ?? []);
+  assert(thumb, "JPEG attachment becomes the primary board thumb");
+  assert(usablePhotoUrl(thumb?.url), "JPEG thumb URL is renderable");
+  assert(
+    Boolean(jpegJob?.photos[0]?.bytes && jpegJob.photos[0].bytes.length > 0) ||
+      Boolean(thumb?.url.startsWith("data:image/")),
+    "JPEG bytes are kept in the database (or inlined as a data URL)",
+  );
+  assert(jpegJob?.photos[0]?.source === "gmail", "Attachment is tagged as a Gmail photo");
+  const direct = await createJobPhoto({
+    jobId: jpegImport.jobId,
+    buffer: jpegBytes,
+    mimeType: "image/jpg",
+    filename: "close-up.JPG",
+    source: "gmail",
+    isPrimary: false,
+    sortOrder: 1,
+  });
+  assert(usablePhotoUrl(direct.url), "image/jpg uploads still produce a usable URL");
+
+  await prisma.job.deleteMany({ where: { id: jpegImport.jobId } });
 
   console.log(JSON.stringify({ ok: true, jennyPhotos: jenny!.photos.length }, null, 2));
 }

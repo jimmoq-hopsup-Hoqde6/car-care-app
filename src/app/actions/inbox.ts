@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
+  canImportThreadToBoard,
   findJobForThread,
   importEligibleInbox,
   importThreadToBoard,
@@ -17,12 +18,16 @@ export async function addThreadToBoard(threadId: string) {
 
   const { threads } = await loadInbox();
   const thread = threads.find((item) => item.id === threadId);
-  if (!thread) {
+  if (!thread || !canImportThreadToBoard(thread)) {
     redirect("/inbox");
     return;
   }
 
-  const { jobId } = await importThreadToBoard(thread);
+  const { jobId, refused } = await importThreadToBoard(thread);
+  if (!jobId || refused) {
+    redirect("/inbox");
+    return;
+  }
 
   revalidatePath("/");
   revalidatePath("/inbox");

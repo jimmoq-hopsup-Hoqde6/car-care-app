@@ -141,3 +141,15 @@ export async function updateJobDetails(jobId: string, formData: FormData) {
   revalidatePath("/");
   revalidatePath(`/jobs/${jobId}`);
 }
+
+export async function dismissJob(jobId: string) {
+  const job = await prisma.job.findUnique({ where: { id: jobId } });
+  if (!job) {
+    redirect("/");
+  }
+  await prisma.job.delete({ where: { id: jobId } });
+  revalidatePath("/");
+  revalidatePath("/inbox");
+  revalidatePath("/notifications");
+  redirect("/");
+}

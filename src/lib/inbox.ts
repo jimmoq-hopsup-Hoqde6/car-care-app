@@ -1,6 +1,11 @@
 import { JobStatus } from "@prisma/client";
 import { MARKETING_SENDERS } from "./constants";
-import { isCustomerReplyEmail, isNonCustomerSender, isOwnBusinessEmail, resolveInboxCustomer } from "./customer-mail";
+import {
+  isCustomerReplyEmail,
+  isOwnBusinessEmail,
+  isSystemMailSender,
+  resolveInboxCustomer,
+} from "./customer-mail";
 import {
   type DeskLabelKey,
   deskKeysFromLabelIds,
@@ -68,10 +73,18 @@ export const AUTO_IMPORT_KINDS: InboxKind[] = [
 export function isEligibleForAutoImport(
   thread: Pick<InboxThread, "kind" | "ignored" | "deskLabel"> & {
     fromEmail?: string | null;
+    from?: string | null;
+    replyTo?: string | null;
   },
 ) {
   if (thread.ignored || thread.kind === "marketing") return false;
   if (thread.kind === "sms") return true;
+  if (
+    isSystemMailSender({ from: thread.from, fromEmail: thread.fromEmail }) &&
+    !(thread.kind === "website_form" && isOwnBusinessEmail(thread.fromEmail))
+  ) {
+    return false;
+  }
   if (thread.fromEmail !== undefined) {
     const from = thread.fromEmail;
     if (from && !isCustomerReplyEmail(from)) {
@@ -110,8 +123,11 @@ export function classifyThread(input: {
 }): InboxKind {
   const haystack = `${input.from} ${input.subject} ${input.snippet}`.toLowerCase();
   const fromEmail = extractEmail(input.from);
-  const systemSender = isNonCustomerSender(fromEmail);
+  const systemSender = isSystemMailSender({ from: input.from, fromEmail });
   const ownSender = isOwnBusinessEmail(fromEmail);
+  if (systemSender && !ownSender) {
+    return "marketing";
+  }
   if (MARKETING_SENDERS.some((part) => haystack.includes(part))) {
     return "marketing";
   }
@@ -129,7 +145,7 @@ export function classifyThread(input: {
   if (looksLikeWebsiteForm) {
     return "website_form";
   }
-  if (systemSender || ownSender) {
+  if (ownSender) {
     return "marketing";
   }
   const bookingIntent =
@@ -406,7 +422,11 @@ async function listGmailThreads(): Promise<InboxThread[]> {
         subject,
         snippet: `${snippet}\n${bodyText}`,
       });
-      const fromEmail = customer.email || rawFromEmail;
+      const systemFrom = isSystemMailSender({ from, fromEmail: rawFromEmail });
+      const fromEmail =
+        systemFrom && !isOwnBusinessEmail(rawFromEmail)
+          ? rawFromEmail
+          : customer.email || rawFromEmail;
       const job = jobs.find((row) => {
         if (row.gmailThreadId === thread.id || row.threadId === thread.id) {
           return true;
@@ -424,6 +444,10 @@ async function listGmailThreads(): Promise<InboxThread[]> {
       const deskLabel = resolved
         ? pickDeskLabel(deskKeysFromLabelIds(labelIds, resolved))
         : null;
+      const ignored =
+        kind === "marketing" ||
+        (systemFrom && !isOwnBusinessEmail(rawFromEmail)) ||
+        (customer.ignored && !isOwnBusinessEmail(rawFromEmail));
       threads.push(
         withDeskLabel(
           {
@@ -438,7 +462,7 @@ async function listGmailThreads(): Promise<InboxThread[]> {
             snippet,
             bodyText,
             kind,
-            ignored: kind === "marketing",
+            ignored,
             jobId: job?.id ?? null,
           },
           deskLabel,

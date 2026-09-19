@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AutomationPanel } from "@/components/AutomationPanel";
+import { DismissJobButton } from "@/components/DismissJobButton";
 import { JobDiary } from "@/components/JobDiary";
 import { PhotoGallery } from "@/components/PhotoGallery";
 import { SmsThread } from "@/components/SmsThread";
@@ -255,6 +256,15 @@ export default async function JobPage({
           </p>
           <div className="mt-3">
             <StatusSelect jobId={job.id} status={job.status} />
+          </div>
+          <div className="mt-4 border-t border-line pt-4">
+            <p className="text-xs text-muted">
+              Use this for a bad import (Google alert, Sinch, wrong thread). It
+              does not email anyone.
+            </p>
+            <div className="mt-2">
+              <DismissJobButton jobId={job.id} customerName={job.customerName} />
+            </div>
           </div>
         </section>
       </div>

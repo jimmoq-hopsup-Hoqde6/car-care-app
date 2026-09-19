@@ -10,6 +10,7 @@ const NON_CUSTOMER_DOMAINS = [
   "accounts.google.com",
   "smb.sinch.com",
   "sinch.com",
+  "sinchengage.com",
   "messagemedia.com",
   "messagemedia.com.au",
   "manheim.com.au",
@@ -31,6 +32,16 @@ const NON_CUSTOMER_LOCAL = [
   "alerts",
   "bounce",
   "bounces",
+];
+
+/** From-header tokens that are never a customer, even when the address looks personal. */
+const SYSTEM_FROM_MARKERS = [
+  /\bsinch(\s+engage)?\b/i,
+  /accounts\.google\.com/i,
+  /no-?reply@/i,
+  /noreply@/i,
+  /compliance@/i,
+  /mailer-daemon/i,
 ];
 
 const BLOCKED_GREETING_NAMES = [
@@ -88,10 +99,43 @@ export function isNonCustomerSender(email?: string | null) {
   const [local, domain] = normalised.split("@");
   if (!local || !domain) return true;
   if (NON_CUSTOMER_LOCAL.includes(local)) return true;
+  if (domain.includes("sinch") || domain.includes("messagemedia")) return true;
   if (NON_CUSTOMER_DOMAINS.some((item) => domain === item || domain.endsWith(`.${item}`))) {
     return true;
   }
-  if (domain === "google.com" && /no-?reply|notify|accounts/.test(local)) return true;
+  if (domain === "google.com" && /no-?reply|notify|accounts|alert/.test(local)) return true;
+  return false;
+}
+
+/**
+ * Google alerts, Sinch Engage, no-reply, compliance — never a customer thread.
+ * Matches the From address and display name ("Aquinnah Mae Salas (Sinch Engage…)").
+ */
+export function isSystemMailSender(input: {
+  from?: string | null;
+  fromEmail?: string | null;
+}) {
+  const hay = `${input.from ?? ""} ${input.fromEmail ?? ""}`.trim();
+  if (!hay) return false;
+  const fromEmail = normaliseEmail(input.fromEmail || input.from);
+  if (fromEmail && isOwnBusinessEmail(fromEmail)) return false;
+  if (fromEmail.includes("@") && isNonCustomerSender(fromEmail)) return true;
+  const display = (input.from ?? "").replace(/<[^>]+>/g, "").trim();
+  if (/^google\b/i.test(display)) return true;
+  return SYSTEM_FROM_MARKERS.some((marker) => marker.test(hay));
+}
+
+/** Production junk cards: named Google / Sinch, or stored with a system inbox. */
+export function isJunkBoardJob(job: {
+  customerName?: string | null;
+  customerEmail?: string | null;
+}) {
+  const email = normaliseEmail(job.customerEmail);
+  const name = (job.customerName ?? "").trim();
+  if (email && (isNonCustomerSender(email) || isOwnBusinessEmail(email))) return true;
+  if (/^google$/i.test(name)) return true;
+  if (/\bsinch\b/i.test(name) || /\bsinch\b/i.test(email)) return true;
+  if (/accounts\.google\.com/i.test(email)) return true;
   return false;
 }
 
@@ -189,20 +233,31 @@ export function resolveInboxCustomer(input: {
   snippet?: string | null;
   businessEmail?: string | null;
 }): { name: string; email: string; phone?: string; ignored: boolean } {
+  const fromEmail = normaliseEmail(input.fromEmail || input.from);
+  const own = isOwnBusinessEmail(fromEmail, input.businessEmail);
+  const system = isSystemMailSender({ from: input.from, fromEmail });
+
+  // Google / Sinch / no-reply must never become a customer from a body email.
+  if (system && !own) {
+    return { name: "Customer", email: "", ignored: true };
+  }
+
   const parsed = extractCustomerFromBody(
     `${input.subject ?? ""}\n${input.snippet ?? ""}`,
   );
   const replyTo = normaliseEmail(input.replyTo);
-  const fromEmail = normaliseEmail(input.fromEmail || input.from);
 
-  const email =
-    customerRecipientOrNull(replyTo, input.businessEmail) ||
-    customerRecipientOrNull(fromEmail, input.businessEmail) ||
-    customerRecipientOrNull(parsed.email, input.businessEmail) ||
-    "";
+  const email = own
+    ? customerRecipientOrNull(replyTo, input.businessEmail) ||
+      customerRecipientOrNull(parsed.email, input.businessEmail) ||
+      ""
+    : customerRecipientOrNull(replyTo, input.businessEmail) ||
+      customerRecipientOrNull(fromEmail, input.businessEmail) ||
+      customerRecipientOrNull(parsed.email, input.businessEmail) ||
+      "";
 
   const replyName = displayName(input.replyTo ?? "");
-  const fromName = displayName(input.from);
+  const fromName = own ? "" : displayName(input.from);
   const labelled = parsed.name && greetingFirstName(parsed.name) ? parsed.name : "";
   const name =
     labelled ||

@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Session } from "next-auth";
 import { addThreadToBoard } from "@/app/actions/inbox";
 import { auth } from "@/lib/auth";
-import { importEligibleInbox } from "@/lib/board-import";
+import { canImportThreadToBoard, importEligibleInbox } from "@/lib/board-import";
 import { isDemoMode, isGoogleConfigured } from "@/lib/env";
 import { kindLabel, type InboxThread } from "@/lib/inbox";
 import { syncInboxNotifications } from "@/lib/notifications";
@@ -111,7 +111,7 @@ export default async function InboxPage() {
             </h2>
             <p className="text-sm text-muted">{thread.from}</p>
             <p className="mt-1 text-sm text-stone-500">{thread.snippet}</p>
-            {!thread.jobId ? (
+            {!thread.jobId && canImportThreadToBoard(thread) ? (
               <form action={addThreadToBoard.bind(null, thread.id)} className="mt-3">
                 <button
                   type="submit"
@@ -134,7 +134,7 @@ export default async function InboxPage() {
       {ignored.length > 0 ? (
         <details className="desk-card border-dashed p-4">
           <summary className="cursor-pointer text-sm font-semibold text-stone-600">
-            Ignored ({ignored.length}) — marketing and auctions
+            Ignored ({ignored.length}) — marketing, Google alerts, and Sinch
           </summary>
           <div className="mt-3 space-y-2">
             {ignored.map((thread) => (

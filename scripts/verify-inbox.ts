@@ -1,15 +1,19 @@
 import { isPublicPath } from "../src/lib/auth.config";
 import {
   autoImportEligibleInbox,
+  canImportThreadToBoard,
   findJobForThread,
   importEligibleInbox,
   importThreadToBoard,
+  removeJunkSystemJobs,
 } from "../src/lib/board-import";
 import {
   customerRecipientOrNull,
   extractJobIntakeFields,
   greetingFirstName,
   isCustomerReplyEmail,
+  isJunkBoardJob,
+  isSystemMailSender,
   resolveInboxCustomer,
 } from "../src/lib/customer-mail";
 import {
@@ -56,6 +60,53 @@ async function main() {
     "Business name greets Hi there,",
   );
   assert(emailGreeting("Aquinnah") === "Hi Aquinnah,", "Real names still greet");
+
+  assert(
+    isSystemMailSender({
+      from: "Google <no-reply@accounts.google.com>",
+      fromEmail: "no-reply@accounts.google.com",
+    }),
+    "Google From is a system sender",
+  );
+  assert(
+    isSystemMailSender({
+      from: "Aquinnah Mae Salas (Sinch Engage) <compliance@smb.sinch.com>",
+      fromEmail: "compliance@smb.sinch.com",
+    }),
+    "Sinch From is a system sender",
+  );
+  assert(
+    isSystemMailSender({
+      from: "Aquinnah Mae Salas (Sinch Engage) <person@gmail.com>",
+      fromEmail: "person@gmail.com",
+    }),
+    "Sinch Engage display name is still a system sender",
+  );
+  assert(
+    !isSystemMailSender({
+      from: "Jenny Gwynne <jenny.gwynne@example.com>",
+      fromEmail: "jenny.gwynne@example.com",
+    }),
+    "A real customer From is not a system sender",
+  );
+  assert(
+    isJunkBoardJob({ customerName: "Google", customerEmail: null }),
+    "A card named Google is junk",
+  );
+  assert(
+    isJunkBoardJob({
+      customerName: "Aquinnah Mae Salas (Sinch Engage…)",
+      customerEmail: null,
+    }),
+    "A Sinch Engage card is junk",
+  );
+  assert(
+    !isJunkBoardJob({
+      customerName: "Jenny Gwynne",
+      customerEmail: "jenny.gwynne@example.com",
+    }),
+    "Jenny is not junk",
+  );
 
   const googleResolved = resolveInboxCustomer({
     from: "Google <no-reply@accounts.google.com>",
@@ -148,6 +199,15 @@ async function main() {
     "Sinch compliance mail is never auto-added",
   );
   assert(
+    !isEligibleForAutoImport({
+      kind: "quote_request",
+      ignored: false,
+      from: "Aquinnah Mae Salas (Sinch Engage) <person@gmail.com>",
+      fromEmail: "person@gmail.com",
+    }),
+    "Sinch Engage display name is never auto-added",
+  );
+  assert(
     isEligibleForAutoImport({
       kind: "website_form",
       ignored: false,
@@ -170,6 +230,14 @@ async function main() {
       snippet: "A new sign-in on your Google Account",
     }) === "marketing",
     "Google account alerts classify as marketing",
+  );
+  assert(
+    classifyThread({
+      from: "Aquinnah Mae Salas (Sinch Engage) <compliance@smb.sinch.com>",
+      subject: "Sinch ticket",
+      snippet: "Quote request update for your MessageMedia account",
+    }) === "marketing",
+    "Sinch Engage classifies as marketing even if the body says quote",
   );
   assert(
     classifyThread({
@@ -313,45 +381,45 @@ async function main() {
     const googleSkipped = await autoImportEligibleInbox([googleThread]);
     assert(googleSkipped.imported === 0, "Google alerts are not auto-added");
     const google = await importThreadToBoard(googleThread);
-    const googleJob = await prisma.job.findUnique({
-      where: { id: google.jobId },
-      include: { automations: true, drafts: true },
-    });
-    assert(!googleJob?.customerEmail, "Google alert is not stored as a customer email");
-    assert(googleJob?.customerName === "Customer", "Google is not stored as the customer name");
-    assert(!googleJob?.photoAskSentAt, "Google alert never gets a photo-ask");
-    assert(
-      !googleJob?.automations.some((item) => item.toEmail?.includes("accounts.google.com")),
-      "No automation is addressed to Google",
-    );
-    assert(
-      !googleJob?.drafts.some((item) => /^Hi Google,/m.test(item.body)),
-      "Google is not used as a greeting",
-    );
+    assert(google.refused && !google.created, "Google never becomes a job");
+    assert(!(await findJobForThread(googleThread.id)), "No Google job row is stored");
 
     const sinchThread = {
       id: `demo-thread-verify-sinch-${stamp}`,
-      from: "Aquinnah <compliance@smb.sinch.com>",
+      from: "Aquinnah Mae Salas (Sinch Engage) <compliance@smb.sinch.com>",
       fromEmail: "compliance@smb.sinch.com",
       subject: "Sinch ticket",
-      snippet: "MessageMedia compliance update",
+      snippet: "MessageMedia compliance update. Email: decoy@gmail.com",
       kind: "quote_request" as const,
       ignored: false,
     };
     const sinchSkipped = await autoImportEligibleInbox([sinchThread]);
     assert(sinchSkipped.imported === 0, "Sinch tickets are not auto-added");
     const sinch = await importThreadToBoard(sinchThread);
-    const sinchJob = await prisma.job.findUnique({
-      where: { id: sinch.jobId },
-      include: { automations: true, drafts: true },
-    });
-    assert(!sinchJob?.customerEmail, "Sinch is not stored as a customer email");
-    assert(sinchJob?.customerName !== "Aquinnah", "Sinch agent name is not the customer");
-    assert(!sinchJob?.photoAskSentAt, "Sinch never gets a photo-ask");
+    assert(sinch.refused && !sinch.created, "Sinch never becomes a job");
+    assert(!(await findJobForThread(sinchThread.id)), "No Sinch job row is stored");
     assert(
-      !sinchJob?.drafts.some((item) => /^Hi Aquinnah,/m.test(item.body)),
-      "Sinch name is not used as a customer greeting",
+      !canImportThreadToBoard({
+        ...sinchThread,
+        from: "Aquinnah Mae Salas (Sinch Engage) <person@gmail.com>",
+        fromEmail: "person@gmail.com",
+      }),
+      "Sinch Engage display name cannot be added even with a gmail From",
     );
+
+    const junkId = `job-verify-junk-${stamp}`;
+    await prisma.job.create({
+      data: {
+        id: junkId,
+        customerName: "Aquinnah Mae Salas (Sinch Engage…)",
+        customerEmail: null,
+        damageNotes: "Needs quote",
+        isDemo: false,
+      },
+    });
+    const swept = await removeJunkSystemJobs();
+    assert(swept >= 1, "Junk Sinch cards are removed from the board");
+    assert(!(await prisma.job.findUnique({ where: { id: junkId } })), "Swept Sinch card is gone");
 
     const formThread = {
       id: `demo-thread-verify-form-${stamp}`,

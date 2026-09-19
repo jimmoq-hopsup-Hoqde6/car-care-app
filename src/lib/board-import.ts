@@ -15,6 +15,9 @@ import { getSettings } from "./settings";
 import {
   customerRecipientOrNull,
   extractJobIntakeFields,
+  isJunkBoardJob,
+  isOwnBusinessEmail,
+  isSystemMailSender,
   resolveInboxCustomer,
 } from "./customer-mail";
 import { formatAuMobile, toE164Au } from "./phone";
@@ -33,6 +36,37 @@ function channelForThread(kind: InboxThread["kind"]) {
   return "email";
 }
 
+/** Never create a board card for Google alerts, Sinch, no-reply, or info@ without a customer. */
+export function canImportThreadToBoard(thread: InboxThread) {
+  if (thread.kind === "marketing" || thread.ignored) return false;
+  if (thread.kind === "sms") return true;
+  if (
+    isSystemMailSender({ from: thread.from, fromEmail: thread.fromEmail }) &&
+    !(thread.kind === "website_form" && isOwnBusinessEmail(thread.fromEmail))
+  ) {
+    return false;
+  }
+  const customer = resolveInboxCustomer({
+    from: thread.from,
+    fromEmail: thread.fromEmail,
+    replyTo: thread.replyTo,
+    subject: thread.subject,
+    snippet: `${thread.snippet}\n${thread.bodyText ?? ""}`,
+  });
+  return Boolean(customer.email) && !customer.ignored;
+}
+
+export async function removeJunkSystemJobs() {
+  const jobs = await prisma.job.findMany({
+    where: { isDemo: false },
+    select: { id: true, customerName: true, customerEmail: true },
+  });
+  const junk = jobs.filter(isJunkBoardJob);
+  if (junk.length === 0) return 0;
+  await prisma.job.deleteMany({ where: { id: { in: junk.map((job) => job.id) } } });
+  return junk.length;
+}
+
 /**
  * Create a job from an inbox thread. Idempotent on threadId / gmailThreadId.
  * Does not redirect — callers decide.
@@ -40,10 +74,15 @@ function channelForThread(kind: InboxThread["kind"]) {
 export async function importThreadToBoard(thread: InboxThread): Promise<{
   jobId: string;
   created: boolean;
+  refused?: boolean;
 }> {
   const existing = await findJobForThread(thread.id);
   if (existing) {
     return { jobId: existing.id, created: false };
+  }
+
+  if (!canImportThreadToBoard(thread)) {
+    return { jobId: "", created: false, refused: true };
   }
 
   const customer = resolveInboxCustomer({
@@ -56,7 +95,7 @@ export async function importThreadToBoard(thread: InboxThread): Promise<{
   const nameFrom = customer.name || "Customer";
   const customerEmail =
     customerRecipientOrNull(customer.email) ||
-    customerRecipientOrNull(thread.fromEmail);
+    (thread.kind === "sms" ? null : customerRecipientOrNull(thread.fromEmail));
   const phone = customer.phone?.trim() || null;
   const intake = extractJobIntakeFields(
     `${thread.subject}\n${thread.snippet}\n${thread.bodyText ?? ""}`,
@@ -93,7 +132,11 @@ export async function importThreadToBoard(thread: InboxThread): Promise<{
       outOfScope,
     },
   });
-  await importGmailThreadPhotos(id, liveThreadId);
+  try {
+    await importGmailThreadPhotos(id, liveThreadId);
+  } catch {
+    // Job still lands on the board if Gmail attachments fail.
+  }
   if (status === JobStatus.READY_TO_BOOK || bookingReply) {
     await notifyBookingApproval({
       jobId: id,
@@ -101,7 +144,9 @@ export async function importThreadToBoard(thread: InboxThread): Promise<{
       body: thread.snippet,
     });
   }
-  await runPhotoAndScopeAutomations(id);
+  if (customerEmail) {
+    await runPhotoAndScopeAutomations(id);
+  }
   await syncJobGmailLabelById(id);
 
   return { jobId: id, created: true };
@@ -125,6 +170,10 @@ export async function autoImportEligibleInbox(threads: InboxThread[]): Promise<{
     }
     try {
       const result = await importThreadToBoard(thread);
+      if (result.refused || !result.jobId) {
+        next.push(thread);
+        continue;
+      }
       if (result.created) imported += 1;
       next.push({ ...thread, jobId: result.jobId });
     } catch {
@@ -141,6 +190,11 @@ export async function importEligibleInbox(): Promise<{
   error?: string;
   source: "gmail" | "demo";
 }> {
+  try {
+    await removeJunkSystemJobs();
+  } catch {
+    // Sweep is best-effort; Inbox still loads.
+  }
   const listed = await loadInbox();
   if (listed.error) {
     return {

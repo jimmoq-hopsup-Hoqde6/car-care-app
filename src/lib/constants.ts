@@ -56,4 +56,13 @@ export const CHANNEL_LABELS: Record<string, string> = {
   sms: "SMS",
 };
 
-export const MARKETING_SENDERS = ["manheim", "noreply@manheim", "auction@"];
+export const MARKETING_SENDERS = [
+  "manheim",
+  "noreply@manheim",
+  "auction@",
+  "sinch",
+  "accounts.google.com",
+  "no-reply@",
+  "noreply@",
+  "compliance@",
+];
