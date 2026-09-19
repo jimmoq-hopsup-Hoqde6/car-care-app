@@ -26,6 +26,7 @@ export async function getSettings() {
     autoDeclineOutOfScope: Boolean(row.autoDeclineOutOfScope),
     autoSmsPhotoAsk: Boolean(row.autoSmsPhotoAsk),
     autoSmsFollowUp: Boolean(row.autoSmsFollowUp),
+    autoAddInboxToBoard: row.autoAddInboxToBoard !== false,
     hasMessageMediaKey: Boolean(
       process.env.MESSAGEMEDIA_API_KEY?.trim() || row.messageMediaKey,
     ),

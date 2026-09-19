@@ -243,6 +243,20 @@ export default async function SettingsPage() {
         <label className="mt-2 flex items-start gap-2 text-sm">
           <input
             type="checkbox"
+            name="autoAddInboxToBoard"
+            defaultChecked={settings.autoAddInboxToBoard}
+            className="mt-1"
+          />
+          <span>
+            Auto-add inbox to board. Default on. Quote requests, website forms,
+            booking replies and SMS land on the board when you open Inbox (and
+            on the daily automation run). Marketing such as Manheim is never
+            added.
+          </span>
+        </label>
+        <label className="mt-2 flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
             name="autoDeclineOutOfScope"
             defaultChecked={settings.autoDeclineOutOfScope}
             className="mt-1"

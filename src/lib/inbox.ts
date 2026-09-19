@@ -52,6 +52,39 @@ export function needsBookingApproval(kind: InboxKind) {
   return kind === "booking_negotiation" || kind === "time_confirmation";
 }
 
+/** Kinds that land on the board without a tap. Marketing is never in this list. */
+export const AUTO_IMPORT_KINDS: InboxKind[] = [
+  "quote_request",
+  "website_form",
+  "booking_negotiation",
+  "time_confirmation",
+  "sms",
+];
+
+export function isEligibleForAutoImport(thread: Pick<InboxThread, "kind" | "ignored" | "deskLabel">) {
+  if (thread.ignored || thread.kind === "marketing") return false;
+  if (AUTO_IMPORT_KINDS.includes(thread.kind)) return true;
+  // Similar in-scope customer work: already has a job-desk Gmail label.
+  return Boolean(thread.deskLabel);
+}
+
+export function friendlyInboxError(error: unknown) {
+  const text = error instanceof Error ? error.message : String(error ?? "");
+  if (/invalid_grant|unauthorized|unauthenticated|401|403|invalid_client|token/i.test(text)) {
+    return "Gmail access expired or was refused. Reconnect Google in Settings, then open Inbox again.";
+  }
+  if (/network|fetch|ENOTFOUND|ECONN|timeout/i.test(text)) {
+    return "Gmail could not be reached just now. Check the connection and try Inbox again.";
+  }
+  return "Gmail could not be loaded. Reconnect Google in Settings if this keeps happening.";
+}
+
+export type InboxListResult = {
+  threads: InboxThread[];
+  source: "gmail" | "demo";
+  error?: string;
+};
+
 export function classifyThread(input: {
   from: string;
   subject: string;
@@ -225,6 +258,16 @@ export function demoInboxThreads(): InboxThread[] {
       "quote_request",
     ),
     {
+      id: "demo-thread-kai",
+      from: "Kai Bennett <kai.bennett@example.com>",
+      fromEmail: "kai.bennett@example.com",
+      subject: "Quote — rear bumper scratch, Magill",
+      snippet:
+        "Hi, rear bumper scratch on a Mazda CX-5 in Magill. Photos attached. Can you quote?",
+      kind: "quote_request",
+      ignored: false,
+    },
+    {
       id: "demo-thread-manheim",
       from: "Manheim <noreply@manheim.com.au>",
       fromEmail: "noreply@manheim.com.au",
@@ -236,10 +279,10 @@ export function demoInboxThreads(): InboxThread[] {
   ];
 }
 
-export async function listInboxThreads(): Promise<InboxThread[]> {
+async function listGmailThreads(): Promise<InboxThread[]> {
   const gmail = await getGmail();
   if (!gmail) {
-    return demoInboxThreads();
+    throw new Error("Gmail is not connected");
   }
 
   const listed = await gmail.users.threads.list({
@@ -262,54 +305,79 @@ export async function listInboxThreads(): Promise<InboxThread[]> {
   const threads: InboxThread[] = [];
   for (const thread of listed.data.threads ?? []) {
     if (!thread.id) continue;
-    const detail = await gmail.users.threads.get({
-      userId: "me",
-      id: thread.id,
-      format: "metadata",
-      metadataHeaders: ["From", "Subject"],
-    });
-    const headers = detail.data.messages?.[0]?.payload?.headers ?? [];
-    const from =
-      headers.find((header) => header.name?.toLowerCase() === "from")?.value ??
-      "";
-    const subject =
-      headers.find((header) => header.name?.toLowerCase() === "subject")
-        ?.value ?? "(no subject)";
-    const snippet = detail.data.messages?.[0]?.snippet ?? "";
-    const kind = classifyThread({ from, subject, snippet });
-    const fromEmail = extractEmail(from);
-    const job = jobs.find(
-      (row) =>
-        row.gmailThreadId === thread.id ||
-        row.threadId === thread.id ||
-        row.customerEmail?.toLowerCase() === fromEmail,
-    );
-    const labelIds = [
-      ...new Set(
-        (detail.data.messages ?? []).flatMap(
-          (message) => message.labelIds ?? [],
+    try {
+      const detail = await gmail.users.threads.get({
+        userId: "me",
+        id: thread.id,
+        format: "metadata",
+        metadataHeaders: ["From", "Subject"],
+      });
+      const headers = detail.data.messages?.[0]?.payload?.headers ?? [];
+      const from =
+        headers.find((header) => header.name?.toLowerCase() === "from")?.value ??
+        "";
+      const subject =
+        headers.find((header) => header.name?.toLowerCase() === "subject")
+          ?.value ?? "(no subject)";
+      const snippet = detail.data.messages?.[0]?.snippet ?? "";
+      const kind = classifyThread({ from, subject, snippet });
+      const fromEmail = extractEmail(from);
+      const job = jobs.find(
+        (row) =>
+          row.gmailThreadId === thread.id ||
+          row.threadId === thread.id ||
+          row.customerEmail?.toLowerCase() === fromEmail,
+      );
+      const labelIds = [
+        ...new Set(
+          (detail.data.messages ?? []).flatMap(
+            (message) => message.labelIds ?? [],
+          ),
         ),
-      ),
-    ];
-    const deskLabel = resolved
-      ? pickDeskLabel(deskKeysFromLabelIds(labelIds, resolved))
-      : null;
-    threads.push(
-      withDeskLabel(
-        {
-          id: thread.id,
-          from,
-          fromEmail,
-          subject,
-          snippet,
-          kind,
-          ignored: kind === "marketing",
-          jobId: job?.id ?? null,
-        },
-        deskLabel,
-      ),
-    );
+      ];
+      const deskLabel = resolved
+        ? pickDeskLabel(deskKeysFromLabelIds(labelIds, resolved))
+        : null;
+      threads.push(
+        withDeskLabel(
+          {
+            id: thread.id,
+            from,
+            fromEmail,
+            subject,
+            snippet,
+            kind,
+            ignored: kind === "marketing",
+            jobId: job?.id ?? null,
+          },
+          deskLabel,
+        ),
+      );
+    } catch {
+      // Skip a single bad thread; do not fail the whole inbox.
+    }
   }
 
   return threads;
+}
+
+export async function loadInbox(): Promise<InboxListResult> {
+  try {
+    const gmail = await getGmail();
+    if (!gmail) {
+      return { threads: demoInboxThreads(), source: "demo" };
+    }
+    const threads = await listGmailThreads();
+    return { threads, source: "gmail" };
+  } catch (error) {
+    return {
+      threads: [],
+      source: "gmail",
+      error: friendlyInboxError(error),
+    };
+  }
+}
+
+export async function listInboxThreads(): Promise<InboxThread[]> {
+  return (await loadInbox()).threads;
 }

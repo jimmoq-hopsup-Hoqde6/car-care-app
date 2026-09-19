@@ -66,6 +66,7 @@ async function main() {
       reviewAskDaysAfterJob: Number(process.env.REVIEW_ASK_DAYS_AFTER_JOB || 1),
       googleReviewUrl: reviewUrl,
       autoAskPhotos: true,
+      autoAddInboxToBoard: true,
     },
     update: replacePlaceholder ? { googleReviewUrl: reviewUrl } : {},
   });

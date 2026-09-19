@@ -23,7 +23,8 @@
     "pricing:verify": "tsx scripts/verify-pricing.ts",
     "sms:verify": "tsx scripts/verify-sms.ts",
     "login:verify": "tsx scripts/verify-login.ts",
-    "verify": "npm run quote:verify && npm run booking:verify && npm run labels:verify && npm run automations:verify && npm run activity:verify && npm run photos:verify && npm run scope:verify && npm run pricing:verify && npm run sms:verify && npm run login:verify"
+    "inbox:verify": "tsx scripts/verify-inbox.ts",
+    "verify": "npm run quote:verify && npm run booking:verify && npm run labels:verify && npm run automations:verify && npm run activity:verify && npm run photos:verify && npm run scope:verify && npm run pricing:verify && npm run sms:verify && npm run login:verify && npm run inbox:verify"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

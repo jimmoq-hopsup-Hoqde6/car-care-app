@@ -16,14 +16,14 @@ The job-desk header uses Marcel's business-card lockup (black background, white 
 
 - **Phone / web login** — hosted mode shows a branded Google Sign-In page; only Marcel's allowlisted accounts get in. Local demo stays open. See [Deploy for phone access](#deploy-for-phone-access).
 - **Job board** — Needs quote, Awaiting customer, Ready to book, Booked, Done. Each card shows a **repair photo** thumbnail (or “No repair photo”) and **last activity** in Adelaide time (`Last: 19 Sep · 11:58 am`). Toggle **Newest activity** or **Stalled first**.
-- **Inbox triage** — quote requests, website form leads, booking replies; marketing such as Manheim is ignored. Existing Gmail job-desk labels seed the job status.
+- **Inbox triage** — quote requests, website forms, booking replies and SMS **land on the job board automatically** when you open Inbox (and on the daily automation run). Marketing such as Manheim is never added. Existing Gmail job-desk labels seed the board status. If Gmail fails, Inbox shows a reconnect message instead of crashing.
 - **Gmail labels** — one stage label at a time: Quote request, Awaiting customer, Ready to book, Booked, Follow-up / Review. Label changes never send email.
 - **Notifications** — when a customer accepts a quote or asks to book, a badge tells you they are waiting for your booking approval (nothing is auto-sent)
 - **Quote composer** — you enter the price or tap **Accept suggestion**; the email uses Marcel's locked standard (first-name greeting, 30-day validity, mobile number ask). Suggestions never send themselves.
 - **Booking picker** — next 14 weekdays, default 8:00 am–4:00 pm, 3-hour jobs; recommends slots near other booked jobs in nearby Adelaide suburbs; creates a Calendar event and a confirmation draft
 - **SMS** — same job card as email, via MessageMedia on **0435 222 221**. Unknown numbers become Needs quote. Demo threads do not call the live API.
 
-Sample jobs load automatically: **Jenny Gwynne (BMW bumper, Crafers)**, **Nathan Crowe (Outlander, Unley, follow-up due)**, **John Hale (Honda CR-V, Glenelg, waiting for booking approval)**, **Mia Chen (Corolla, Goodwood, waiting for booking approval)**, **Priya Nair (Mazda 3, Norwood, review ask due)**, **Jamie Collis (Paradise bonnet, out of scope, decline drafted)**, **Sam Vella (Norwood door, photo ask queued + SMS)**, **Alex Rowe (Payneham bumper + guard, $650 suggestion)**, **Taylor Nguyen (Prospect SMS thread)**, plus booked neighbours in **Stirling, Brighton and Somerton Park** so recommendations show in demo.
+Sample jobs load automatically: **Jenny Gwynne (BMW bumper, Crafers)**, **Nathan Crowe (Outlander, Unley, follow-up due)**, **John Hale (Honda CR-V, Glenelg, waiting for booking approval)**, **Mia Chen (Corolla, Goodwood, waiting for booking approval)**, **Priya Nair (Mazda 3, Norwood, review ask due)**, **Jamie Collis (Paradise bonnet, out of scope, decline drafted)**, **Sam Vella (Norwood door, photo ask queued + SMS)**, **Alex Rowe (Payneham bumper + guard, $650 suggestion)**, **Taylor Nguyen (Prospect SMS thread)**, plus booked neighbours in **Stirling, Brighton and Somerton Park** so recommendations show in demo. Opening Inbox also auto-adds **Kai Bennett (Magill bumper)** if that thread is not already a job.
 
 ## Run it on your computer (demo, no Google)
 
@@ -56,6 +56,7 @@ npm run scope:verify        # confirm bonnet/roof out of scope + photo-ask/decli
 npm run pricing:verify      # confirm smart price suggestions stay internal
 npm run sms:verify          # confirm SMS E.164 matching + demo MessageMedia no-op
 npm run login:verify        # confirm demo stays open and hosted allowlist login
+npm run inbox:verify        # confirm eligible Gmail/demo threads auto-add; Manheim does not
 npm run verify              # run all of the checks above
 ```
 
@@ -148,7 +149,7 @@ These five labels already exist in Marcel's Gmail. The desk uses them as-is and 
 
 When you move a job on the board (or send a quote draft, book a slot, or a follow-up / review ask is queued), the matching label is applied and the other four job-desk labels are removed from that thread.
 
-On **Add to job board**, if the thread already has one of these labels, that label wins over the snippet classifier.
+When a thread is **auto-added** (or you tap Add to job board), if it already has one of these labels, that label wins over the snippet classifier.
 
 Label sync never sends a customer email.
 
@@ -275,6 +276,7 @@ npm run automations:run
 ```
 
 That finds due jobs and:
+- **Also auto-imports** eligible Inbox threads onto the board (same rules as opening Inbox)
 - **Demo mode (`DEMO_MODE=true`)** — writes a queue entry on the job and **does not email anyone**
 - **Live, Google connected** — sends via Gmail using the stored OAuth tokens
 
@@ -378,6 +380,7 @@ Demo seed: **Jamie Collis** (Paradise, scratches on bonnet, no photos) is flagge
 - Job length (default 3 hours)
 - Follow-up days, review-ask days, and Google review URL
 - Auto-ask for photos when missing (default on)
+- Auto-add inbox to board (default on — Manheim-style marketing is never added)
 - Auto-send out-of-scope declines (default off — draft only)
 - Price bands for suggestions (bumper $420, bumper + guard $650, door $650, guard blend +$250, trim replace-only)
 

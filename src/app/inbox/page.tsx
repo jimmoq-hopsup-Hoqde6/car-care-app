@@ -1,17 +1,38 @@
 import Link from "next/link";
 import { addThreadToBoard } from "@/app/actions/inbox";
 import { auth } from "@/lib/auth";
+import { importEligibleInbox } from "@/lib/board-import";
 import { isDemoMode, isGoogleConfigured } from "@/lib/env";
-import { kindLabel, listInboxThreads } from "@/lib/inbox";
+import { kindLabel, type InboxThread } from "@/lib/inbox";
 import { syncInboxNotifications } from "@/lib/notifications";
 
 export default async function InboxPage() {
   const session = await auth();
-  const threads = await listInboxThreads();
-  await syncInboxNotifications();
+  let threads: InboxThread[] = [];
+  let imported = 0;
+  let inboxError: string | undefined;
+  let source: "gmail" | "demo" = "demo";
+
+  try {
+    const result = await importEligibleInbox();
+    threads = result.threads;
+    imported = result.imported;
+    inboxError = result.error;
+    source = result.source;
+  } catch {
+    inboxError =
+      "Gmail could not be loaded. Reconnect Google in Settings if this keeps happening.";
+  }
+
+  try {
+    await syncInboxNotifications(threads);
+  } catch {
+    // Notifications should not take Inbox down.
+  }
+
   const active = threads.filter((thread) => !thread.ignored);
   const ignored = threads.filter((thread) => thread.ignored);
-  const live = Boolean(session?.googleConnected) && !isDemoMode();
+  const live = Boolean(session?.googleConnected) && !isDemoMode() && source === "gmail";
 
   return (
     <div className="space-y-5">
@@ -19,12 +40,35 @@ export default async function InboxPage() {
         <h1 className="text-2xl font-semibold text-ink">Inbox triage</h1>
         <p className="text-sm text-stone-600">
           {live
-            ? "Live Gmail threads from the last 45 days. Job-desk labels seed the board status. Marketing such as Manheim is parked below."
+            ? "Live Gmail from the last 45 days. Eligible quote, booking and SMS threads are added to the job board automatically. Marketing such as Manheim stays ignored."
             : isGoogleConfigured()
-              ? "Showing sample threads until you connect Google."
-              : "Demo threads. Add Google OAuth keys in .env to use the real inbox."}
+              ? "Showing sample threads until you connect Google. Eligible ones still land on the demo board automatically."
+              : "Demo threads. Eligible quote requests are added to the board automatically. Add Google OAuth keys in .env to use the live inbox."}
         </p>
       </div>
+
+      {inboxError ? (
+        <div
+          role="alert"
+          className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-ink"
+        >
+          <p className="font-semibold">Inbox could not load Gmail</p>
+          <p className="mt-1 text-stone-700">{inboxError}</p>
+          <Link
+            href="/settings"
+            className="mt-2 inline-block text-sm font-semibold text-teal-dark underline"
+          >
+            Open Settings to reconnect Google
+          </Link>
+        </div>
+      ) : null}
+
+      {imported > 0 ? (
+        <p className="rounded-2xl border border-teal/40 bg-teal/10 px-4 py-2 text-sm text-ink">
+          Added {imported} {imported === 1 ? "thread" : "threads"} to the job
+          board.
+        </p>
+      ) : null}
 
       <div className="space-y-3">
         {active.map((thread) => (
@@ -46,7 +90,7 @@ export default async function InboxPage() {
                   href={`/jobs/${thread.jobId}`}
                   className="text-xs font-medium text-teal-dark"
                 >
-                  Open job
+                  On the board
                 </Link>
               ) : null}
             </div>
@@ -66,6 +110,10 @@ export default async function InboxPage() {
           </article>
         ))}
       </div>
+
+      {active.length === 0 && !inboxError ? (
+        <p className="text-sm text-stone-500">No customer threads to show.</p>
+      ) : null}
 
       {ignored.length > 0 ? (
         <details className="rounded-2xl border border-dashed border-line bg-white/50 p-4">

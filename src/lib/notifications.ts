@@ -1,6 +1,6 @@
 import { JobStatus } from "@prisma/client";
 import { syncJobGmailLabelById } from "./gmail-labels";
-import { needsBookingApproval } from "./inbox";
+import { needsBookingApproval, type InboxThread } from "./inbox";
 import { prisma } from "./prisma";
 
 export async function notifyBookingApproval(input: {
@@ -29,12 +29,12 @@ export async function notifyBookingApproval(input: {
   });
 }
 
-export async function syncInboxNotifications() {
+export async function syncInboxNotifications(threads?: InboxThread[]) {
   const { listInboxThreads } = await import("./inbox");
-  const threads = await listInboxThreads();
+  const items = threads ?? (await listInboxThreads());
   let created = 0;
 
-  for (const thread of threads) {
+  for (const thread of items) {
     if (thread.ignored || !thread.jobId || !needsBookingApproval(thread.kind)) {
       continue;
     }

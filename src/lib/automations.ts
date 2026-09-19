@@ -38,6 +38,7 @@ export type AutomationRunResult = {
   reviewAsks: number;
   photoAsks: number;
   declines: number;
+  inboxImported: number;
   queued: Array<{
     jobId: string;
     customerName: string;
@@ -383,6 +384,14 @@ async function processPhotoAndScope(
 export async function runAutomations(now = new Date()): Promise<AutomationRunResult> {
   const settings = await getSettings();
   const demo = isDemoMode();
+  let inboxImported = 0;
+  try {
+    const { importEligibleInbox } = await import("./board-import");
+    const inbox = await importEligibleInbox();
+    inboxImported = inbox.imported;
+  } catch {
+    // Inbox import is best-effort; follow-ups still run.
+  }
   const jobs = await prisma.job.findMany({ include: { photos: true } });
   const queued: AutomationRunResult["queued"] = [];
 
@@ -506,6 +515,7 @@ export async function runAutomations(now = new Date()): Promise<AutomationRunRes
     reviewAsks: queued.filter((item) => item.type === "review_ask").length,
     photoAsks: queued.filter((item) => item.type === "photo_ask").length,
     declines: queued.filter((item) => item.type === "scope_decline").length,
+    inboxImported,
     queued,
   };
 }

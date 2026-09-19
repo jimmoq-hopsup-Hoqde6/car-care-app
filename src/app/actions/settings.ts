@@ -37,6 +37,7 @@ export async function saveSettingsAction(formData: FormData) {
       autoDeclineOutOfScope: formData.get("autoDeclineOutOfScope") === "on",
       autoSmsPhotoAsk: formData.get("autoSmsPhotoAsk") === "on",
       autoSmsFollowUp: formData.get("autoSmsFollowUp") === "on",
+      autoAddInboxToBoard: formData.get("autoAddInboxToBoard") === "on",
       ...(String(formData.get("messageMediaKey") ?? "").trim()
         ? { messageMediaKey: String(formData.get("messageMediaKey")).trim() }
         : {}),

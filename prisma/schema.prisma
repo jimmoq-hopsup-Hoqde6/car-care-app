@@ -107,6 +107,7 @@ model AppSetting {
   autoDeclineOutOfScope  Boolean @default(false)
   autoSmsPhotoAsk        Boolean @default(false)
   autoSmsFollowUp        Boolean @default(false)
+  autoAddInboxToBoard    Boolean @default(true)
   messageMediaKey        String?
   messageMediaSecret     String?
 }
