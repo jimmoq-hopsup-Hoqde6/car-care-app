@@ -324,15 +324,17 @@ async function main() {
           status: JobStatus.NEEDS_QUOTE,
           outOfScope: false,
           declinedAt: null,
+          photoAskSentAt: null,
           lastActivityAt: adelaideAt(0, 8, 40),
         },
       });
       await prisma.automationEvent.deleteMany({
-        where: { jobId: "job-jamie", type: "scope_decline" },
+        where: { jobId: "job-jamie", type: { in: ["scope_decline", "photo_ask"] } },
       });
       await prisma.emailDraft.deleteMany({
-        where: { jobId: "job-jamie", type: "scope_decline" },
+        where: { jobId: "job-jamie", type: { in: ["scope_decline", "photo_ask"] } },
       });
+      await prisma.photo.deleteMany({ where: { jobId: "job-jamie" } });
     }
     if (job.id === "job-sam") {
       await prisma.job.update({

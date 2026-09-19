@@ -48,7 +48,9 @@ export function buildPhotoAskEmail(input: {
   notes?: string | null;
 }) {
   const suburb = input.suburb?.trim();
-  const service = (input.service?.trim() || "the repair").replace(/^the\s+/i, "");
+  const service = (input.service?.trim() || "the repair")
+    .replace(/^the\s+/i, "")
+    .toLowerCase();
   const about = suburb
     ? `the ${service} in ${suburb}`
     : `the ${service}`;
