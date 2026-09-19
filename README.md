@@ -10,6 +10,8 @@ Timezone: **Australia/Adelaide**
 From address: **Info@mobilecarscratchrepairadelaide.com.au**  
 Owner mobile (later SMS only — not used here): **0435222221**
 
+The job-desk header uses Marcel's business-card lockup (black background, white italic **MobileCar**, teal **ScratchRepair**, `//// ADELAIDE`). Assets live in `public/brand/`. Accent colour is `#2dd4bf`. Quote email wording is unchanged.
+
 ## What you can do
 
 - **Job board** — Needs quote, Awaiting customer, Ready to book, Booked, Done

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { signIn, signOut } from "@/lib/auth";
+import { BrandLogo } from "./BrandLogo";
 import { NotificationBell } from "./NotificationBell";
 
 type Props = {
@@ -28,15 +29,10 @@ export function AppShell({
 }: Props) {
   return (
     <div className="min-h-full bg-background text-foreground">
-      <header className="sticky top-0 z-20 border-b border-line bg-ink text-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
-          <Link href="/" className="min-w-0">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-amber-200/90">
-              Adelaide
-            </p>
-            <p className="truncate text-sm font-semibold sm:text-base">
-              Mobile Car Scratch Repair
-            </p>
+      <header className="sticky top-0 z-20 border-b border-white/10 bg-black text-white">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2.5">
+          <Link href="/" className="min-w-0 shrink" aria-label="Job board">
+            <BrandLogo />
           </Link>
           <div className="flex items-center gap-2">
             <NotificationBell unread={unreadNotifications} />
@@ -70,7 +66,7 @@ export function AppShell({
         {children}
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-card/95 backdrop-blur md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-teal/40 bg-card/95 backdrop-blur md:hidden">
         <div className="grid grid-cols-4">
           {nav.map((item) => (
             <Link

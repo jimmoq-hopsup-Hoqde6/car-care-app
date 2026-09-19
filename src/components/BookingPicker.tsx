@@ -79,7 +79,7 @@ export function BookingPicker({
                   onClick={() => setSelected(slot)}
                   className={`rounded-xl border px-3 py-3 text-left text-sm ${
                     isOn
-                      ? "border-teal bg-teal text-white"
+                      ? "border-teal bg-teal text-ink"
                       : "border-amber-300 bg-white text-ink"
                   }`}
                 >
@@ -121,7 +121,7 @@ export function BookingPicker({
                       slot.busy
                         ? "cursor-not-allowed border-line bg-stone-100 text-stone-400"
                         : isOn
-                          ? "border-teal bg-teal text-white"
+                          ? "border-teal bg-teal text-ink"
                           : slot.recommended
                             ? "border-amber-300 bg-amber-50 text-ink"
                             : "border-line bg-white text-ink"
@@ -151,7 +151,7 @@ export function BookingPicker({
         type="button"
         disabled={!selected || busy || selected.busy}
         onClick={() => void confirm()}
-        className="w-full rounded-full bg-teal px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
+        className="w-full rounded-full bg-teal px-4 py-3 text-sm font-semibold text-ink disabled:opacity-50"
       >
         {busy
           ? "Booking…"

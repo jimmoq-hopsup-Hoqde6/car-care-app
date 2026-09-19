@@ -44,7 +44,7 @@ export default async function InboxPage() {
               {thread.jobId ? (
                 <Link
                   href={`/jobs/${thread.jobId}`}
-                  className="text-xs font-medium text-teal"
+                  className="text-xs font-medium text-teal-dark"
                 >
                   Open job
                 </Link>

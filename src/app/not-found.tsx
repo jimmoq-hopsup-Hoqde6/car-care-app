@@ -9,7 +9,7 @@ export default function NotFound() {
       </p>
       <Link
         href="/"
-        className="mt-4 inline-block rounded-full bg-teal px-4 py-2 text-sm font-semibold text-white"
+        className="mt-4 inline-block rounded-full bg-teal px-4 py-2 text-sm font-semibold text-ink"
       >
         Back to the job board
       </Link>

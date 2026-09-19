@@ -20,6 +20,14 @@ export const metadata: Metadata = {
   title: "Job desk — Mobile Car Scratch Repair Adelaide",
   description:
     "Quote drafts and booking for Marcel Kuhn, Mobile Car Scratch Repair Adelaide.",
+  icons: {
+    icon: [
+      { url: "/brand/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/brand/favicon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: [{ url: "/brand/apple-touch.png", sizes: "180x180" }],
+    shortcut: "/favicon.ico",
+  },
 };
 
 export const dynamic = "force-dynamic";

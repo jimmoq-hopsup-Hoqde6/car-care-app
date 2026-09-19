@@ -29,7 +29,7 @@ export default async function JobPage({
 
   return (
     <div className="space-y-5">
-      <Link href="/" className="text-sm text-teal">
+      <Link href="/" className="text-sm font-medium text-teal-dark">
         ← Job board
       </Link>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -45,7 +45,7 @@ export default async function JobPage({
         <div className="flex gap-2">
           <Link
             href={`/jobs/${job.id}/quote`}
-            className="rounded-full bg-teal px-4 py-2.5 text-sm font-semibold text-white"
+            className="rounded-full bg-teal px-4 py-2.5 text-sm font-semibold text-ink"
           >
             Quote
           </Link>

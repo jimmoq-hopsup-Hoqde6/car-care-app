@@ -56,7 +56,7 @@ export default async function BookPage({
 
   return (
     <div className="space-y-5">
-      <Link href={`/jobs/${job.id}`} className="text-sm text-teal">
+      <Link href={`/jobs/${job.id}`} className="text-sm font-medium text-teal-dark">
         ← {job.customerName}
       </Link>
       <div>

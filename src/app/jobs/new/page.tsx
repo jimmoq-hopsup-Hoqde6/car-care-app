@@ -5,7 +5,7 @@ export default function NewJobPage() {
   return (
     <div className="mx-auto max-w-xl space-y-5">
       <div>
-        <Link href="/" className="text-sm text-teal">
+        <Link href="/" className="text-sm font-medium text-teal-dark">
           ← Job board
         </Link>
         <h1 className="mt-2 text-2xl font-semibold text-ink">New job</h1>
@@ -50,7 +50,7 @@ export default function NewJobPage() {
         </label>
         <button
           type="submit"
-          className="w-full rounded-full bg-teal py-3 text-sm font-semibold text-white"
+          className="w-full rounded-full bg-teal py-3 text-sm font-semibold text-ink"
         >
           Save job
         </button>

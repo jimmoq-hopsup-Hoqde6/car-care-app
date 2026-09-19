@@ -267,7 +267,7 @@ export default async function SettingsPage() {
         </div>
         <button
           type="submit"
-          className="rounded-full bg-teal px-4 py-2.5 text-sm font-semibold text-white"
+          className="rounded-full bg-teal px-4 py-2.5 text-sm font-semibold text-ink"
         >
           Save settings
         </button>

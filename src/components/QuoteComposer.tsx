@@ -147,7 +147,7 @@ export function QuoteComposer({ job, priceBands, items }: Props) {
           <button
             type="button"
             onClick={() => setRepairItems([...repairItems, ""])}
-            className="mt-2 text-sm font-medium text-teal"
+            className="mt-2 text-sm font-medium text-teal-dark"
           >
             Add item
           </button>
@@ -179,7 +179,7 @@ export function QuoteComposer({ job, priceBands, items }: Props) {
             type="button"
             disabled={busy}
             onClick={() => submit(false)}
-            className="flex-1 rounded-full bg-teal px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
+            className="flex-1 rounded-full bg-teal px-4 py-3 text-sm font-semibold text-ink disabled:opacity-60"
           >
             {busy ? "Saving…" : "Save as draft"}
           </button>

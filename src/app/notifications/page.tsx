@@ -61,7 +61,7 @@ export default async function NotificationsPage() {
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Link
                     href={href}
-                    className="rounded-full bg-teal px-3 py-1.5 text-xs font-semibold text-white"
+                    className="rounded-full bg-teal px-3 py-1.5 text-xs font-semibold text-ink"
                   >
                     Open booking
                   </Link>
