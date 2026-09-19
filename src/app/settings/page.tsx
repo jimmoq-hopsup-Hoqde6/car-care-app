@@ -281,8 +281,10 @@ export default async function SettingsPage() {
 
         <h3 className="pt-2 font-semibold text-ink">Price bands</h3>
         <p className="text-xs text-stone-500">
-          Optional shortcuts for you. Leave the amount blank until you decide
-          the rate.
+          Internal shortcuts for quote suggestions (bumper $420, bumper + guard
+          $650, door $650, guard blend +$250). Suggested totals never go into a
+          customer email until you Accept and then Save draft or Send. Leave
+          trim blank — replace only, do not invent a price.
         </p>
         <div className="space-y-2">
           {bands.map((band) => (

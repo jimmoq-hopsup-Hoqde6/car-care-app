@@ -19,12 +19,13 @@ async function main() {
           "job-liam",
           "job-tom",
           "job-eve",
+          "job-alex",
         ],
       },
     },
     include: { photos: true },
   });
-  assert(withPhotos.length === 8, `Expected 8 demo jobs with photos, found ${withPhotos.length}`);
+  assert(withPhotos.length === 9, `Expected 9 demo jobs with photos, found ${withPhotos.length}`);
   for (const job of withPhotos) {
     assert(job.photos.length > 0, `${job.id} should show a repair photo`);
     assert(primaryPhoto(job.photos), `${job.id} needs a primary thumbnail`);

@@ -2,7 +2,7 @@
 
 A local web app for **Marcel Kuhn** to turn quote requests into drafts and bookings.
 
-It does **not** invent prices. You type the figure. **Quotes and booking confirmations never send unless you tap Send.** The usual path is: write quote → save Gmail draft → pick a free calendar slot → save a confirmation draft.
+It does **not** invent prices for the customer. You type the figure or tap Accept on an internal suggestion. **Quotes and booking confirmations never send unless you tap Send.** The usual path is: write quote → save Gmail draft → pick a free calendar slot → save a confirmation draft.
 
 A few follow-on emails can send on a schedule (see [Automations](#automations-what-sends-on-its-own)): a nudge if a quote sits unanswered, a Google review ask after a job is marked Done, and a photo request when a quote has no damage pictures. Quotes and booking confirmations still never auto-send.
 
@@ -18,10 +18,10 @@ The job-desk header uses Marcel's business-card lockup (black background, white 
 - **Inbox triage** — quote requests, website form leads, booking replies; marketing such as Manheim is ignored. Existing Gmail job-desk labels seed the job status.
 - **Gmail labels** — one stage label at a time: Quote request, Awaiting customer, Ready to book, Booked, Follow-up / Review. Label changes never send email.
 - **Notifications** — when a customer accepts a quote or asks to book, a badge tells you they are waiting for your booking approval (nothing is auto-sent)
-- **Quote composer** — you enter the price; the email uses Marcel's locked standard (first-name greeting, 30-day validity, mobile number ask)
+- **Quote composer** — you enter the price or tap **Accept suggestion**; the email uses Marcel's locked standard (first-name greeting, 30-day validity, mobile number ask). Suggestions never send themselves.
 - **Booking picker** — next 14 weekdays, default 8:00 am–4:00 pm, 3-hour jobs; recommends slots near other booked jobs in nearby Adelaide suburbs; creates a Calendar event and a confirmation draft
 
-Sample jobs load automatically: **Jenny Gwynne (BMW bumper, Crafers)**, **Nathan Crowe (Outlander, Unley, follow-up due)**, **John Hale (Honda CR-V, Glenelg, waiting for booking approval)**, **Mia Chen (Corolla, Goodwood, waiting for booking approval)**, **Priya Nair (Mazda 3, Norwood, review ask due)**, **Jamie Collis (Paradise bonnet, out of scope, decline drafted)**, **Sam Vella (Norwood door, photo ask queued)**, plus booked neighbours in **Stirling, Brighton and Somerton Park** so recommendations show in demo.
+Sample jobs load automatically: **Jenny Gwynne (BMW bumper, Crafers)**, **Nathan Crowe (Outlander, Unley, follow-up due)**, **John Hale (Honda CR-V, Glenelg, waiting for booking approval)**, **Mia Chen (Corolla, Goodwood, waiting for booking approval)**, **Priya Nair (Mazda 3, Norwood, review ask due)**, **Jamie Collis (Paradise bonnet, out of scope, decline drafted)**, **Sam Vella (Norwood door, photo ask queued)**, **Alex Rowe (Payneham bumper + guard, $650 suggestion)**, plus booked neighbours in **Stirling, Brighton and Somerton Park** so recommendations show in demo.
 
 ## Run it on your computer (demo, no Google)
 
@@ -51,6 +51,7 @@ npm run labels:verify       # confirm Gmail job-desk label mapping (no email)
 npm run activity:verify     # confirm last-activity Adelaide formatting + seeded dates
 npm run photos:verify       # confirm demo repair photos + Jamie/Sam intake
 npm run scope:verify        # confirm bonnet/roof out of scope + photo-ask/decline copy
+npm run pricing:verify      # confirm smart price suggestions stay internal
 npm run verify              # run all of the checks above
 ```
 
@@ -165,6 +166,22 @@ Recommended slots (top 2–3) prefer:
 3. Any other free weekday slot
 
 Reasons look like “Same afternoon as your Crafers job” or “Nearest free slot after Unley”. Default hours stay Monday–Friday 8:00–16:00 Adelaide, 3-hour jobs, next 14 weekdays — change those on Settings.
+
+## Smart price suggestions
+
+The quote composer can **suggest** a total from job notes, panel tags, and photo filenames. This is for Marcel only. **Suggested totals never email themselves** — Accept fills the price fields, then you still tap Save draft or Send.
+
+Internal bands (editable on Settings; rationale never goes in the customer email):
+
+| Band | Amount |
+| --- | --- |
+| Standard bumper repair | $420 |
+| Bumper + guard (quoted together) | $650 |
+| Door repair and paint | $650 |
+| Colour blend on adjacent guard | +$250 (door + blend = $900) |
+| Black plastic trim | Replace only — no invented price; exclusion line when relevant |
+
+Demo: **Alex Rowe** (Payneham, bumper + guard) shows a **$650** suggestion. Accept fills “Bumper repair and paint”, “Guard repair and paint”, and $650. The locked quote email still only lists those items and the estimated total you confirmed.
 
 ## Quote wording
 
@@ -334,7 +351,7 @@ Demo seed: **Jamie Collis** (Paradise, scratches on bonnet, no photos) is flagge
 - Follow-up days, review-ask days, and Google review URL
 - Auto-ask for photos when missing (default on)
 - Auto-send out-of-scope declines (default off — draft only)
-- Optional price bands (minor scratch / bumper / multi-panel) — only used if **you** store a rate
+- Price bands for suggestions (bumper $420, bumper + guard $650, door $650, guard blend +$250, trim replace-only)
 
 ## Deploy later
 

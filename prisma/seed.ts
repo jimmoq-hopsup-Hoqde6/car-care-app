@@ -65,17 +65,19 @@ async function main() {
     update: replacePlaceholder ? { googleReviewUrl: reviewUrl } : {},
   });
 
-  const bands = [
-    { id: "band-minor", name: "Minor scratch", sortOrder: 1 },
-    { id: "band-bumper", name: "Bumper scratch", sortOrder: 2 },
-    { id: "band-multi", name: "Multi-panel", sortOrder: 3 },
-  ];
-
-  for (const band of bands) {
+  const { DEFAULT_PRICE_BANDS } = await import("../src/lib/pricing");
+  await prisma.priceBand.deleteMany({
+    where: { id: { in: ["band-minor", "band-multi"] } },
+  });
+  for (const band of DEFAULT_PRICE_BANDS) {
     await prisma.priceBand.upsert({
       where: { id: band.id },
       create: band,
-      update: {},
+      update: {
+        name: band.name,
+        amount: band.amount,
+        sortOrder: band.sortOrder,
+      },
     });
   }
 
@@ -234,6 +236,32 @@ async function main() {
       lastActivityAt: adelaideAt(0, 8, 55),
       photos: [] as { url: string; filename: string }[],
     },
+    {
+      id: "job-alex",
+      customerName: "Alex Rowe",
+      customerEmail: "alex.rowe@example.com",
+      customerPhone: "0419 887 220",
+      vehicle: "Mazda 6 — bumper and guard",
+      suburb: "Payneham",
+      address: "18 Payneham Road, Payneham SA 5070",
+      damageNotes:
+        "Website form: front bumper and passenger guard both need repair and paint after a car park hit. Photos attached.",
+      repairItems: JSON.stringify([
+        "Front bumper repair and paint",
+        "Passenger guard repair and paint",
+      ]),
+      channel: "website",
+      threadId: "demo-thread-alex",
+      status: JobStatus.NEEDS_QUOTE,
+      quoteAmount: null as number | null,
+      isDemo: true,
+      outOfScope: false,
+      lastActivityAt: adelaideAt(0, 10, 5),
+      photos: [
+        { url: "/demo/alex-bumper-guard.svg", filename: "mazda-bumper-guard.jpg" },
+        { url: "/demo/jenny-bumper.svg", filename: "mazda-guard.jpg" },
+      ],
+    },
   ];
 
   for (const job of jobs) {
@@ -335,6 +363,27 @@ async function main() {
         where: { jobId: "job-jamie", type: { in: ["scope_decline", "photo_ask"] } },
       });
       await prisma.photo.deleteMany({ where: { jobId: "job-jamie" } });
+    }
+    if (job.id === "job-alex") {
+      await prisma.job.update({
+        where: { id: job.id },
+        data: {
+          customerName: "Alex Rowe",
+          customerEmail: "alex.rowe@example.com",
+          vehicle: "Mazda 6 — bumper and guard",
+          suburb: "Payneham",
+          damageNotes:
+            "Website form: front bumper and passenger guard both need repair and paint after a car park hit. Photos attached.",
+          repairItems: JSON.stringify([
+            "Front bumper repair and paint",
+            "Passenger guard repair and paint",
+          ]),
+          status: JobStatus.NEEDS_QUOTE,
+          quoteAmount: null,
+          outOfScope: false,
+          lastActivityAt: adelaideAt(0, 10, 5),
+        },
+      });
     }
     if (job.id === "job-sam") {
       await prisma.job.update({
@@ -446,6 +495,10 @@ async function main() {
     "job-liam": [{ url: "/demo/liam-tailgate.svg", filename: "hilux-tailgate.jpg" }],
     "job-tom": [{ url: "/demo/tom-bumper.svg", filename: "ranger-bumper.jpg" }],
     "job-eve": [{ url: "/demo/eve-door.svg", filename: "i30-door.jpg" }],
+    "job-alex": [
+      { url: "/demo/alex-bumper-guard.svg", filename: "mazda-bumper-guard.jpg" },
+      { url: "/demo/jenny-bumper.svg", filename: "mazda-guard.jpg" },
+    ],
   };
   for (const [jobId, photos] of Object.entries(demoPhotos)) {
     const existing = await prisma.photo.count({ where: { jobId } });
@@ -465,6 +518,7 @@ async function main() {
   }
 
   const demoActivity: Record<string, Date> = {
+    "job-alex": adelaideAt(0, 10, 5),
     "job-jenny": adelaideAt(0, 9, 14),
     "job-sam": adelaideAt(0, 8, 55),
     "job-jamie": adelaideAt(0, 8, 40),
@@ -519,7 +573,7 @@ async function main() {
   await runPhotoAndScopeAutomations("job-sam");
 
   console.log(
-    "Seeded demo jobs: Jenny, Nathan, John, Mia, Priya, Jamie (Paradise bonnet, out of scope, decline drafted), Sam (door, photo ask), plus booked neighbours (Stirling, Brighton, Somerton Park) and booking-approval notifications.",
+    "Seeded demo jobs: Jenny, Nathan, John, Mia, Priya, Jamie (Paradise bonnet, out of scope, decline drafted), Sam (door, photo ask), Alex (Payneham bumper + guard, $650 suggestion), plus booked neighbours (Stirling, Brighton, Somerton Park) and booking-approval notifications.",
   );
 }
 

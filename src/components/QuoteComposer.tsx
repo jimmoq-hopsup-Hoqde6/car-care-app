@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import type { Job, Photo, PriceBand } from "@prisma/client";
 import { saveQuoteAction } from "@/app/actions/quotes";
 import { formatAUD } from "@/lib/money";
+import { TRIM_EXCLUSION_ITEM, suggestQuote } from "@/lib/pricing";
 import { buildQuoteEmail } from "@/lib/quote";
 
 type Props = {
@@ -21,6 +22,20 @@ export function QuoteComposer({ job, priceBands, items }: Props) {
   );
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [accepted, setAccepted] = useState(false);
+
+  const suggestion = useMemo(
+    () =>
+      suggestQuote({
+        vehicle: job.vehicle,
+        damageNotes: job.damageNotes,
+        repairItems: items,
+        photoNames: job.photos.map((photo) => photo.filename ?? photo.url),
+        outOfScope: job.outOfScope,
+        bands: priceBands,
+      }),
+    [job, items, priceBands],
+  );
 
   const preview = useMemo(() => {
     const parsed = Number(amount);
@@ -62,8 +77,46 @@ export function QuoteComposer({ job, priceBands, items }: Props) {
             Your price (AUD)
           </label>
           <p className="mt-1 text-xs text-stone-500">
-            Type the figure yourself. The app will not invent one.
+            Type the figure yourself, or tap Accept on a suggestion. Suggestions
+            never email themselves.
           </p>
+
+          {job.outOfScope ? (
+            <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-950">
+              No price suggestion — this looks like a bonnet or roof. Use the
+              decline draft instead of quoting.
+            </p>
+          ) : suggestion.total != null ? (
+            <div className="mt-3 rounded-xl border border-teal/40 bg-teal/10 p-3">
+              <p className="text-sm font-semibold text-ink">
+                Suggested for you · {formatAUD(suggestion.total)}
+              </p>
+              <ul className="mt-1 list-disc pl-5 text-sm text-stone-700">
+                {suggestion.items.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+              <p className="mt-2 text-xs text-stone-500">
+                Internal only — {suggestion.internalNote} This note is not added
+                to the customer email.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setRepairItems(suggestion.items);
+                  setAmount(String(suggestion.total));
+                  setAccepted(true);
+                }}
+                className="mt-3 rounded-full bg-teal px-3 py-1.5 text-xs font-semibold text-ink"
+              >
+                {accepted ? "Suggestion accepted — edit if needed" : "Accept suggestion"}
+              </button>
+            </div>
+          ) : suggestion.items.includes(TRIM_EXCLUSION_ITEM) ? (
+            <p className="mt-3 rounded-xl bg-stone-50 px-3 py-2 text-sm text-stone-600">
+              {suggestion.internalNote}
+            </p>
+          ) : null}
           <div className="relative mt-2">
             <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-stone-400">
               $

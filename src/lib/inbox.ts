@@ -186,6 +186,20 @@ export function demoInboxThreads(): InboxThread[] {
     ),
     withDeskLabel(
       {
+        id: "demo-thread-alex",
+        from: "Alex Rowe <alex.rowe@example.com>",
+        fromEmail: "alex.rowe@example.com",
+        subject: "Website enquiry — bumper and guard, Payneham",
+        snippet:
+          "Front bumper and passenger guard both need repair and paint after a car park hit. Photos attached.",
+        kind: "website_form",
+        ignored: false,
+        jobId: "job-alex",
+      },
+      "quote_request",
+    ),
+    withDeskLabel(
+      {
         id: "demo-thread-sam",
         from: "Sam Vella <sam.vella@example.com>",
         fromEmail: "sam.vella@example.com",

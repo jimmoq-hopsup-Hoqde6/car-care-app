@@ -25,7 +25,8 @@ export default async function QuotePage({
       <div>
         <h1 className="text-2xl font-semibold text-ink">Quote composer</h1>
         <p className="text-sm text-stone-600">
-          You enter the price. The email follows your locked standard wording.
+          You enter the price, or accept a suggestion. The email follows your
+          locked standard wording and never sends on its own.
         </p>
         {job.outOfScope ? (
           <p className="mt-2 rounded-xl bg-amber-100 px-3 py-2 text-sm font-medium text-amber-950">
