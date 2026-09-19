@@ -69,8 +69,7 @@ export function AppShell({
         </div>
         {demo ? (
           <p className="bg-amber-500 px-4 py-1.5 text-center text-xs font-medium text-ink">
-            Demo mode — sample jobs only. Prices are never guessed. Connect Google
-            in Settings to use live Gmail and Calendar.
+            Demo mode — sample jobs only. Prices are never guessed.
           </p>
         ) : null}
       </header>

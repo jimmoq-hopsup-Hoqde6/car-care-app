@@ -260,7 +260,11 @@ export function JobBoard({
 
       {jobs.length > 0 ? (
         <>
-          <div className="sticky top-14 z-10 -mx-4 border-b border-line/80 bg-background/95 px-4 py-2 backdrop-blur md:hidden">
+          <div
+            className={`sticky z-10 -mx-4 border-b border-line/80 bg-background/95 px-4 py-2 backdrop-blur md:hidden ${
+              demo ? "top-20" : "top-14"
+            }`}
+          >
             <div className="flex gap-2 overflow-x-auto pb-0.5">
               <FilterChip
                 active={filter === "ALL"}
