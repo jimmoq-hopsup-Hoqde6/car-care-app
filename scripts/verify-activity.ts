@@ -26,6 +26,14 @@ async function main() {
     "This week should include weekday, date and time",
   );
   assert(
+    formatLastActivity(
+      fromZonedTime("2026-09-17T10:00:00", ADELAIDE_TZ),
+      now,
+      { compact: true },
+    ) === "17 Sep · 10:00 am",
+    "Board compact form should drop the weekday",
+  );
+  assert(
     formatLastActivity(fromZonedTime("2026-09-01T09:05:00", ADELAIDE_TZ), now) ===
       "1 Sep · 9:05 am",
     "Older same-year dates should keep the time",

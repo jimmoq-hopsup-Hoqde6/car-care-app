@@ -222,7 +222,7 @@ function JobCard({
             <StatusBadge status={job.status} />
           </div>
           <p className="truncate text-xs text-stone-500">
-            Last: {formatLastActivity(job.lastActivityAt ?? job.updatedAt)}
+            Last: {formatLastActivity(job.lastActivityAt ?? job.updatedAt, new Date(), { compact: true })}
           </p>
           <p className="truncate text-sm text-stone-600">
             {job.vehicle || "Vehicle not set"}

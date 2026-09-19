@@ -17,7 +17,11 @@ function adelaideTime(date: Date) {
 }
 
 /** Human-friendly Adelaide local, always enough to see when the thread stopped. */
-export function formatLastActivity(value: DateLike, now = new Date()): string {
+export function formatLastActivity(
+  value: DateLike,
+  now = new Date(),
+  options?: { compact?: boolean },
+): string {
   const date = asActivityDate(value);
   if (!date) return "—";
 
@@ -28,17 +32,18 @@ export function formatLastActivity(value: DateLike, now = new Date()): string {
 
   if (days === 0) return `Today · ${time}`;
   if (days === 1) return `Yesterday · ${time}`;
-  if (days > 1 && days < 7) {
-    return `${formatInTimeZone(date, ADELAIDE_TZ, "EEE d MMM")} · ${time}`;
-  }
 
   const sameYear = zoned.getFullYear() === zonedNow.getFullYear();
-  const dayPart = formatInTimeZone(
-    date,
-    ADELAIDE_TZ,
-    sameYear ? "d MMM" : "d MMM yyyy",
-  );
-  return `${dayPart} · ${time}`;
+  if (options?.compact || days >= 7) {
+    const dayPart = formatInTimeZone(
+      date,
+      ADELAIDE_TZ,
+      sameYear ? "d MMM" : "d MMM yyyy",
+    );
+    return `${dayPart} · ${time}`;
+  }
+
+  return `${formatInTimeZone(date, ADELAIDE_TZ, "EEE d MMM")} · ${time}`;
 }
 
 export function activityMillis(value: DateLike, fallback?: DateLike): number {
