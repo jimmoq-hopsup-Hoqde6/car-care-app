@@ -68,17 +68,18 @@ async function main() {
     "Sam demo photo-ask is queued, not emailed",
   );
 
-  const ask = sam?.drafts.find((draft) => draft.type === "photo_ask")?.body
-    ?? buildPhotoAskEmail({
-      customerName: "Sam Vella",
-      suburb: "Norwood",
-      service: "driver door scratch",
-      notes: sam?.damageNotes,
-    });
+  const ask = buildPhotoAskEmail({
+    customerName: "Sam Vella",
+    suburb: "Norwood",
+    service: "driver door scratch",
+    notes: sam?.damageNotes,
+  });
   assert(ask.startsWith("Hi Sam,"), "Photo ask uses first name");
   assert(ask.includes("panel/bonnet"), "Photo ask asks for panel/bonnet shots");
   assert(ask.includes("0435 222 221"), "Photo ask signs off with owner mobile");
   assert(!/estimated total|\$\d/i.test(ask), "Photo ask must not invent a price");
+  const samDraft = sam?.drafts.find((draft) => draft.type === "photo_ask")?.body ?? "";
+  assert(samDraft.startsWith("Hi Sam,"), "Sam stores the photo-ask copy");
 
   const settings = await prisma.appSetting.findUnique({ where: { id: "default" } });
   assert(settings?.autoAskPhotos !== false, "Auto-ask for photos when missing defaults on");
