@@ -17,10 +17,13 @@ import { syncJobGmailLabelById } from "./gmail-labels";
 import { createGmailDraft, encodeRfc822 } from "./google";
 import { getStoredOAuthClient } from "./google-tokens";
 import { hasUsablePhotos } from "./photos";
+import { ownerMobileE164, toE164Au } from "./phone";
 import { parseRepairItems } from "./quote";
 import { detectOutOfScope } from "./scope";
 import { prisma } from "./prisma";
 import { getSettings } from "./settings";
+import { buildSmsFollowUp, buildSmsPhotoAsk } from "./sms/copy";
+import { sendSms } from "./sms/provider";
 
 export type AutomationType =
   | "follow_up"
@@ -140,6 +143,38 @@ async function deliverAutomation(input: {
       error: error instanceof Error ? error.message : "Unknown Gmail error",
     };
   }
+}
+
+async function maybeQueueAutomationSms(input: {
+  job: Job;
+  type: "photo_ask" | "follow_up";
+  enabled: boolean;
+  demo: boolean;
+}) {
+  if (!input.enabled) return;
+  const to = toE164Au(input.job.customerPhoneE164 || input.job.customerPhone);
+  if (!to) return;
+  const body =
+    input.type === "photo_ask"
+      ? buildSmsPhotoAsk(input.job.customerName)
+      : buildSmsFollowUp(input.job.customerName);
+  const result = await sendSms({ to, body });
+  await prisma.smsMessage.create({
+    data: {
+      jobId: input.job.id,
+      direction: "outbound",
+      body,
+      fromNumber: ownerMobileE164(),
+      toNumber: to,
+      provider: "messagemedia",
+      providerId: result.id,
+      status: result.status,
+      delivered: result.delivered,
+      demo: input.demo || result.demo,
+      type: input.type,
+      error: result.error,
+    },
+  });
 }
 
 async function queueEvent(input: {
@@ -334,6 +369,12 @@ async function processPhotoAndScope(
       delivered: result.delivered,
       reason: result.reason,
     });
+    await maybeQueueAutomationSms({
+      job,
+      type: "photo_ask",
+      enabled: settings.autoSmsPhotoAsk,
+      demo,
+    });
   }
 
   return queued;
@@ -399,6 +440,12 @@ export async function runAutomations(now = new Date()): Promise<AutomationRunRes
         type: "follow_up",
         delivered: result.delivered,
         reason: result.reason,
+      });
+      await maybeQueueAutomationSms({
+        job,
+        type: "follow_up",
+        enabled: settings.autoSmsFollowUp,
+        demo,
       });
     }
 

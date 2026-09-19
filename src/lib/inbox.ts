@@ -16,6 +16,7 @@ export type InboxKind =
   | "website_form"
   | "booking_negotiation"
   | "time_confirmation"
+  | "sms"
   | "marketing"
   | "other";
 
@@ -36,6 +37,7 @@ export type InboxThread = {
 const KIND_LABELS: Record<InboxKind, string> = {
   quote_request: "New quote request",
   website_form: "Website form lead",
+  sms: "SMS",
   booking_negotiation: "Booking negotiation",
   time_confirmation: "Needs time confirmation",
   marketing: "Marketing — ignore",
@@ -184,6 +186,17 @@ export function demoInboxThreads(): InboxThread[] {
       },
       "quote_request",
     ),
+    {
+      id: "demo-thread-taylor",
+      from: "Taylor Nguyen <0411 555 019>",
+      fromEmail: "",
+      subject: "SMS — driver door scratch, Prospect",
+      snippet:
+        "Hi, got a scratch on the driver door in Prospect. Can you quote?",
+      kind: "sms",
+      ignored: false,
+      jobId: "job-taylor",
+    },
     withDeskLabel(
       {
         id: "demo-thread-alex",

@@ -4,7 +4,7 @@ export const ADELAIDE_TZ = "Australia/Adelaide";
 export const DEFAULT_GOOGLE_REVIEW_URL =
   "https://maps.app.goo.gl/UJcUi9ouWQaVn71D8?g_st=ic";
 
-/** Owner mobile for a later SMS phase. Not used by this app. */
+/** Marcel's existing mobile — the only SMS number. */
 export const OWNER_MOBILE =
   process.env.OWNER_MOBILE?.trim() || "0435222221";
 
@@ -53,6 +53,7 @@ export const STATUS_HELP: Record<JobStatusValue, string> = {
 export const CHANNEL_LABELS: Record<string, string> = {
   email: "Email",
   website: "Website form",
+  sms: "SMS",
 };
 
 export const MARKETING_SENDERS = ["manheim", "noreply@manheim", "auction@"];

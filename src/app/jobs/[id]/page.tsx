@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AutomationPanel } from "@/components/AutomationPanel";
 import { PhotoGallery } from "@/components/PhotoGallery";
+import { SmsThread } from "@/components/SmsThread";
 import { StatusBadge } from "@/components/StatusBadge";
 import { StatusSelect } from "@/components/StatusSelect";
 import { getSettings } from "@/lib/settings";
@@ -21,7 +22,11 @@ export default async function JobPage({
   const [job, settings] = await Promise.all([
     prisma.job.findUnique({
       where: { id },
-      include: { photos: true, drafts: { orderBy: { createdAt: "desc" } } },
+      include: {
+        photos: true,
+        drafts: { orderBy: { createdAt: "desc" } },
+        smsMessages: { orderBy: { createdAt: "asc" } },
+      },
     }),
     getSettings(),
   ]);
@@ -75,6 +80,12 @@ export default async function JobPage({
       </div>
 
       <PhotoGallery jobId={job.id} photos={job.photos} />
+
+      <SmsThread
+        jobId={job.id}
+        customerPhone={job.customerPhoneE164 || job.customerPhone}
+        messages={job.smsMessages}
+      />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="rounded-2xl border border-line bg-card p-4">

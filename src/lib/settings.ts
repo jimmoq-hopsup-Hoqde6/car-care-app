@@ -24,6 +24,14 @@ export async function getSettings() {
     reviewAskDaysAfterJob: row.reviewAskDaysAfterJob || 1,
     autoAskPhotos: row.autoAskPhotos !== false,
     autoDeclineOutOfScope: Boolean(row.autoDeclineOutOfScope),
+    autoSmsPhotoAsk: Boolean(row.autoSmsPhotoAsk),
+    autoSmsFollowUp: Boolean(row.autoSmsFollowUp),
+    hasMessageMediaKey: Boolean(
+      process.env.MESSAGEMEDIA_API_KEY?.trim() || row.messageMediaKey,
+    ),
+    hasMessageMediaSecret: Boolean(
+      process.env.MESSAGEMEDIA_API_SECRET?.trim() || row.messageMediaSecret,
+    ),
     googleReviewUrl:
       row.googleReviewUrl && !row.googleReviewUrl.includes("PLACEHOLDER")
         ? row.googleReviewUrl

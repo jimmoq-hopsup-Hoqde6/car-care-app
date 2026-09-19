@@ -2,6 +2,11 @@ import { addDays } from "date-fns";
 import { fromZonedTime, toZonedTime } from "date-fns-tz";
 import { PrismaClient, JobStatus } from "@prisma/client";
 import { ADELAIDE_TZ, DEFAULT_GOOGLE_REVIEW_URL } from "../src/lib/constants";
+import {
+  formatAuMobile,
+  OWNER_MOBILE_E164,
+  toE164Au,
+} from "../src/lib/phone";
 
 const prisma = new PrismaClient();
 
@@ -262,6 +267,27 @@ async function main() {
         { url: "/demo/jenny-bumper.svg", filename: "mazda-guard.jpg" },
       ],
     },
+    {
+      id: "job-taylor",
+      customerName: "Taylor Nguyen",
+      customerEmail: null as string | null,
+      customerPhone: "0411555019",
+      customerPhoneE164: "+61411555019",
+      vehicle: "Driver door scratch",
+      suburb: "Prospect",
+      address: null as string | null,
+      damageNotes:
+        "SMS: Hi, got a scratch on the driver door in Prospect. Can you quote?",
+      repairItems: JSON.stringify(["Driver door scratch"]),
+      channel: "sms",
+      threadId: "sms-+61411555019",
+      status: JobStatus.NEEDS_QUOTE,
+      quoteAmount: null as number | null,
+      isDemo: true,
+      outOfScope: false,
+      lastActivityAt: adelaideAt(0, 11, 12),
+      photos: [] as { url: string; filename: string }[],
+    },
   ];
 
   for (const job of jobs) {
@@ -382,6 +408,24 @@ async function main() {
           quoteAmount: null,
           outOfScope: false,
           lastActivityAt: adelaideAt(0, 10, 5),
+        },
+      });
+    }
+    if (job.id === "job-taylor") {
+      await prisma.job.update({
+        where: { id: job.id },
+        data: {
+          customerName: "Taylor Nguyen",
+          customerPhone: "0411 555 019",
+          customerPhoneE164: "+61411555019",
+          vehicle: "Driver door scratch",
+          suburb: "Prospect",
+          damageNotes:
+            "SMS: Hi, got a scratch on the driver door in Prospect. Can you quote?",
+          channel: "sms",
+          status: JobStatus.NEEDS_QUOTE,
+          outOfScope: false,
+          lastActivityAt: adelaideAt(0, 11, 12),
         },
       });
     }
@@ -518,6 +562,7 @@ async function main() {
   }
 
   const demoActivity: Record<string, Date> = {
+    "job-taylor": adelaideAt(0, 11, 12),
     "job-alex": adelaideAt(0, 10, 5),
     "job-jenny": adelaideAt(0, 9, 14),
     "job-sam": adelaideAt(0, 8, 55),
@@ -568,12 +613,93 @@ async function main() {
     });
   }
 
+  const allJobs = await prisma.job.findMany();
+  for (const job of allJobs) {
+    const e164 = toE164Au(job.customerPhoneE164 || job.customerPhone);
+    if (!e164) continue;
+    await prisma.job.update({
+      where: { id: job.id },
+      data: {
+        customerPhoneE164: e164,
+        customerPhone: formatAuMobile(e164) || job.customerPhone,
+      },
+    });
+  }
+
+  const smsSeeds = [
+    {
+      id: "sms-taylor-in",
+      jobId: "job-taylor",
+      direction: "inbound",
+      body: "Hi, got a scratch on the driver door in Prospect. Can you quote?",
+      fromNumber: "+61411555019",
+      toNumber: OWNER_MOBILE_E164,
+      provider: "messagemedia",
+      status: "received",
+      delivered: true,
+      demo: true,
+      type: "reply",
+    },
+    {
+      id: "sms-taylor-out",
+      jobId: "job-taylor",
+      direction: "outbound",
+      body: "Hi Taylor — thanks for the text. Could you reply with a few photos of the door so I can quote? Marcel, Mobile Car Scratch Repair Adelaide",
+      fromNumber: OWNER_MOBILE_E164,
+      toNumber: "+61411555019",
+      provider: "messagemedia",
+      status: "queued",
+      delivered: false,
+      demo: true,
+      type: "photo_ask",
+    },
+    {
+      id: "sms-sam-in",
+      jobId: "job-sam",
+      direction: "inbound",
+      body: "Can I text the photos through?",
+      fromNumber: "+61412334880",
+      toNumber: OWNER_MOBILE_E164,
+      provider: "messagemedia",
+      status: "received",
+      delivered: true,
+      demo: true,
+      type: "reply",
+    },
+    {
+      id: "sms-sam-out",
+      jobId: "job-sam",
+      direction: "outbound",
+      body: "Hi Sam — yes, reply here with a few clear photos of the door. Marcel, Mobile Car Scratch Repair Adelaide",
+      fromNumber: OWNER_MOBILE_E164,
+      toNumber: "+61412334880",
+      provider: "messagemedia",
+      status: "queued",
+      delivered: false,
+      demo: true,
+      type: "photo_ask",
+    },
+  ];
+  for (const sms of smsSeeds) {
+    await prisma.smsMessage.upsert({
+      where: { id: sms.id },
+      create: sms,
+      update: {
+        body: sms.body,
+        status: sms.status,
+        delivered: sms.delivered,
+        demo: true,
+      },
+    });
+  }
+
   const { runPhotoAndScopeAutomations } = await import("../src/lib/automations");
   await runPhotoAndScopeAutomations("job-jamie");
   await runPhotoAndScopeAutomations("job-sam");
+  await runPhotoAndScopeAutomations("job-taylor");
 
   console.log(
-    "Seeded demo jobs: Jenny, Nathan, John, Mia, Priya, Jamie (Paradise bonnet, out of scope, decline drafted), Sam (door, photo ask), Alex (Payneham bumper + guard, $650 suggestion), plus booked neighbours (Stirling, Brighton, Somerton Park) and booking-approval notifications.",
+    "Seeded demo jobs: Jenny, Nathan, John, Mia, Priya, Jamie (Paradise bonnet, out of scope, decline drafted), Sam (door, photo ask + SMS), Alex (Payneham bumper + guard, $650 suggestion), Taylor (Prospect SMS thread), plus booked neighbours (Stirling, Brighton, Somerton Park) and booking-approval notifications.",
   );
 }
 

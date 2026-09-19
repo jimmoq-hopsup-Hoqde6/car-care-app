@@ -21,7 +21,8 @@
     "photos:verify": "tsx scripts/verify-photos.ts",
     "scope:verify": "tsx scripts/verify-scope.ts",
     "pricing:verify": "tsx scripts/verify-pricing.ts",
-    "verify": "npm run quote:verify && npm run booking:verify && npm run labels:verify && npm run automations:verify && npm run activity:verify && npm run photos:verify && npm run scope:verify && npm run pricing:verify"
+    "sms:verify": "tsx scripts/verify-sms.ts",
+    "verify": "npm run quote:verify && npm run booking:verify && npm run labels:verify && npm run automations:verify && npm run activity:verify && npm run photos:verify && npm run scope:verify && npm run pricing:verify && npm run sms:verify"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

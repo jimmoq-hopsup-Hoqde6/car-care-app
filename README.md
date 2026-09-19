@@ -8,7 +8,7 @@ A few follow-on emails can send on a schedule (see [Automations](#automations-wh
 
 Timezone: **Australia/Adelaide**  
 From address: **Info@mobilecarscratchrepairadelaide.com.au**  
-Owner mobile (later SMS only — not used here): **0435222221**
+Owner mobile / SMS (existing number only): **0435222221** (+61 435 222 221)
 
 The job-desk header uses Marcel's business-card lockup (black background, white italic **MobileCar**, teal **ScratchRepair**, `//// ADELAIDE`). Assets live in `public/brand/`. Accent colour is `#2dd4bf`. Quote email wording is unchanged.
 
@@ -20,8 +20,9 @@ The job-desk header uses Marcel's business-card lockup (black background, white 
 - **Notifications** — when a customer accepts a quote or asks to book, a badge tells you they are waiting for your booking approval (nothing is auto-sent)
 - **Quote composer** — you enter the price or tap **Accept suggestion**; the email uses Marcel's locked standard (first-name greeting, 30-day validity, mobile number ask). Suggestions never send themselves.
 - **Booking picker** — next 14 weekdays, default 8:00 am–4:00 pm, 3-hour jobs; recommends slots near other booked jobs in nearby Adelaide suburbs; creates a Calendar event and a confirmation draft
+- **SMS** — same job card as email, via MessageMedia on **0435 222 221**. Unknown numbers become Needs quote. Demo threads do not call the live API.
 
-Sample jobs load automatically: **Jenny Gwynne (BMW bumper, Crafers)**, **Nathan Crowe (Outlander, Unley, follow-up due)**, **John Hale (Honda CR-V, Glenelg, waiting for booking approval)**, **Mia Chen (Corolla, Goodwood, waiting for booking approval)**, **Priya Nair (Mazda 3, Norwood, review ask due)**, **Jamie Collis (Paradise bonnet, out of scope, decline drafted)**, **Sam Vella (Norwood door, photo ask queued)**, **Alex Rowe (Payneham bumper + guard, $650 suggestion)**, plus booked neighbours in **Stirling, Brighton and Somerton Park** so recommendations show in demo.
+Sample jobs load automatically: **Jenny Gwynne (BMW bumper, Crafers)**, **Nathan Crowe (Outlander, Unley, follow-up due)**, **John Hale (Honda CR-V, Glenelg, waiting for booking approval)**, **Mia Chen (Corolla, Goodwood, waiting for booking approval)**, **Priya Nair (Mazda 3, Norwood, review ask due)**, **Jamie Collis (Paradise bonnet, out of scope, decline drafted)**, **Sam Vella (Norwood door, photo ask queued + SMS)**, **Alex Rowe (Payneham bumper + guard, $650 suggestion)**, **Taylor Nguyen (Prospect SMS thread)**, plus booked neighbours in **Stirling, Brighton and Somerton Park** so recommendations show in demo.
 
 ## Run it on your computer (demo, no Google)
 
@@ -52,6 +53,7 @@ npm run activity:verify     # confirm last-activity Adelaide formatting + seeded
 npm run photos:verify       # confirm demo repair photos + Jamie/Sam intake
 npm run scope:verify        # confirm bonnet/roof out of scope + photo-ask/decline copy
 npm run pricing:verify      # confirm smart price suggestions stay internal
+npm run sms:verify          # confirm SMS E.164 matching + demo MessageMedia no-op
 npm run verify              # run all of the checks above
 ```
 
@@ -279,18 +281,39 @@ A typical cron (once a day, Adelaide morning) is enough:
 0 8 * * * cd /path/to/job-desk && npm run automations:run
 ```
 
-## Out of scope (Phase 1)
+## SMS (Marcel's existing mobile only)
 
-This desk is **email + Google Calendar only**. Do not expect SMS, WhatsApp, or an iOS app here.
+There is **no separate business SMS number**. All texts use **0435 222 221** (`+61435222221`).
 
-Marcel's owner mobile for a later SMS phase is **0435222221** (`OWNER_MOBILE` in `.env`). It is shown on Settings so it is not lost. This app never sends a text.
+**Provider:** Sinch MessageMedia (Australia). Outbound REST `POST https://api.messagemedia.com/v1/messages` with `source_number` = `+61435222221`. Inbound and delivery callbacks POST to `/api/sms/messagemedia` (also `/api/sms/inbound`). A Twilio-shaped parser is available at `/api/sms/twilio` for later, but MessageMedia is first.
+
+### Authorise “My own numbers”
+
+1. Log into the MessageMedia portal.
+2. Open **Numbers** and add **0435222221** as **My own numbers** (prove you own the handset).
+3. Until that number is authorised, MessageMedia may rewrite the sender or fail the send.
+4. After it is authorised, customers see **0435 222 221**. Replies arrive on Marcel's phone **and** in the job desk.
+
+Settings stores the API key/secret (or use `MESSAGEMEDIA_API_KEY` / `MESSAGEMEDIA_API_SECRET` in `.env`). Webhook URL is `{AUTH_URL}/api/sms/messagemedia`.
+
+### Product rules
+
+- SMS sits on the same job card as email, matched by Australian mobile (E.164).
+- An unknown number creates a **Needs quote** job.
+- Draft or send a text from the job. **Quotes and booking confirms still need your Send tap** (same as email).
+- Optional auto SMS for photo-ask / follow-up only — Settings toggles, **default off**.
+- **Demo mode never calls MessageMedia.** Taylor Nguyen (Prospect door) and Sam Vella show seeded SMS threads.
+
+WhatsApp and iOS are still out of scope.
+
+## Last activity
 
 ## Last activity
 
 Every job stores `lastActivityAt` (Australia/Adelaide). It is the newest of:
 
-- last inbound customer message
-- last outbound quote, booking confirmation, follow-up, review, photo-ask, or decline email (drafted or sent)
+- last inbound customer message (email or SMS)
+- last outbound quote, booking confirmation, follow-up, review, photo-ask, decline email, or SMS (drafted or sent)
 - last status change
 - last booking-slot action
 - last repair-photo upload

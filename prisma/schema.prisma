@@ -20,6 +20,7 @@ model Job {
   customerName    String
   customerEmail   String?
   customerPhone   String?
+  customerPhoneE164 String?
   vehicle         String?
   suburb          String?
   address         String?
@@ -51,6 +52,7 @@ model Job {
   drafts          EmailDraft[]
   automations     AutomationEvent[]
   notifications   Notification[]
+  smsMessages     SmsMessage[]
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 }
@@ -101,6 +103,10 @@ model AppSetting {
   googleReviewUrl        String @default("https://maps.app.goo.gl/UJcUi9ouWQaVn71D8?g_st=ic")
   autoAskPhotos          Boolean @default(true)
   autoDeclineOutOfScope  Boolean @default(false)
+  autoSmsPhotoAsk        Boolean @default(false)
+  autoSmsFollowUp        Boolean @default(false)
+  messageMediaKey        String?
+  messageMediaSecret     String?
 }
 
 model AutomationEvent {
@@ -115,6 +121,24 @@ model AutomationEvent {
   demo      Boolean  @default(true)
   error     String?
   createdAt DateTime @default(now())
+}
+
+model SmsMessage {
+  id           String   @id @default(cuid())
+  jobId        String
+  job          Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  direction    String
+  body         String
+  fromNumber   String
+  toNumber     String
+  provider     String   @default("messagemedia")
+  providerId   String?
+  status       String   @default("queued")
+  delivered    Boolean  @default(false)
+  demo         Boolean  @default(false)
+  type         String   @default("reply")
+  error        String?
+  createdAt    DateTime @default(now())
 }
 
 model Notification {

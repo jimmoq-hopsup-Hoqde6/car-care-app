@@ -18,7 +18,10 @@ import { StatusBadge } from "./StatusBadge";
 
 type ActivitySort = "newest" | "stalled";
 
-type JobWithPhotos = Job & { photos: Photo[] };
+type JobWithPhotos = Job & {
+  photos: Photo[];
+  _count?: { smsMessages: number };
+};
 
 export function JobBoard({
   jobs,
@@ -225,6 +228,11 @@ function JobCard({
         {job.outOfScope ? (
           <span className="absolute left-1.5 top-1.5 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-semibold text-ink">
             Out of scope
+          </span>
+        ) : null}
+        {job.channel === "sms" || (job._count?.smsMessages ?? 0) > 0 ? (
+          <span className="absolute right-1.5 top-1.5 rounded-full bg-ink px-2 py-0.5 text-[10px] font-semibold text-white">
+            SMS
           </span>
         ) : null}
       </div>

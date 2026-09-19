@@ -7,6 +7,7 @@ import { runPhotoAndScopeAutomations } from "@/lib/automations";
 import { syncJobGmailLabelById } from "@/lib/gmail-labels";
 import { saveJobImageFile } from "@/lib/photo-store";
 import { prisma } from "@/lib/prisma";
+import { formatAuMobile, toE164Au } from "@/lib/phone";
 import { parseRepairItems } from "@/lib/quote";
 import { detectOutOfScope } from "@/lib/scope";
 
@@ -30,6 +31,8 @@ export async function createJob(formData: FormData) {
   const vehicle = String(formData.get("vehicle") ?? "").trim() || null;
   const suburb = String(formData.get("suburb") ?? "").trim() || null;
   const damageNotes = String(formData.get("damageNotes") ?? "").trim() || null;
+  const customerPhone = String(formData.get("customerPhone") ?? "").trim() || null;
+  const customerPhoneE164 = toE164Au(customerPhone);
   const outOfScope = detectOutOfScope({
     vehicle,
     suburb,
@@ -42,7 +45,10 @@ export async function createJob(formData: FormData) {
       id,
       customerName,
       customerEmail: String(formData.get("customerEmail") ?? "").trim() || null,
-      customerPhone: String(formData.get("customerPhone") ?? "").trim() || null,
+      customerPhone: customerPhone
+        ? formatAuMobile(customerPhone) || customerPhone
+        : null,
+      customerPhoneE164,
       vehicle,
       suburb,
       address: String(formData.get("address") ?? "").trim() || null,
@@ -118,7 +124,11 @@ export async function updateJobDetails(jobId: string, formData: FormData) {
     data: {
       customerName: String(formData.get("customerName") ?? "").trim(),
       customerEmail: String(formData.get("customerEmail") ?? "").trim() || null,
-      customerPhone: String(formData.get("customerPhone") ?? "").trim() || null,
+      customerPhone: (() => {
+        const phone = String(formData.get("customerPhone") ?? "").trim();
+        return phone ? formatAuMobile(phone) || phone : null;
+      })(),
+      customerPhoneE164: toE164Au(String(formData.get("customerPhone") ?? "")),
       vehicle: String(formData.get("vehicle") ?? "").trim() || null,
       suburb: String(formData.get("suburb") ?? "").trim() || null,
       address: String(formData.get("address") ?? "").trim() || null,

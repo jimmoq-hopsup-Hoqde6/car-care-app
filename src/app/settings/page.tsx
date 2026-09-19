@@ -2,6 +2,8 @@ import { addPriceBandAction, saveSettingsAction } from "@/app/actions/settings";
 import { RunAutomationsButton } from "@/components/RunAutomationsButton";
 import { signIn } from "@/lib/auth";
 import { GOOGLE_SCOPES, OWNER_MOBILE } from "@/lib/constants";
+import { formatAuMobile, OWNER_MOBILE_E164 } from "@/lib/phone";
+import { smsWebhookUrl } from "@/lib/sms/provider";
 import { DESK_LABELS } from "@/lib/gmail-labels";
 import { isDemoMode, isGoogleConfigured } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
@@ -189,9 +191,11 @@ export default async function SettingsPage() {
           />
         </label>
         <p className="rounded-xl bg-stone-50 px-3 py-2 text-sm text-stone-600">
-          Owner mobile for a later SMS phase:{" "}
-          <span className="font-semibold text-ink">{OWNER_MOBILE}</span>. This
-          desk is email and Calendar only — it does not send SMS or WhatsApp.
+          Owner mobile (fixed — the only SMS number):{" "}
+          <span className="font-semibold text-ink">
+            {formatAuMobile(OWNER_MOBILE)} / {OWNER_MOBILE_E164}
+          </span>
+          . Authorise this as “My own numbers” in MessageMedia. No WhatsApp.
         </p>
         <label className="block text-sm">
           Business name
@@ -234,6 +238,64 @@ export default async function SettingsPage() {
           <span>
             Auto-send out-of-scope declines for bonnet or roof jobs. Off by
             default — a draft is prepared for you to send.
+          </span>
+        </label>
+
+        <h3 className="pt-2 font-semibold text-ink">SMS (MessageMedia)</h3>
+        <p className="text-xs text-stone-500">
+          Outbound uses <code>source_number</code> {OWNER_MOBILE_E164}. Inbound
+          webhook: <code>{smsWebhookUrl()}</code>. Quotes and booking confirms
+          never auto-text.
+        </p>
+        <label className="mt-2 block text-sm">
+          MessageMedia API key
+          <input
+            type="password"
+            name="messageMediaKey"
+            autoComplete="off"
+            placeholder={
+              settings.hasMessageMediaKey
+                ? "Saved — leave blank to keep"
+                : "API key"
+            }
+            className="mt-1 w-full rounded-xl border border-line px-3 py-2"
+          />
+        </label>
+        <label className="mt-2 block text-sm">
+          MessageMedia API secret
+          <input
+            type="password"
+            name="messageMediaSecret"
+            autoComplete="off"
+            placeholder={
+              settings.hasMessageMediaSecret
+                ? "Saved — leave blank to keep"
+                : "API secret"
+            }
+            className="mt-1 w-full rounded-xl border border-line px-3 py-2"
+          />
+        </label>
+        <label className="mt-2 flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="autoSmsPhotoAsk"
+            defaultChecked={settings.autoSmsPhotoAsk}
+            className="mt-1"
+          />
+          <span>
+            Also send photo-asks by SMS. Default off until you turn it on.
+          </span>
+        </label>
+        <label className="mt-2 flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="autoSmsFollowUp"
+            defaultChecked={settings.autoSmsFollowUp}
+            className="mt-1"
+          />
+          <span>
+            Also send stalled follow-ups by SMS. Default off until you turn it
+            on.
           </span>
         </label>
 

@@ -35,6 +35,16 @@ export async function saveSettingsAction(formData: FormData) {
         DEFAULT_GOOGLE_REVIEW_URL,
       autoAskPhotos: formData.get("autoAskPhotos") === "on",
       autoDeclineOutOfScope: formData.get("autoDeclineOutOfScope") === "on",
+      autoSmsPhotoAsk: formData.get("autoSmsPhotoAsk") === "on",
+      autoSmsFollowUp: formData.get("autoSmsFollowUp") === "on",
+      ...(String(formData.get("messageMediaKey") ?? "").trim()
+        ? { messageMediaKey: String(formData.get("messageMediaKey")).trim() }
+        : {}),
+      ...(String(formData.get("messageMediaSecret") ?? "").trim()
+        ? {
+            messageMediaSecret: String(formData.get("messageMediaSecret")).trim(),
+          }
+        : {}),
     },
   });
 

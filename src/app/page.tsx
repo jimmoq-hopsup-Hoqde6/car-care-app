@@ -5,7 +5,7 @@ import { getSettings } from "@/lib/settings";
 export default async function HomePage() {
   const [jobs, settings] = await Promise.all([
     prisma.job.findMany({
-      include: { photos: true },
+      include: { photos: true, _count: { select: { smsMessages: true } } },
       orderBy: { lastActivityAt: "desc" },
     }),
     getSettings(),
