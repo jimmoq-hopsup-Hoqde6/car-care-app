@@ -72,6 +72,76 @@ function keySuburb(suburb?: string | null) {
     .replace(/[^a-z]/g, "");
 }
 
+const SUBURB_DISPLAY: Record<string, string> = {
+  crafers: "Crafers",
+  stirling: "Stirling",
+  aldgate: "Aldgate",
+  bridgewater: "Bridgewater",
+  piccadilly: "Piccadilly",
+  belair: "Belair",
+  blackwood: "Blackwood",
+  craferswest: "Crafers West",
+  glenelg: "Glenelg",
+  glenelgnorth: "Glenelg North",
+  glenelgsouth: "Glenelg South",
+  somertonpark: "Somerton Park",
+  brighton: "Brighton",
+  seacliff: "Seacliff",
+  marino: "Marino",
+  hallettcove: "Hallett Cove",
+  marion: "Marion",
+  oaklands: "Oaklands",
+  unley: "Unley",
+  goodwood: "Goodwood",
+  parkside: "Parkside",
+  hydepark: "Hyde Park",
+  malvern: "Malvern",
+  wayville: "Wayville",
+  millswood: "Millswood",
+  norwood: "Norwood",
+  kensington: "Kensington",
+  magill: "Magill",
+  payneham: "Payneham",
+  stepney: "Stepney",
+  burnside: "Burnside",
+  toorakgardens: "Toorak Gardens",
+  prospect: "Prospect",
+  northadelaide: "North Adelaide",
+  nailsworth: "Nailsworth",
+  enfield: "Enfield",
+  walkerville: "Walkerville",
+  hindmarsh: "Hindmarsh",
+  thebarton: "Thebarton",
+  torrensville: "Torrensville",
+  mileend: "Mile End",
+  richmond: "Richmond",
+};
+
+/** First known Adelaide suburb mentioned in free text (forms, subjects). */
+export function findKnownSuburb(text?: string | null): string | null {
+  const hay = (text ?? "").trim();
+  if (!hay) return null;
+  const labelled = hay.match(
+    /(?:suburb|location|area)\s*[:\-]\s*([A-Za-z][A-Za-z\s'-]{1,40})/i,
+  );
+  if (labelled?.[1]) {
+    const raw = labelled[1].trim();
+    const known = Object.values(SUBURB_DISPLAY).find(
+      (name) => keySuburb(name) === keySuburb(raw),
+    );
+    return known || raw;
+  }
+  const names = Object.values(SUBURB_DISPLAY).sort(
+    (a, b) => b.length - a.length,
+  );
+  for (const name of names) {
+    if (name === "Adelaide") continue;
+    const re = new RegExp(`\\b${name.replace(/\s+/g, "\\s+")}\\b`, "i");
+    if (re.test(hay)) return name;
+  }
+  return null;
+}
+
 export function suburbCluster(suburb?: string | null): AreaCluster {
   const key = keySuburb(suburb);
   if (!key) return "unknown";

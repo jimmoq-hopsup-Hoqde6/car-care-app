@@ -74,3 +74,17 @@ export function isStalledAwaiting(job: BookingJob, now = new Date()) {
   if (!start) return false;
   return now.getTime() - start.getTime() >= 48 * 36e5;
 }
+
+/**
+ * Pipedrive-style urgency: forgotten ready-to-book first, then stalled
+ * awaiting-customer, then the rest. Lower is more urgent.
+ */
+export function urgencyRank(job: BookingJob, now = new Date()) {
+  if (isReadyToBookNoDate(job)) return 0;
+  if (isStalledAwaiting(job, now)) return 1;
+  return 2;
+}
+
+export function isRotting(job: BookingJob, now = new Date()) {
+  return urgencyRank(job, now) < 2;
+}

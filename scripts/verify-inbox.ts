@@ -7,6 +7,7 @@ import {
 } from "../src/lib/board-import";
 import {
   customerRecipientOrNull,
+  extractJobIntakeFields,
   greetingFirstName,
   isCustomerReplyEmail,
   resolveInboxCustomer,
@@ -89,6 +90,11 @@ async function main() {
   assert(/Michael/i.test(formResolved.name), "Website form uses the Name field");
   assert(formResolved.phone?.includes("0412"), "Website form parses Phone");
   assert(!formResolved.ignored, "Website form customer is not ignored");
+  const formIntake = extractJobIntakeFields(
+    "Website enquiry — bumper scratch, Magill\nName: Michael Stewart\nBumper scratch on a Mazda CX-5 in Magill.",
+  );
+  assert(formIntake.suburb === "Magill", "Form intake picks Magill");
+  assert(/Mazda CX-5/i.test(formIntake.vehicle ?? ""), "Form intake picks the vehicle");
 
   assert(
     classifyThread({
@@ -373,6 +379,7 @@ async function main() {
     );
     assert(/Michael/i.test(formJob?.customerName ?? ""), "Website form uses the customer Name field");
     assert(formJob?.customerPhoneE164 === "+61412555019", "Website form stores the customer mobile");
+    assert(formJob?.suburb === "Magill", "Website form lead stores the suburb from the subject");
     assert(formJob?.photoAskSentAt, "Valid website-form customer can get a photo-ask draft");
     const formAsk = formJob?.drafts.find((item) => item.type === "photo_ask")?.body ?? "";
     assert(formAsk.startsWith("Hi Michael,"), "Form photo-ask greets Michael, not Hi Mobile");

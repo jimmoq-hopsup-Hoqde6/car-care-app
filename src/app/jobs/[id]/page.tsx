@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AutomationPanel } from "@/components/AutomationPanel";
+import { JobDiary } from "@/components/JobDiary";
 import { PhotoGallery } from "@/components/PhotoGallery";
 import { SmsThread } from "@/components/SmsThread";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -9,6 +10,7 @@ import { formatLastActivity } from "@/lib/activity";
 import { formatAdelaide } from "@/lib/booking";
 import { isReadyToBookNoDate } from "@/lib/booking-ops";
 import { CHANNEL_LABELS } from "@/lib/constants";
+import { buildJobDiary } from "@/lib/job-diary";
 import { nextActionForJob } from "@/lib/job-next";
 import { formatAUD } from "@/lib/money";
 import { formatAuMobile, toE164Au } from "@/lib/phone";
@@ -58,8 +60,7 @@ export default async function JobPage({
 
   const items = parseRepairItems(job.repairItems);
   const next = nextActionForJob(job);
-  const quoteHref = `/jobs/${job.id}/quote`;
-  const bookHref = `/jobs/${job.id}/book`;
+  const diary = buildJobDiary(job);
   const noDate = isReadyToBookNoDate(job);
   const phoneDisplay = formatAuMobile(job.customerPhone);
   const phoneTel = toE164Au(job.customerPhoneE164 || job.customerPhone);
@@ -101,23 +102,6 @@ export default async function JobPage({
               Out of scope — bonnet or roof
             </p>
           ) : null}
-        </div>
-        <div className="flex flex-wrap gap-2 sm:justify-end">
-          {next.href !== quoteHref ? (
-            <Link
-              href={quoteHref}
-              className="desk-btn min-h-12 border border-line bg-white px-5 text-ink"
-            >
-              Quote
-            </Link>
-          ) : (
-            <Link
-              href={bookHref}
-              className="desk-btn min-h-12 border border-line bg-white px-5 text-ink"
-            >
-              Book
-            </Link>
-          )}
         </div>
       </div>
 
@@ -198,6 +182,8 @@ export default async function JobPage({
       ) : null}
 
       <PhotoGallery jobId={job.id} photos={job.photos} />
+
+      <JobDiary items={diary} />
 
       <SmsThread
         jobId={job.id}

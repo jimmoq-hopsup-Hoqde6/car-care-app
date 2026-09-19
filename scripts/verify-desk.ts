@@ -3,8 +3,9 @@ import {
   bookingNextCta,
   forgottenReadyToBook,
   isReadyToBookNoDate,
-  isStalledAwaiting,
-  waitingSinceLabel,
+    isStalledAwaiting,
+    urgencyRank,
+    waitingSinceLabel,
 } from "../src/lib/booking-ops";
 import { isPublicPath } from "../src/lib/auth.config";
 import { cronAuthorised } from "../src/lib/cron-auth";
@@ -87,6 +88,21 @@ async function main() {
       new Date(),
     ),
     "Fresh awaiting-customer jobs are not stalled",
+  );
+  assert(
+    urgencyRank({
+      status: "READY_TO_BOOK",
+      bookedStart: null,
+      calendarEventId: null,
+    }) === 0,
+    "Ready-to-book with no date is the most urgent",
+  );
+  assert(
+    urgencyRank({
+      status: "AWAITING_CUSTOMER",
+      lastActivityAt: new Date(Date.now() - 50 * 36e5),
+    }) === 1,
+    "Stalled awaiting-customer is next",
   );
 
   const done = nextActionForJob({

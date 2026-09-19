@@ -19,7 +19,10 @@ import {
   bookingNextCta,
   forgottenReadyToBook,
   isReadyToBookNoDate,
+  isRotting,
   isStalledAwaiting,
+  lastCustomerMessageAt,
+  urgencyRank,
   waitingSinceLabel,
 } from "@/lib/booking-ops";
 import { nextActionForJob } from "@/lib/job-next";
@@ -32,7 +35,7 @@ import { PhotoFrame } from "./PhotoFrame";
 import { StatusBadge } from "./StatusBadge";
 import { SyncInboxButton } from "./SyncInboxButton";
 
-type ActivitySort = "newest" | "stalled" | "needs-reply" | "value";
+type ActivitySort = "urgency" | "newest" | "stalled" | "value";
 type BoardFilter = JobStatusValue | "ALL" | "NEEDS_REPLY";
 
 type JobWithPhotos = Job & {
@@ -59,23 +62,17 @@ export function JobBoard({
 }) {
   const forgotten = useMemo(() => forgottenReadyToBook(jobs), [jobs]);
   const [filter, setFilter] = useState<BoardFilter>("ALL");
-  const [sort, setSort] = useState<ActivitySort>(
-    forgotten.length > 0 ? "needs-reply" : "newest",
-  );
+  const [sort, setSort] = useState<ActivitySort>("urgency");
 
   const byActivity = useMemo(() => {
     const ranked = [...jobs].sort((a, b) => {
-      if (sort === "needs-reply") {
-        const aForgot = isReadyToBookNoDate(a) ? 0 : 1;
-        const bForgot = isReadyToBookNoDate(b) ? 0 : 1;
-        if (aForgot !== bForgot) return aForgot - bForgot;
-        if (aForgot === 0) {
-          const aTime =
-            activityMillis(a.lastCustomerReplyAt, a.lastActivityAt) ||
-            activityMillis(a.updatedAt);
-          const bTime =
-            activityMillis(b.lastCustomerReplyAt, b.lastActivityAt) ||
-            activityMillis(b.updatedAt);
+      if (sort === "urgency") {
+        const aRank = urgencyRank(a);
+        const bRank = urgencyRank(b);
+        if (aRank !== bRank) return aRank - bRank;
+        if (aRank < 2) {
+          const aTime = lastCustomerMessageAt(a)?.getTime() ?? 0;
+          const bTime = lastCustomerMessageAt(b)?.getTime() ?? 0;
           return aTime - bTime;
         }
       }
@@ -120,9 +117,9 @@ export function JobBoard({
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <SortChip
-              active={sort === "needs-reply"}
-              onClick={() => setSort("needs-reply")}
-              label="Needs your reply"
+              active={sort === "urgency"}
+              onClick={() => setSort("urgency")}
+              label="Urgency"
             />
             <SortChip
               active={sort === "newest"}
@@ -403,6 +400,7 @@ function JobCard({
   const next = nextActionForJob(job);
   const noDate = isReadyToBookNoDate(job);
   const stalled = isStalledAwaiting(job);
+  const rotting = isRotting(job);
   const phone = formatAuMobile(job.customerPhone);
   const booked = formatBookedSlot(job.bookedStart);
   const edge = STATUS_EDGE[job.status as JobStatusValue] ?? "border-l-stone-300";
@@ -411,7 +409,7 @@ function JobCard({
     <Link
       href={`/jobs/${job.id}`}
       className={`block overflow-hidden rounded-2xl border border-l-4 bg-card shadow-[var(--shadow-card)] transition-[border-color,box-shadow] duration-150 hover:border-teal/40 ${edge} ${
-        noDate ? "border-amber-300" : "border-line"
+        rotting ? "border-amber-300 bg-amber-50/60" : "border-line"
       }`}
     >
       <PhotoFrame
@@ -473,7 +471,7 @@ function JobCard({
         ) : null}
         {stalled ? (
           <p className="mt-1.5">
-            <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-semibold text-stone-700 ring-1 ring-stone-200">
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-950 ring-1 ring-amber-200/80">
               Stalled
             </span>
           </p>

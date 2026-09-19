@@ -1,4 +1,5 @@
 import { allowedEmails } from "./env";
+import { findKnownSuburb } from "./areas";
 
 const BUSINESS_EMAILS = [
   "info@mobilecarscratchrepairadelaide.com.au",
@@ -127,6 +128,29 @@ export function greetingFirstName(fullName?: string | null) {
   const token = part.replace(/[^a-zA-Z]/g, "").toLowerCase();
   if (!token || BLOCKED_GREETING_NAMES.includes(token)) return "";
   return part.replace(/[,:;]+$/g, "");
+}
+
+export function extractJobIntakeFields(text?: string | null): {
+  suburb?: string;
+  vehicle?: string;
+  address?: string;
+} {
+  const hay = text ?? "";
+  const vehicleLabel = hay.match(
+    /(?:vehicle|car make|\bcar)\s*[:\-]\s*([^\n]+)/i,
+  );
+  const onA = hay.match(
+    /\bon an?\s+([A-Za-z][A-Za-z0-9 .+-]{1,40}?)(?:\s+in\b|[.,]|$)/i,
+  );
+  const address = hay.match(/(?:address|street)\s*[:\-]\s*([^\n]+)/i);
+  const suburbLabel = hay.match(
+    /(?:suburb|location|area)\s*[:\-]\s*([A-Za-z][A-Za-z\s'-]{1,40})/i,
+  );
+  return {
+    suburb: findKnownSuburb(hay) || suburbLabel?.[1]?.trim() || undefined,
+    vehicle: (vehicleLabel?.[1] || onA?.[1])?.trim() || undefined,
+    address: address?.[1]?.trim() || undefined,
+  };
 }
 
 export function extractCustomerFromBody(text?: string | null): {

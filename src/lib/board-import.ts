@@ -14,6 +14,7 @@ import { detectOutOfScope } from "./scope";
 import { getSettings } from "./settings";
 import {
   customerRecipientOrNull,
+  extractJobIntakeFields,
   resolveInboxCustomer,
 } from "./customer-mail";
 import { formatAuMobile, toE164Au } from "./phone";
@@ -57,6 +58,9 @@ export async function importThreadToBoard(thread: InboxThread): Promise<{
     customerRecipientOrNull(customer.email) ||
     customerRecipientOrNull(thread.fromEmail);
   const phone = customer.phone?.trim() || null;
+  const intake = extractJobIntakeFields(
+    `${thread.subject}\n${thread.snippet}\n${thread.bodyText ?? ""}`,
+  );
   const id = `job-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
   const bookingReply = needsBookingApproval(thread.kind);
   const status =
@@ -76,6 +80,9 @@ export async function importThreadToBoard(thread: InboxThread): Promise<{
       customerEmail,
       customerPhone: phone ? formatAuMobile(phone) || phone : null,
       customerPhoneE164: toE164Au(phone),
+      vehicle: intake.vehicle || null,
+      suburb: intake.suburb || null,
+      address: intake.address || null,
       damageNotes,
       channel: channelForThread(thread.kind),
       threadId: thread.id,
