@@ -22,7 +22,11 @@ import {
   friendlyInboxError,
   isEligibleForAutoImport,
   loadInbox,
+  pickLatestCustomerMessage,
 } from "../src/lib/inbox";
+import { applyCustomerBookingReply, syncInboxNotifications } from "../src/lib/notifications";
+import { looksLikeBookingConfirmation } from "../src/lib/booking-ops";
+import { nextActionForJob } from "../src/lib/job-next";
 import { emailGreeting } from "../src/lib/quote";
 import { prisma } from "../src/lib/prisma";
 import { getSettings } from "../src/lib/settings";
@@ -222,6 +226,61 @@ async function main() {
       fromEmail: "info@mobilecarscratchrepairadelaide.com.au",
     }),
     "A quote-request From of info@ is not treated as a customer",
+  );
+  assert(
+    classifyThread({
+      from: "Darren Buckney <darren.buckney@example.com>",
+      subject: "Re: Quote — Mazda CX-5 — Prospect",
+      snippet:
+        "Yes Saturday morning works. Book me in. Address is 14 Main North Road, Prospect.",
+    }) === "time_confirmation",
+    "Darren Saturday confirm classifies as a time confirmation",
+  );
+  assert(
+    looksLikeBookingConfirmation(
+      "Yes Saturday morning works. Book me in. Address is 14 Main North Road, Prospect.",
+    ),
+    "Saturday + book me in is a booking confirmation",
+  );
+  const latestReply = pickLatestCustomerMessage([
+    {
+      internalDate: "1",
+      snippet: "Website enquiry — bumper scratch, Prospect. Can you quote?",
+      payload: {
+        headers: [
+          {
+            name: "From",
+            value: "Mobile Car Scratch Repair Adelaide <info@mobilecarscratchrepairadelaide.com.au>",
+          },
+        ],
+      },
+    },
+    {
+      internalDate: "2",
+      snippet: "Quote for the Mazda CX-5 door scratch. $480.",
+      payload: {
+        headers: [
+          {
+            name: "From",
+            value: "Marcel Kuhn <info@mobilecarscratchrepairadelaide.com.au>",
+          },
+        ],
+      },
+    },
+    {
+      internalDate: "3",
+      snippet: "Yes Saturday morning works. Book me in.",
+      payload: {
+        headers: [
+          { name: "From", value: "Darren Buckney <darren.buckney@example.com>" },
+        ],
+      },
+    },
+  ]);
+  assert(
+    latestReply?.email === "darren.buckney@example.com" &&
+      /Saturday/i.test(latestReply.snippet),
+    "Inbox sync reads the latest customer reply, not the original quote",
   );
   assert(
     classifyThread({
@@ -514,6 +573,123 @@ async function main() {
       data: { autoAskPhotos: false },
     });
   }
+
+  const darrenId = `job-verify-darren-${stamp}`;
+  await prisma.job.create({
+    data: {
+      id: darrenId,
+      customerName: "Darren Buckney",
+      customerEmail: "darren.buckney@example.com",
+      suburb: "Prospect",
+      vehicle: "Mazda CX-5",
+      damageNotes: "Quote sent for the driver-door scratch.",
+      status: "AWAITING_CUSTOMER",
+      quoteAmount: 480,
+      quoteSentAt: new Date(),
+      threadId: `demo-thread-verify-darren-${stamp}`,
+      isDemo: false,
+    },
+  });
+  const darrenThread = {
+    id: `demo-thread-verify-darren-${stamp}`,
+    from: "Darren Buckney <darren.buckney@example.com>",
+    fromEmail: "darren.buckney@example.com",
+    subject: "Re: Quote — Mazda CX-5 — Prospect",
+    snippet:
+      "Yes Saturday morning works. Book me in. Address is 14 Main North Road, Prospect.",
+    kind: "other" as const,
+    ignored: false,
+    jobId: darrenId,
+  };
+  const darrenApplied = await applyCustomerBookingReply({
+    jobId: darrenId,
+    snippet: darrenThread.snippet,
+    subject: darrenThread.subject,
+    kind: darrenThread.kind,
+  });
+  assert(darrenApplied.updated && darrenApplied.alerted, "Darren Saturday reply updates the job and alerts");
+  const darrenJob = await prisma.job.findUnique({
+    where: { id: darrenId },
+    include: { drafts: true, notifications: true },
+  });
+  assert(darrenJob?.status === "READY_TO_BOOK", "Darren moves to Ready to book");
+  assert(darrenJob?.lastCustomerReplyAt, "Darren last activity is the customer reply");
+  assert(/14 Main North Road/i.test(darrenJob?.address ?? ""), "Darren address is stored from the reply");
+  assert(
+    darrenJob?.notifications.some((item) => item.type === "booking_approval" && !item.readAt),
+    "Darren raises an unread booking-approval alert",
+  );
+  const darrenNext = nextActionForJob({
+    ...darrenJob!,
+    damageNotes: darrenJob?.damageNotes,
+  });
+  assert(darrenNext.cta === "Confirm booking", "Darren next action is Confirm booking");
+  assert(darrenNext.href === `/jobs/${darrenId}/book`, "Darren next action opens the calendar picker");
+  assert(
+    !darrenJob?.drafts.some((item) => item.type === "confirmation" && item.sentAt),
+    "Darren booking confirmation is never auto-sent",
+  );
+  const darrenAgain = await syncInboxNotifications([darrenThread]);
+  assert(darrenAgain >= 0, "Re-sync of Darren does not throw");
+  const darrenAfter = await prisma.job.findUnique({ where: { id: darrenId } });
+  assert(darrenAfter?.status === "READY_TO_BOOK", "Darren stays Ready to book on re-sync");
+
+  const idleId = `job-verify-idle-${stamp}`;
+  await prisma.job.create({
+    data: {
+      id: idleId,
+      customerName: "Idle Quote",
+      customerEmail: "idle.quote@example.com",
+      status: "AWAITING_CUSTOMER",
+      quoteAmount: 300,
+      quoteSentAt: new Date(),
+      damageNotes: "Quote sent.",
+      isDemo: false,
+    },
+  });
+  const idle = await applyCustomerBookingReply({
+    jobId: idleId,
+    snippet: "Thanks Marcel. I'll check with my wife and come back to you on the quote.",
+    subject: "Re: Quote",
+    kind: "other",
+  });
+  assert(!idle.updated, "A maybe-later reply does not fake a booking confirm");
+  const idleJob = await prisma.job.findUnique({ where: { id: idleId } });
+  assert(idleJob?.status === "AWAITING_CUSTOMER", "Idle quote stays Awaiting customer");
+
+  await prisma.appSetting.update({
+    where: { id: "default" },
+    data: { autoDraftBookingConfirm: true },
+  });
+  const draftId = `job-verify-draft-slot-${stamp}`;
+  await prisma.job.create({
+    data: {
+      id: draftId,
+      customerName: "Slot Picker",
+      customerEmail: "slot.picker@example.com",
+      status: "AWAITING_CUSTOMER",
+      quoteAmount: 410,
+      quoteSentAt: new Date(),
+      isDemo: false,
+    },
+  });
+  await applyCustomerBookingReply({
+    jobId: draftId,
+    snippet: "Tuesday afternoon is fine. Book me in.",
+    kind: "time_confirmation",
+  });
+  const drafted = await prisma.emailDraft.findFirst({
+    where: { jobId: draftId, type: "confirmation" },
+  });
+  assert(drafted && !drafted.sentAt, "Optional slot-confirm draft is saved, not sent");
+  await prisma.appSetting.update({
+    where: { id: "default" },
+    data: { autoDraftBookingConfirm: false },
+  });
+
+  await prisma.job.deleteMany({
+    where: { id: { in: [darrenId, idleId, draftId] } },
+  });
 
   const againOos = await importThreadToBoard(oosThread);
   assert(!againOos.created && againOos.jobId === oos.jobId, "OOS import is idempotent");

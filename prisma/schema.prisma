@@ -110,6 +110,7 @@ model AppSetting {
   autoSmsPhotoAsk        Boolean @default(false)
   autoSmsFollowUp        Boolean @default(false)
   autoAddInboxToBoard    Boolean @default(true)
+  autoDraftBookingConfirm Boolean @default(false)
   messageMediaKey        String?
   messageMediaSecret     String?
 }

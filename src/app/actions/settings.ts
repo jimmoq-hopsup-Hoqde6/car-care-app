@@ -38,6 +38,7 @@ export async function saveSettingsAction(formData: FormData) {
       autoSmsPhotoAsk: formData.get("autoSmsPhotoAsk") === "on",
       autoSmsFollowUp: formData.get("autoSmsFollowUp") === "on",
       autoAddInboxToBoard: formData.get("autoAddInboxToBoard") === "on",
+      autoDraftBookingConfirm: formData.get("autoDraftBookingConfirm") === "on",
       ...(String(formData.get("messageMediaKey") ?? "").trim()
         ? { messageMediaKey: String(formData.get("messageMediaKey")).trim() }
         : {}),

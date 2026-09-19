@@ -49,10 +49,10 @@ export default async function InboxPage() {
         </h1>
         <p className="mt-1 text-sm text-muted">
           {live
-            ? "Live Gmail from the last 45 days. Eligible quote, New Quote Request forms, booking and SMS threads are added to the job board automatically. Marketing such as Manheim stays ignored."
+            ? "Live Gmail from the last 45 days. Eligible quote, New Quote Request forms, booking and SMS threads are added to the job board automatically. After a customer replies (yes / Saturday / book me in), tap Sync inbox so they move to Ready to book and show in Alerts. Marketing such as Manheim stays ignored."
             : isGoogleConfigured()
               ? "Showing sample threads until you connect Google. Eligible ones still land on the demo board automatically."
-              : "Demo threads. Eligible quote requests are added to the board automatically. Add Google OAuth keys in .env to use the live inbox."}
+              : "Demo threads. Eligible quote requests are added to the board automatically. Sync inbox after a customer replies so booking confirms appear in Alerts. Add Google OAuth keys in .env to use the live inbox."}
         </p>
         <div className="mt-3">
           <SyncInboxButton />

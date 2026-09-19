@@ -4,12 +4,27 @@ import {
   jobEventDescription,
   listAvailableSlots,
 } from "../src/lib/booking";
-import { forgottenReadyToBook, isReadyToBookNoDate } from "../src/lib/booking-ops";
+import {
+  forgottenReadyToBook,
+  isReadyToBookNoDate,
+  looksLikeBookingConfirmation,
+} from "../src/lib/booking-ops";
 import { OWNER_MOBILE } from "../src/lib/constants";
 import { prisma } from "../src/lib/prisma";
 import { recommendSlots } from "../src/lib/recommendations";
 
 async function main() {
+  if (
+    !looksLikeBookingConfirmation(
+      "Yes Saturday morning works. Book me in. Address is 14 Main North Road, Prospect.",
+    )
+  ) {
+    throw new Error("Darren-style Saturday confirm must look like a booking confirmation");
+  }
+  if (looksLikeBookingConfirmation("Thanks Marcel. I'll check with my wife.")) {
+    throw new Error("A maybe-later quote reply must not look like a booking confirmation");
+  }
+
   const unread = await prisma.notification.count({
     where: { readAt: null, type: "booking_approval" },
   });

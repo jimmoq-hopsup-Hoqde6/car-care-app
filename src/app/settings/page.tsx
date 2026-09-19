@@ -359,6 +359,22 @@ export default async function SettingsPage() {
             on the daily automation run). Marketing, Google alerts, and Sinch
             are never added. Website forms that arrive from info@ still import —
             the job uses the customer&apos;s Email / Reply-To, never info@.
+            After a customer replies to a quote, tap Sync inbox so booking
+            confirms appear in Alerts.
+          </span>
+        </label>
+        <label className="mt-2 flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="autoDraftBookingConfirm"
+            defaultChecked={settings.autoDraftBookingConfirm}
+            className="mt-1"
+          />
+          <span>
+            Draft booking confirmation when a customer picks a slot. Default
+            off. Still never sends — you tap Send. Inbox sync always raises the
+            alert, moves the job to Ready to book, and sets the next action
+            whether this is on or off.
           </span>
         </label>
         <label className="mt-2 flex items-start gap-2 text-sm">

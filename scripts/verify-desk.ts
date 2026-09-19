@@ -55,6 +55,17 @@ async function main() {
   });
   assert(confirm.cta === "Confirm booking", "Named-time reply CTA is Confirm booking");
 
+  const saturday = nextActionForJob({
+    id: "job-darren-cta",
+    status: "READY_TO_BOOK",
+    quoteAmount: 480,
+    outOfScope: false,
+    damageNotes:
+      "Yes Saturday morning works. Book me in. Address is 14 Main North Road, Prospect.",
+  });
+  assert(saturday.cta === "Confirm booking", "Saturday confirm CTA is Confirm booking");
+  assert(saturday.href === "/jobs/job-darren-cta/book", "Saturday confirm opens the calendar");
+
   const oos = nextActionForJob({
     id: "job-z",
     status: "NEEDS_QUOTE",
@@ -216,7 +227,10 @@ async function main() {
   assert(mia && isReadyToBookNoDate(mia), "Mia is ready to book with no calendar date");
   assert(bookingNextCta(john!) === "Confirm booking", "John named a time");
   assert(bookingNextCta(mia!) === "Offer dates", "Mia still needs dates offered");
-  const forgotten = forgottenReadyToBook([john!, mia!]);
+  const forgotten = forgottenReadyToBook([
+    { ...john!, lastCustomerReplyAt: new Date("2026-09-18T07:02:00.000Z") },
+    { ...mia!, lastCustomerReplyAt: new Date("2026-09-17T03:48:00.000Z") },
+  ]);
   assert(forgotten[0]?.id === "job-mia", "Oldest waiting ready-to-book is first");
   assert(/Waiting/.test(waitingSinceLabel(john!)), "John shows a waiting badge");
 

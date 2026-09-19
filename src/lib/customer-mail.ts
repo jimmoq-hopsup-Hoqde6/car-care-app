@@ -186,7 +186,9 @@ export function extractJobIntakeFields(text?: string | null): {
   const onA = hay.match(
     /\bon an?\s+([A-Za-z][A-Za-z0-9 .+-]{1,40}?)(?:\s+in\b|[.,]|$)/i,
   );
-  const address = hay.match(/(?:address|street)\s*[:\-]\s*([^\n]+)/i);
+  const address = hay.match(
+    /(?:address|street)\s*(?:is\s+|[:\-]\s*)([^\n.]+)/i,
+  );
   const suburbLabel = hay.match(
     /(?:suburb|location|area)\s*[:\-]\s*([A-Za-z][A-Za-z\s'-]{1,40})/i,
   );

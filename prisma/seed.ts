@@ -292,6 +292,29 @@ async function main() {
       lastActivityAt: adelaideAt(0, 11, 12),
       photos: [] as { url: string; filename: string }[],
     },
+    {
+      id: "job-darren",
+      customerName: "Darren Buckney",
+      customerEmail: "darren.buckney@example.com",
+      customerPhone: "0418 220 441",
+      vehicle: "Mazda CX-5 — door scratch",
+      suburb: "Prospect",
+      address: null as string | null,
+      damageNotes:
+        "Quote sent for the driver-door scratch. Waiting on Darren to pick a day.",
+      repairItems: JSON.stringify(["Driver door scratch"]),
+      channel: "email",
+      threadId: "demo-thread-darren",
+      status: JobStatus.AWAITING_CUSTOMER,
+      quoteAmount: 480,
+      quoteSentAt: adelaideAt(1, 9, 10),
+      awaitingSince: adelaideAt(1, 9, 10),
+      isDemo: true,
+      lastActivityAt: adelaideAt(1, 9, 10),
+      photos: [
+        { url: "/demo/nathan-door.svg", filename: "cx5-door.jpg" },
+      ],
+    },
   ];
 
   for (const job of jobs) {

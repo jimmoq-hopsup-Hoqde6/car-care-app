@@ -1,4 +1,8 @@
 import { JobStatus } from "@prisma/client";
+import {
+  looksLikeBookingConfirmation,
+  looksLikeBookingRequest,
+} from "./booking-ops";
 import { MARKETING_SENDERS } from "./constants";
 import {
   isCustomerReplyEmail,
@@ -148,19 +152,27 @@ export function classifyThread(input: {
   if (ownSender) {
     return "marketing";
   }
+  if (looksLikeBookingConfirmation(`${input.subject}\n${input.snippet}`)) {
+    return "time_confirmation";
+  }
+  if (looksLikeBookingRequest(`${input.subject}\n${input.snippet}`)) {
+    return "booking_negotiation";
+  }
   const bookingIntent =
-    /\b(yes|wednesday|thursday|friday|tuesday|monday|afternoon|morning|that works|book me|book in|booking|available|fortnight|sounds good|go ahead|happy to|lock in|please book|when are you free|can we book)\b/.test(
+    /\b(yes|wednesday|thursday|friday|tuesday|monday|saturday|sunday|afternoon|morning|that works|book me|book in|booking|available|fortnight|sounds good|go ahead|happy to|lock in|please book|when are you free|can we book)\b/.test(
       haystack,
     );
   const bookingConfirm =
-    /\b(confirm|fine|works|book|wednesday|thursday|friday|tuesday|monday|afternoon|morning|free|available)\b/.test(
+    /\b(confirm|fine|works|book|wednesday|thursday|friday|tuesday|monday|saturday|sunday|afternoon|morning|free|available)\b/.test(
       haystack,
     );
   if (bookingIntent && bookingConfirm) {
     if (
       haystack.includes("confirm") ||
       haystack.includes("fine") ||
-      haystack.includes("yes,")
+      haystack.includes("yes,") ||
+      haystack.includes("saturday") ||
+      haystack.includes("sunday")
     ) {
       return "time_confirmation";
     }
@@ -181,6 +193,51 @@ export function classifyThread(input: {
 function extractEmail(from: string) {
   const match = from.match(/<([^>]+)>/);
   return (match?.[1] ?? from).trim().toLowerCase();
+}
+
+function headerValue(
+  headers: Array<{ name?: string | null; value?: string | null }> | undefined,
+  name: string,
+) {
+  return (
+    headers?.find((header) => header.name?.toLowerCase() === name)?.value ?? ""
+  );
+}
+
+/** Newest customer message — Gmail threads.get is oldest-first, so [0] is the original. */
+export function pickLatestCustomerMessage(
+  messages: Array<{
+    snippet?: string | null;
+    internalDate?: string | null;
+    payload?: {
+      headers?: Array<{ name?: string | null; value?: string | null }>;
+      mimeType?: string | null;
+      body?: { data?: string | null };
+      parts?: GmailPart[] | null;
+    } | null;
+  }>,
+) {
+  const ranked = [...messages].sort(
+    (a, b) => Number(b.internalDate ?? 0) - Number(a.internalDate ?? 0),
+  );
+  for (const message of ranked) {
+    const from = headerValue(message.payload?.headers, "from");
+    const email = extractEmail(from);
+    if (isOwnBusinessEmail(email) || isSystemMailSender({ from, fromEmail: email })) {
+      continue;
+    }
+    if (email && !isCustomerReplyEmail(email)) continue;
+    if (!from && !email) continue;
+    return {
+      from,
+      email,
+      snippet: message.snippet ?? "",
+      bodyText: decodeGmailText(message.payload as GmailPart | undefined),
+      replyTo: headerValue(message.payload?.headers, "reply-to"),
+      subject: headerValue(message.payload?.headers, "subject"),
+    };
+  }
+  return null;
 }
 
 type GmailPart = {
@@ -291,6 +348,20 @@ export function demoInboxThreads(): InboxThread[] {
     ),
     withDeskLabel(
       {
+        id: "demo-thread-darren",
+        from: "Darren Buckney <darren.buckney@example.com>",
+        fromEmail: "darren.buckney@example.com",
+        subject: "Re: Quote — Mazda CX-5 — Prospect",
+        snippet:
+          "Yes Saturday morning works. Book me in. Address is 14 Main North Road, Prospect.",
+        kind: "time_confirmation",
+        ignored: false,
+        jobId: "job-darren",
+      },
+      "ready_to_book",
+    ),
+    withDeskLabel(
+      {
         id: "demo-thread-jamie",
         from: "Jamie Collis <jamie_collis@outlook.com>",
         fromEmail: "jamie_collis@outlook.com",
@@ -395,20 +466,22 @@ async function listGmailThreads(): Promise<InboxThread[]> {
         id: thread.id,
         format: "full",
       });
-      const headers = detail.data.messages?.[0]?.payload?.headers ?? [];
-      const from =
-        headers.find((header) => header.name?.toLowerCase() === "from")?.value ??
-        "";
-      const replyTo =
-        headers.find((header) => header.name?.toLowerCase() === "reply-to")
-          ?.value ?? "";
+      const messages = detail.data.messages ?? [];
+      const first = messages[0];
+      const headers = first?.payload?.headers ?? [];
+      const firstFrom = headerValue(headers, "from");
+      const firstReplyTo = headerValue(headers, "reply-to");
       const subject =
-        headers.find((header) => header.name?.toLowerCase() === "subject")
-          ?.value ?? "(no subject)";
-      const snippet = detail.data.messages?.[0]?.snippet ?? "";
-      const bodyText = decodeGmailText(
-        detail.data.messages?.[0]?.payload as GmailPart | undefined,
-      );
+        headerValue(headers, "subject") ||
+        headerValue(messages.at(-1)?.payload?.headers, "subject") ||
+        "(no subject)";
+      const latest = pickLatestCustomerMessage(messages);
+      const from = latest?.from || firstFrom;
+      const replyTo = latest?.replyTo || firstReplyTo;
+      const snippet = latest?.snippet || first?.snippet || "";
+      const bodyText =
+        latest?.bodyText ||
+        decodeGmailText(first?.payload as GmailPart | undefined);
       const kind = classifyThread({
         from,
         subject,
@@ -426,13 +499,14 @@ async function listGmailThreads(): Promise<InboxThread[]> {
       const fromEmail =
         systemFrom && !isOwnBusinessEmail(rawFromEmail)
           ? rawFromEmail
-          : customer.email || rawFromEmail;
+          : customer.email || latest?.email || rawFromEmail;
       const job = jobs.find((row) => {
         if (row.gmailThreadId === thread.id || row.threadId === thread.id) {
           return true;
         }
-        if (!isCustomerReplyEmail(fromEmail) || !row.customerEmail) return false;
-        return row.customerEmail.toLowerCase() === fromEmail;
+        const matchEmail = latest?.email || fromEmail;
+        if (!isCustomerReplyEmail(matchEmail) || !row.customerEmail) return false;
+        return row.customerEmail.toLowerCase() === matchEmail;
       });
       const labelIds = [
         ...new Set(

@@ -8,7 +8,11 @@ import {
   needsBookingApproval,
   type InboxThread,
 } from "./inbox";
-import { notifyBookingApproval, syncInboxNotifications } from "./notifications";
+import {
+  applyCustomerBookingReply,
+  notifyBookingApproval,
+  syncInboxNotifications,
+} from "./notifications";
 import { prisma } from "./prisma";
 import { detectOutOfScope } from "./scope";
 import { getSettings } from "./settings";
@@ -78,6 +82,17 @@ export async function importThreadToBoard(thread: InboxThread): Promise<{
 }> {
   const existing = await findJobForThread(thread.id);
   if (existing) {
+    try {
+      await applyCustomerBookingReply({
+        jobId: existing.id,
+        snippet: thread.snippet,
+        subject: thread.subject,
+        bodyText: thread.bodyText,
+        kind: thread.kind,
+      });
+    } catch {
+      // Existing job still opens if the booking-reply step fails.
+    }
     return { jobId: existing.id, created: false };
   }
 

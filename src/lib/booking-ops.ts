@@ -45,12 +45,48 @@ export function waitingSinceLabel(job: BookingJob, now = new Date()) {
   return `Waiting ${days}d`;
 }
 
+const WEEKDAY =
+  /\b(mon(day)?|tue(s(day)?)?|wed(nesday)?|thu(r(s(day)?)?)?|fri(day)?|sat(urday)?|sun(day)?)\b/i;
+const NAMED_TIME =
+  /\b(\d{1,2}(:\d{2})?\s?(am|pm)|morning|afternoon|evening|after\s+\d{1,2})\b/i;
+const CONFIRM_PHRASE =
+  /\b(yes|yep|yeah|that works|that day works|that date works|sounds good|go ahead|happy to|lock in|please book|book me(\s+in)?|book in|see you then|works for me|fine with me|address (is|provided|:))\b/i;
+const BOOKING_ASK =
+  /\b(when (are you|can you)|can we book|when can you come|available (next|this)|next week after)\b/i;
+
+/** Customer picked a day/time or accepted a booking offer. */
+export function looksLikeBookingConfirmation(text?: string | null) {
+  const hay = (text ?? "").toLowerCase();
+  if (!hay.trim()) return false;
+  if (/\b(that day works|that date works|book me(\s+in)?|please book|lock (it|me|that)?\s*in)\b/.test(hay)) {
+    return true;
+  }
+  if (WEEKDAY.test(hay) && CONFIRM_PHRASE.test(hay)) return true;
+  if (WEEKDAY.test(hay) && NAMED_TIME.test(hay) && /\b(yes|works|fine|book|confirm)\b/.test(hay)) {
+    return true;
+  }
+  if (/\baddress\s+(is|provided|:)\b/.test(hay) && (WEEKDAY.test(hay) || CONFIRM_PHRASE.test(hay))) {
+    return true;
+  }
+  return false;
+}
+
+/** They want a booking but have not locked a day yet. */
+export function looksLikeBookingRequest(text?: string | null) {
+  const hay = (text ?? "").toLowerCase();
+  if (!hay.trim()) return false;
+  if (looksLikeBookingConfirmation(hay)) return false;
+  return BOOKING_ASK.test(hay) || /\b(book me|can you book|happy with the quote)\b/.test(hay);
+}
+
 /** They already named a day/time vs still asking when Marcel can come. */
 export function customerNamedATime(job: Pick<BookingJob, "damageNotes">) {
-  const hay = (job.damageNotes ?? "").toLowerCase();
-  return /\b(yes,?\s+(mon|tue|wed|thu|fri|sat|sun)|yes,?\s+wednesday|yes,?\s+thursday|afternoon is fine|morning is fine|that works|sounds good — book|lock in)\b/.test(
-    hay,
-  );
+  const hay = job.damageNotes ?? "";
+  if (!hay.trim()) return false;
+  if (/\b(that day works|that date works|yes,?\s+(mon|tue(s)?|wed|thu(rs)?|fri|sat|sun))\b/i.test(hay)) {
+    return true;
+  }
+  return WEEKDAY.test(hay) && (CONFIRM_PHRASE.test(hay) || NAMED_TIME.test(hay));
 }
 
 export function bookingNextCta(job: Pick<BookingJob, "damageNotes">) {
