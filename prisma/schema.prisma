@@ -103,7 +103,7 @@ model AppSetting {
   followUpDays           Int    @default(2)
   reviewAskDaysAfterJob  Int    @default(1)
   googleReviewUrl        String @default("https://maps.app.goo.gl/UJcUi9ouWQaVn71D8?g_st=ic")
-  autoAskPhotos          Boolean @default(true)
+  autoAskPhotos          Boolean @default(false)
   autoDeclineOutOfScope  Boolean @default(false)
   autoSmsPhotoAsk        Boolean @default(false)
   autoSmsFollowUp        Boolean @default(false)

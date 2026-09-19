@@ -87,7 +87,7 @@ async function main() {
   assert(samDraft.startsWith("Hi Sam,"), "Sam stores the photo-ask copy");
 
   const settings = await prisma.appSetting.findUnique({ where: { id: "default" } });
-  assert(settings?.autoAskPhotos !== false, "Auto-ask for photos when missing defaults on");
+  assert(settings?.autoAskPhotos === false, "Photo-ask auto-send stays off by default");
   assert(!settings?.autoDeclineOutOfScope, "Out-of-scope declines default to draft");
 
   console.log(JSON.stringify({ ok: true, jennyPhotos: jenny!.photos.length }, null, 2));

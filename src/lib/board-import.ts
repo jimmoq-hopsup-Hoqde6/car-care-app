@@ -12,6 +12,11 @@ import { notifyBookingApproval } from "./notifications";
 import { prisma } from "./prisma";
 import { detectOutOfScope } from "./scope";
 import { getSettings } from "./settings";
+import {
+  customerRecipientOrNull,
+  resolveInboxCustomer,
+} from "./customer-mail";
+import { formatAuMobile, toE164Au } from "./phone";
 
 export async function findJobForThread(threadId: string) {
   return prisma.job.findFirst({
@@ -40,7 +45,18 @@ export async function importThreadToBoard(thread: InboxThread): Promise<{
     return { jobId: existing.id, created: false };
   }
 
-  const nameFrom = thread.from.replace(/<[^>]+>/, "").trim() || "Customer";
+  const customer = resolveInboxCustomer({
+    from: thread.from,
+    fromEmail: thread.fromEmail,
+    replyTo: thread.replyTo,
+    subject: thread.subject,
+    snippet: `${thread.snippet}\n${thread.bodyText ?? ""}`,
+  });
+  const nameFrom = customer.name || "Customer";
+  const customerEmail =
+    customerRecipientOrNull(customer.email) ||
+    customerRecipientOrNull(thread.fromEmail);
+  const phone = customer.phone?.trim() || null;
   const id = `job-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
   const bookingReply = needsBookingApproval(thread.kind);
   const status =
@@ -57,7 +73,9 @@ export async function importThreadToBoard(thread: InboxThread): Promise<{
     data: {
       id,
       customerName: nameFrom,
-      customerEmail: thread.fromEmail || null,
+      customerEmail,
+      customerPhone: phone ? formatAuMobile(phone) || phone : null,
+      customerPhoneE164: toE164Au(phone),
       damageNotes,
       channel: channelForThread(thread.kind),
       threadId: thread.id,

@@ -24,6 +24,7 @@ import { prisma } from "./prisma";
 import { getSettings } from "./settings";
 import { buildSmsFollowUp, buildSmsPhotoAsk } from "./sms/copy";
 import { sendSms } from "./sms/provider";
+import { customerRecipientOrNull, isCustomerReplyEmail } from "./customer-mail";
 
 export type AutomationType =
   | "follow_up"
@@ -49,10 +50,10 @@ export type AutomationRunResult = {
 };
 
 function assertAutoSendType(type: AutomationType) {
-  if (type === "follow_up" || type === "review_ask" || type === "photo_ask") {
-    return;
+  if (type === "photo_ask") {
+    throw new Error("Photo-ask never auto-sends — draft only.");
   }
-  if (type === "scope_decline") {
+  if (type === "follow_up" || type === "review_ask" || type === "scope_decline") {
     return;
   }
   throw new Error("Refusing to auto-send — that email type is not allowed.");
@@ -106,6 +107,13 @@ async function deliverAutomation(input: {
   threadId?: string | null;
 }): Promise<{ delivered: boolean; reason: string; error?: string }> {
   assertAutoSendType(input.type);
+
+  if (!isCustomerReplyEmail(input.to)) {
+    return {
+      delivered: false,
+      reason: "refused — not a customer inbox",
+    };
+  }
 
   if (isDemoMode()) {
     return {
@@ -239,7 +247,9 @@ async function processPhotoAndScope(
     });
   }
 
-  if (outOfScope && !job.declinedAt && job.customerEmail) {
+  if (outOfScope && !job.declinedAt) {
+    const to = customerRecipientOrNull(job.customerEmail, settings.businessEmail);
+    if (!to) return queued;
     const subject = scopeDeclineSubject();
     const body = buildScopeDeclineEmail(job.customerName);
     let delivered = false;
@@ -248,7 +258,7 @@ async function processPhotoAndScope(
     if (settings.autoDeclineOutOfScope) {
       const result = await deliverAutomation({
         type: "scope_decline",
-        to: job.customerEmail,
+        to,
         from: settings.businessEmail,
         subject,
         body,
@@ -259,7 +269,7 @@ async function processPhotoAndScope(
       error = result.error;
     } else if (!demo) {
       await createGmailDraft({
-        to: job.customerEmail,
+        to,
         from: settings.businessEmail,
         subject,
         body,
@@ -280,7 +290,7 @@ async function processPhotoAndScope(
       type: "scope_decline",
       subject,
       body,
-      toEmail: job.customerEmail,
+      toEmail: to,
       delivered,
       demo,
       error,
@@ -308,14 +318,18 @@ async function processPhotoAndScope(
   if (outOfScope) return queued;
 
   const usablePhotos = hasUsablePhotos(job.photos, job.damageNotes);
+  const photoTo = customerRecipientOrNull(
+    job.customerEmail,
+    settings.businessEmail,
+  );
   const needsPhotoAsk =
     settings.autoAskPhotos &&
     !job.photoAskSentAt &&
     !usablePhotos &&
     job.status === "NEEDS_QUOTE" &&
-    Boolean(job.customerEmail);
+    Boolean(photoTo);
 
-  if (needsPhotoAsk && job.customerEmail) {
+  if (needsPhotoAsk && photoTo) {
     const service =
       parseRepairItems(job.repairItems)[0] ||
       job.vehicle ||
@@ -327,21 +341,26 @@ async function processPhotoAndScope(
       service,
       notes: job.damageNotes,
     });
-    const result = await deliverAutomation({
-      type: "photo_ask",
-      to: job.customerEmail,
-      from: settings.businessEmail,
-      subject,
-      body,
-      threadId: job.gmailThreadId ?? job.threadId,
-    });
+    let delivered = false;
+    let reason = demo
+      ? "demo — photo-ask draft queued, not emailed"
+      : "photo-ask Gmail draft created — waiting for your send";
+    if (!demo) {
+      await createGmailDraft({
+        to: photoTo,
+        from: settings.businessEmail,
+        subject,
+        body,
+        threadId: job.gmailThreadId ?? job.threadId,
+      });
+    }
     await prisma.emailDraft.create({
       data: {
         jobId: job.id,
         type: "photo_ask",
         subject,
         body,
-        sentAt: result.delivered ? now : null,
+        sentAt: null,
       },
     });
     await queueEvent({
@@ -349,16 +368,14 @@ async function processPhotoAndScope(
       type: "photo_ask",
       subject,
       body,
-      toEmail: job.customerEmail,
-      delivered: result.delivered,
+      toEmail: photoTo,
+      delivered: false,
       demo,
-      error: result.error,
     });
     await prisma.job.update({
       where: { id: job.id },
       data: {
         photoAskSentAt: now,
-        lastOutboundAt: now,
         lastActivityAt: now,
       },
     });
@@ -367,14 +384,8 @@ async function processPhotoAndScope(
       jobId: job.id,
       customerName: job.customerName,
       type: "photo_ask",
-      delivered: result.delivered,
-      reason: result.reason,
-    });
-    await maybeQueueAutomationSms({
-      job,
-      type: "photo_ask",
-      enabled: settings.autoSmsPhotoAsk,
-      demo,
+      delivered,
+      reason,
     });
   }
 
@@ -408,13 +419,14 @@ export async function runAutomations(now = new Date()): Promise<AutomationRunRes
           continue;
         }
       }
-      if (!job.customerEmail) continue;
+      const to = customerRecipientOrNull(job.customerEmail, settings.businessEmail);
+      if (!to) continue;
 
       const subject = followUpSubject(job.vehicle);
       const body = buildFollowUpEmail(job.customerName);
       const result = await deliverAutomation({
         type: "follow_up",
-        to: job.customerEmail,
+        to,
         from: settings.businessEmail,
         subject,
         body,
@@ -428,7 +440,7 @@ export async function runAutomations(now = new Date()): Promise<AutomationRunRes
           type: "follow_up",
           subject,
           body,
-          toEmail: job.customerEmail,
+          toEmail: to,
           delivered: result.delivered,
           demo,
           error: result.error,
@@ -461,7 +473,8 @@ export async function runAutomations(now = new Date()): Promise<AutomationRunRes
     queued.push(...(await processPhotoAndScope(job, settings, demo, now)));
 
     if (reviewAskPhase(job, settings, now) === "pending") {
-      if (!job.customerEmail) continue;
+      const to = customerRecipientOrNull(job.customerEmail, settings.businessEmail);
+      if (!to) continue;
       const subject = reviewAskSubject();
       const body = buildReviewAskEmail(
         job.customerName,
@@ -469,7 +482,7 @@ export async function runAutomations(now = new Date()): Promise<AutomationRunRes
       );
       const result = await deliverAutomation({
         type: "review_ask",
-        to: job.customerEmail,
+        to,
         from: settings.businessEmail,
         subject,
         body,
@@ -483,7 +496,7 @@ export async function runAutomations(now = new Date()): Promise<AutomationRunRes
           type: "review_ask",
           subject,
           body,
-          toEmail: job.customerEmail,
+          toEmail: to,
           delivered: result.delivered,
           demo,
           error: result.error,

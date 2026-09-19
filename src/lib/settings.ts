@@ -22,7 +22,7 @@ export async function getSettings() {
     timezone: row.timezone || ADELAIDE_TZ,
     followUpDays: row.followUpDays || 2,
     reviewAskDaysAfterJob: row.reviewAskDaysAfterJob || 1,
-    autoAskPhotos: row.autoAskPhotos !== false,
+    autoAskPhotos: Boolean(row.autoAskPhotos),
     autoDeclineOutOfScope: Boolean(row.autoDeclineOutOfScope),
     autoSmsPhotoAsk: Boolean(row.autoSmsPhotoAsk),
     autoSmsFollowUp: Boolean(row.autoSmsFollowUp),

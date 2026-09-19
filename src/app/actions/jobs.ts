@@ -7,6 +7,7 @@ import { runPhotoAndScopeAutomations } from "@/lib/automations";
 import { syncJobGmailLabelById } from "@/lib/gmail-labels";
 import { saveJobImageFile } from "@/lib/photo-store";
 import { prisma } from "@/lib/prisma";
+import { customerRecipientOrNull } from "@/lib/customer-mail";
 import { formatAuMobile, toE164Au } from "@/lib/phone";
 import { parseRepairItems } from "@/lib/quote";
 import { detectOutOfScope } from "@/lib/scope";
@@ -44,7 +45,9 @@ export async function createJob(formData: FormData) {
     data: {
       id,
       customerName,
-      customerEmail: String(formData.get("customerEmail") ?? "").trim() || null,
+      customerEmail: customerRecipientOrNull(
+        String(formData.get("customerEmail") ?? "").trim(),
+      ),
       customerPhone: customerPhone
         ? formatAuMobile(customerPhone) || customerPhone
         : null,
@@ -123,7 +126,9 @@ export async function updateJobDetails(jobId: string, formData: FormData) {
     where: { id: jobId },
     data: {
       customerName: String(formData.get("customerName") ?? "").trim(),
-      customerEmail: String(formData.get("customerEmail") ?? "").trim() || null,
+      customerEmail: customerRecipientOrNull(
+        String(formData.get("customerEmail") ?? "").trim(),
+      ),
       customerPhone: (() => {
         const phone = String(formData.get("customerPhone") ?? "").trim();
         return phone ? formatAuMobile(phone) || phone : null;

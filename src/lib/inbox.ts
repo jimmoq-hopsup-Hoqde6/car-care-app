@@ -1,5 +1,6 @@
 import { JobStatus } from "@prisma/client";
 import { MARKETING_SENDERS } from "./constants";
+import { isCustomerReplyEmail, isNonCustomerSender, isOwnBusinessEmail, resolveInboxCustomer } from "./customer-mail";
 import {
   type DeskLabelKey,
   deskKeysFromLabelIds,
@@ -25,8 +26,10 @@ export type InboxThread = {
   id: string;
   from: string;
   fromEmail: string;
+  replyTo?: string | null;
   subject: string;
   snippet: string;
+  bodyText?: string | null;
   kind: InboxKind;
   ignored: boolean;
   jobId?: string | null;
@@ -62,8 +65,22 @@ export const AUTO_IMPORT_KINDS: InboxKind[] = [
   "sms",
 ];
 
-export function isEligibleForAutoImport(thread: Pick<InboxThread, "kind" | "ignored" | "deskLabel">) {
+export function isEligibleForAutoImport(
+  thread: Pick<InboxThread, "kind" | "ignored" | "deskLabel"> & {
+    fromEmail?: string | null;
+  },
+) {
   if (thread.ignored || thread.kind === "marketing") return false;
+  if (thread.kind === "sms") return true;
+  if (thread.fromEmail !== undefined) {
+    const from = thread.fromEmail;
+    if (from && !isCustomerReplyEmail(from)) {
+      // Website forms are mailed from info@; the customer is Reply-To / body.
+      if (!(thread.kind === "website_form" && isOwnBusinessEmail(from))) {
+        return false;
+      }
+    }
+  }
   if (AUTO_IMPORT_KINDS.includes(thread.kind)) return true;
   // Similar in-scope customer work: already has a job-desk Gmail label.
   return Boolean(thread.deskLabel);
@@ -92,15 +109,25 @@ export function classifyThread(input: {
   snippet: string;
 }): InboxKind {
   const haystack = `${input.from} ${input.subject} ${input.snippet}`.toLowerCase();
+  const fromEmail = extractEmail(input.from);
+  const systemSender = isNonCustomerSender(fromEmail);
+  const ownSender = isOwnBusinessEmail(fromEmail);
   if (MARKETING_SENDERS.some((part) => haystack.includes(part))) {
     return "marketing";
   }
-  if (
+  const looksLikeWebsiteForm =
     haystack.includes("website") ||
     haystack.includes("contact form") ||
-    haystack.includes("enquiry from")
-  ) {
+    haystack.includes("enquiry from") ||
+    (/(?:^|\n)\s*(?:full )?name\s*[:\-]/i.test(`${input.subject}\n${input.snippet}`) &&
+      /(?:^|\n)\s*(?:e-?mail|customer e-?mail)\s*[:\-]/i.test(
+        `${input.subject}\n${input.snippet}`,
+      ));
+  if (looksLikeWebsiteForm) {
     return "website_form";
+  }
+  if (systemSender || ownSender) {
+    return "marketing";
   }
   const bookingIntent =
     /\b(yes|wednesday|thursday|friday|tuesday|monday|afternoon|morning|that works|book me|book in|booking|available|fortnight|sounds good|go ahead|happy to|lock in|please book|when are you free|can we book)\b/.test(
@@ -135,6 +162,43 @@ export function classifyThread(input: {
 function extractEmail(from: string) {
   const match = from.match(/<([^>]+)>/);
   return (match?.[1] ?? from).trim().toLowerCase();
+}
+
+type GmailPart = {
+  mimeType?: string | null;
+  body?: { data?: string | null };
+  parts?: GmailPart[] | null;
+};
+
+function decodeGmailText(payload?: GmailPart | null): string {
+  if (!payload) return "";
+  const chunks: string[] = [];
+  const walk = (part?: GmailPart | null) => {
+    if (!part) return;
+    const mime = (part.mimeType ?? "").toLowerCase();
+    const skip =
+      mime.startsWith("image/") ||
+      mime.startsWith("application/") ||
+      mime.includes("multipart");
+    if (part.body?.data && !skip) {
+      try {
+        chunks.push(Buffer.from(part.body.data, "base64url").toString("utf8"));
+      } catch {
+        // ignore a bad part; other parts may still parse
+      }
+    }
+    for (const child of part.parts ?? []) walk(child);
+  };
+  walk(payload);
+  return chunks
+    .join("\n")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/[ \t]+\n/g, "\n")
+    .trim();
 }
 
 function withDeskLabel(
@@ -310,25 +374,43 @@ async function listGmailThreads(): Promise<InboxThread[]> {
       const detail = await gmail.users.threads.get({
         userId: "me",
         id: thread.id,
-        format: "metadata",
-        metadataHeaders: ["From", "Subject"],
+        format: "full",
       });
       const headers = detail.data.messages?.[0]?.payload?.headers ?? [];
       const from =
         headers.find((header) => header.name?.toLowerCase() === "from")?.value ??
         "";
+      const replyTo =
+        headers.find((header) => header.name?.toLowerCase() === "reply-to")
+          ?.value ?? "";
       const subject =
         headers.find((header) => header.name?.toLowerCase() === "subject")
           ?.value ?? "(no subject)";
       const snippet = detail.data.messages?.[0]?.snippet ?? "";
-      const kind = classifyThread({ from, subject, snippet });
-      const fromEmail = extractEmail(from);
-      const job = jobs.find(
-        (row) =>
-          row.gmailThreadId === thread.id ||
-          row.threadId === thread.id ||
-          row.customerEmail?.toLowerCase() === fromEmail,
+      const bodyText = decodeGmailText(
+        detail.data.messages?.[0]?.payload as GmailPart | undefined,
       );
+      const kind = classifyThread({
+        from,
+        subject,
+        snippet: `${snippet}\n${bodyText}`,
+      });
+      const rawFromEmail = extractEmail(from);
+      const customer = resolveInboxCustomer({
+        from,
+        fromEmail: rawFromEmail,
+        replyTo,
+        subject,
+        snippet: `${snippet}\n${bodyText}`,
+      });
+      const fromEmail = customer.email || rawFromEmail;
+      const job = jobs.find((row) => {
+        if (row.gmailThreadId === thread.id || row.threadId === thread.id) {
+          return true;
+        }
+        if (!isCustomerReplyEmail(fromEmail) || !row.customerEmail) return false;
+        return row.customerEmail.toLowerCase() === fromEmail;
+      });
       const labelIds = [
         ...new Set(
           (detail.data.messages ?? []).flatMap(
@@ -343,10 +425,15 @@ async function listGmailThreads(): Promise<InboxThread[]> {
         withDeskLabel(
           {
             id: thread.id,
-            from,
+            from:
+              customer.name && customer.email
+                ? `${customer.name} <${customer.email}>`
+                : from,
             fromEmail,
+            replyTo,
             subject,
             snippet,
+            bodyText,
             kind,
             ignored: kind === "marketing",
             jobId: job?.id ?? null,

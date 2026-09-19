@@ -35,6 +35,15 @@ assert(!jenny.includes("Hi ,"), "Must never emit a bare Hi ,");
 assert(emailGreeting("") === "Hi there,", "Empty name must greet Hi there,");
 assert(emailGreeting("   ") === "Hi there,", "Whitespace name must greet Hi there,");
 assert(emailGreeting("Nathan Crowe") === "Hi Nathan,", "Nathan must greet Hi Nathan,");
+assert(
+  emailGreeting("Mobile Car Scratch Repair Adelaide") === "Hi there,",
+  "Business name must not greet Hi Mobile",
+);
+assert(emailGreeting("Info") === "Hi there,", "Info must not greet Hi Info");
+assert(
+  emailGreeting("no-reply") === "Hi there,",
+  "no-reply must not be used as a first name",
+);
 
 const unnamed = buildQuoteEmail({
   customerName: "",

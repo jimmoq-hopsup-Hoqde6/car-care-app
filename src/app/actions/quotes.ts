@@ -8,6 +8,7 @@ import { createGmailDraft, sendGmailMessage } from "@/lib/google";
 import { parsePrice } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
+import { isCustomerReplyEmail } from "@/lib/customer-mail";
 import { syncJobGmailLabelById } from "@/lib/gmail-labels";
 import { buildQuoteEmail, quoteSubject } from "@/lib/quote";
 
@@ -51,6 +52,13 @@ export async function saveQuoteAction(input: {
   });
   const subject = quoteSubject(job.vehicle, job.suburb);
   const settings = await getSettings();
+  if (!isCustomerReplyEmail(job.customerEmail, settings.businessEmail)) {
+    return {
+      ok: false,
+      message:
+        "That address is not a customer inbox (Google alert, Sinch, or your own info@). Add the customer's email first.",
+    };
+  }
   const session = await auth();
   const googleReady = Boolean(session?.accessToken);
   const demo = isDemoMode() || !googleReady;

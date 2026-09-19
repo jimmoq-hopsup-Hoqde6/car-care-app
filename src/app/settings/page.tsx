@@ -326,9 +326,11 @@ export default async function SettingsPage() {
             className="mt-1"
           />
           <span>
-            Auto-ask for photos when missing. Default on. Sends a short reply
-            asking for pictures on in-scope jobs only — never a price, and
-            never on bonnet or roof.
+            Prepare a photo-ask <strong>draft</strong> when an in-scope quote
+            has no pictures. Default off. Never auto-sends. Never emails Google
+            alerts, Sinch, no-reply, or info@ — only the customer&apos;s
+            address (website form Reply-To / Email field, or their inbound
+            From). Bonnet and roof never get a photo-ask.
           </span>
         </label>
         <label className="mt-2 flex items-start gap-2 text-sm">
@@ -341,8 +343,9 @@ export default async function SettingsPage() {
           <span>
             Auto-add inbox to board. Default on. Quote requests, website forms,
             booking replies and SMS land on the board when you open Inbox (and
-            on the daily automation run). Marketing such as Manheim is never
-            added.
+            on the daily automation run). Marketing, Google alerts, and Sinch
+            are never added. Website forms that arrive from info@ still import —
+            the job uses the customer&apos;s Email / Reply-To, never info@.
           </span>
         </label>
         <label className="mt-2 flex items-start gap-2 text-sm">

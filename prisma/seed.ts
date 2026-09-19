@@ -65,10 +65,13 @@ async function main() {
       followUpDays: Number(process.env.FOLLOW_UP_DAYS || 2),
       reviewAskDaysAfterJob: Number(process.env.REVIEW_ASK_DAYS_AFTER_JOB || 1),
       googleReviewUrl: reviewUrl,
-      autoAskPhotos: true,
+      autoAskPhotos: false,
       autoAddInboxToBoard: true,
     },
-    update: replacePlaceholder ? { googleReviewUrl: reviewUrl } : {},
+    update: {
+      autoAskPhotos: false,
+      ...(replacePlaceholder ? { googleReviewUrl: reviewUrl } : {}),
+    },
   });
 
   const { DEFAULT_PRICE_BANDS } = await import("../src/lib/pricing");
@@ -695,9 +698,17 @@ async function main() {
   }
 
   const { runPhotoAndScopeAutomations } = await import("../src/lib/automations");
+  await prisma.appSetting.update({
+    where: { id: "default" },
+    data: { autoAskPhotos: true },
+  });
   await runPhotoAndScopeAutomations("job-jamie");
   await runPhotoAndScopeAutomations("job-sam");
   await runPhotoAndScopeAutomations("job-taylor");
+  await prisma.appSetting.update({
+    where: { id: "default" },
+    data: { autoAskPhotos: false },
+  });
 
   console.log(
     "Seeded demo jobs: Jenny, Nathan, John, Mia, Priya, Jamie (Paradise bonnet, out of scope, decline drafted), Sam (door, photo ask + SMS), Alex (Payneham bumper + guard, $650 suggestion), Taylor (Prospect SMS thread), plus booked neighbours (Stirling, Brighton, Somerton Park) and booking-approval notifications.",

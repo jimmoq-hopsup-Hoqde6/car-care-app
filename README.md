@@ -4,7 +4,7 @@ A local web app for **Marcel Kuhn** to turn quote requests into drafts and booki
 
 It does **not** invent prices for the customer. You type the figure or tap Accept on an internal suggestion. **Quotes and booking confirmations never send unless you tap Send.** The usual path is: write quote → save Gmail draft → pick a free calendar slot → save a confirmation draft.
 
-A few follow-on emails can send on a schedule (see [Automations](#automations-what-sends-on-its-own)): a nudge if a quote sits unanswered, a Google review ask after a job is marked Done, and a photo request when a quote has no damage pictures. Quotes and booking confirmations still never auto-send.
+A few follow-on emails can send on a schedule (see [Automations](#automations-what-sends-on-its-own)): a nudge if a quote sits unanswered, and a Google review ask after a job is marked Done. Photo-asks stay as drafts and only target a real customer inbox. Quotes and booking confirmations still never auto-send.
 
 Timezone: **Australia/Adelaide**  
 From address: **Info@mobilecarscratchrepairadelaide.com.au**  
@@ -16,7 +16,7 @@ The job-desk header uses Marcel's business-card lockup (black background, white 
 
 - **Phone / web login** — hosted mode shows a branded Google Sign-In page; only Marcel's allowlisted accounts get in. Local demo stays open. See [Deploy for phone access](#deploy-for-phone-access).
 - **Job board** — Needs quote, Awaiting customer, Ready to book, Booked, Done. Each card shows a **repair photo** thumbnail (or “No repair photo”) and **last activity** in Adelaide time (`Last: 19 Sep · 11:58 am`). Toggle **Newest activity** or **Stalled first**.
-- **Inbox triage** — quote requests, website forms, booking replies and SMS **land on the job board automatically** when you open the (empty) job board, open Inbox, tap **Sync inbox now**, or hit `/api/inbox/sync` (same cron secret as automations). Marketing such as Manheim is never added. If Gmail fails, the desk shows a reconnect message instead of crashing.
+- **Inbox triage** — quote requests, website forms, booking replies and SMS **land on the job board automatically** when you open the (empty) job board, open Inbox, tap **Sync inbox now**, or hit `/api/inbox/sync` (same cron secret as automations). Marketing such as Manheim, Google security alerts, and Sinch tickets are never added. Website forms that arrive from `info@` import the customer **Name / Email / Phone** (or Reply-To), never `info@` itself. If Gmail fails, the desk shows a reconnect message instead of crashing.
 - **Notifications** — unread booking approvals sit in an amber bar on the job board and on Alerts (phone tab badge). Nothing is auto-sent.
 - **Quote composer** — you enter the price or tap **Accept suggestion**; the email uses Marcel's locked standard (first-name greeting, 30-day validity, mobile number ask). Suggestions never send themselves.
 - **Booking picker** — next 14 weekdays, default 8:00 am–4:00 pm, 3-hour jobs; recommends slots near other booked jobs in nearby Adelaide suburbs; creates a Calendar event and a confirmation draft
@@ -66,7 +66,7 @@ npm run scope:verify        # confirm bonnet/roof out of scope + photo-ask/decli
 npm run pricing:verify      # confirm smart price suggestions stay internal
 npm run sms:verify          # confirm SMS E.164 matching + demo MessageMedia no-op
 npm run login:verify        # confirm demo stays open and hosted allowlist login
-npm run inbox:verify        # confirm eligible Gmail/demo threads auto-add; Manheim does not
+npm run inbox:verify        # confirm auto-add; Google/Sinch/info@ are not customers
 npm run desk:verify         # confirm next-action CTAs, connection health, SMS error copy
 npm run verify              # run all of the checks above
 ```
@@ -140,7 +140,7 @@ Restart `npm run dev`, tap **Connect Google**, and sign in.
 
 After that:
 
-- Inbox reads recent Gmail threads (Manheim-style marketing is parked under Ignored) and seeds job status from job-desk labels
+- Inbox reads recent Gmail threads (Manheim, Google alerts, and Sinch are parked under Ignored; website forms from info@ resolve the customer Email/Name) and seeds job status from job-desk labels
 - Board stage changes apply the matching Gmail label and remove the other four
 - Booking reads real free/busy on your primary calendar
 - **Save as draft** writes a Gmail draft (not sent)
@@ -237,6 +237,7 @@ Mobile Car Scratch Repair Adelaide
 **Never auto-sent (you must tap Send):**
 - Quote emails
 - Booking confirmation emails
+- Photo-ask emails (draft only — routing must be a real customer inbox)
 
 **May auto-send:**
 
@@ -244,20 +245,29 @@ Mobile Car Scratch Repair Adelaide
 | --- | --- | --- |
 | Follow-up | Job is **Awaiting customer** (quote sent or waiting) and there has been no customer reply for **2 days** | `FOLLOW_UP_DAYS=2` |
 | Google review ask | The day after you mark a job **Booked → Done** (or otherwise Done) | `REVIEW_ASK_DAYS_AFTER_JOB=1` |
-| Photo ask | **In-scope** quote has **no usable repair photos** (no image attachments, or the form said no photos) | Settings toggle **Auto-ask for photos when missing** (default on) |
+| Photo ask | **In-scope** quote has **no usable repair photos** | Settings toggle **Prepare a photo-ask draft** (**default off**). Never auto-sends. Never emails Google alerts, Sinch, no-reply, or info@ |
 | Out-of-scope decline | Incoming quote is clearly a **bonnet (hood) or roof** | Draft only (toggle **Auto-send out-of-scope declines** off) |
 
 The review email includes Marcel's Google review link (`GOOGLE_REVIEW_URL`, default `https://maps.app.goo.gl/UJcUi9ouWQaVn71D8?g_st=ic`). Change it on Settings if the Maps link ever moves.
 
 Photo-ask and decline emails use a first-name greeting and sign off Marcel Kuhn / Mobile Car Scratch Repair Adelaide / 0435 222 221. They never include a price. Each job stores `photoAskSentAt` and `declinedAt` so the same email is not sent twice.
 
-### Photo ask (approved automatic)
+### Photo ask (draft only — customer inbox only)
 
-When an **in-scope** quote request has zero usable damage photos, the desk **auto-sends** a short reply asking for pictures. This is the same class as stalled follow-ups and review asks — it does **not** need approval. It never includes a price. **Bonnet and roof jobs never get a photo-ask.**
+When an **in-scope** quote request has zero usable damage photos **and** Settings **Prepare a photo-ask draft** is on, the desk writes a Gmail **draft** asking for pictures. It does **not** send. Turn the toggle off (the default) until you have checked routing.
+
+Photo-ask / follow-up / review / decline automations **only** address a real customer:
+
+- website form **Reply-To** or `Email:` / `Name:` in the body, or
+- the inbound customer **From**
+
+They never send or draft to `no-reply@accounts.google.com`, `compliance@smb.sinch.com`, other no-reply/Sinch/Google alert addresses, or Marcel's own `info@` / allowlisted inbox. Greetings never use **Hi Mobile** or **Hi Info** — those fall back to **Hi there,**.
+
+Bonnet and roof jobs never get a photo-ask.
 
 Detection: no image attachments on the job, or the website form / notes say “No photos uploaded”. The job stays **Needs quote**, the board shows **Awaiting photos**, `lastActivityAt` is updated, and the Gmail label stays **Quote request**.
 
-Once per thread: `photoAskSentAt` is set after the first ask. A second run does not nag.
+Once per thread: `photoAskSentAt` is set after the first draft. A second run does not nag.
 
 Locked copy (Australian English, first name):
 
@@ -289,7 +299,7 @@ npm run automations:run
 That finds due jobs and:
 - **Also auto-imports** eligible Inbox threads onto the board (same rules as opening Inbox)
 - **Demo mode (`DEMO_MODE=true`)** — writes a queue entry on the job and **does not email anyone**
-- **Live, Google connected** — sends via Gmail using the stored OAuth tokens
+- **Live, Google connected** — follow-ups and review asks send via Gmail using the stored OAuth tokens. Photo-asks stay drafts.
 
 You can also tap **Run automations now** on Settings (always works while you are signed in — no Bearer header). Host cron or `GET`/`POST` `/api/automations/run` and `/api/inbox/sync` accept `Authorization: Bearer $AUTOMATIONS_SECRET`. Vercel Cron cannot set custom headers; it sends `Authorization: Bearer $CRON_SECRET` automatically when that env var is set. Use the **same string** for `CRON_SECRET` and `AUTOMATIONS_SECRET`. Do not put the secret in `vercel.json`.
 
@@ -397,8 +407,8 @@ Demo seed: **Jamie Collis** (Paradise, scratches on bonnet, no photos) is flagge
 - Weekdays and hours (default Monday–Friday 8:00–16:00 Adelaide)
 - Job length (default 3 hours)
 - Follow-up days, review-ask days, and Google review URL
-- Auto-ask for photos when missing (default on)
-- Auto-add inbox to board (default on — Manheim-style marketing is never added)
+- Auto-ask for photos when missing (default **off** — prepares a draft, never auto-sends, never to Google/Sinch/info@)
+- Auto-add inbox to board (default on — Manheim, Google alerts, and Sinch are never added; website forms from info@ use the customer Email/Reply-To)
 - Auto-send out-of-scope declines (default off — draft only)
 - Price bands for suggestions (bumper $420, bumper + guard $650, door $650, guard blend +$250, trim replace-only)
 

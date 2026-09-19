@@ -1,4 +1,5 @@
 import { formatAUD } from "./money";
+import { greetingFirstName } from "./customer-mail";
 
 export type QuoteInput = {
   customerName?: string | null;
@@ -7,12 +8,12 @@ export type QuoteInput = {
 };
 
 export function firstName(fullName: string) {
-  return fullName.trim().split(/\s+/).find((part) => part.length > 0) ?? "";
+  return greetingFirstName(fullName);
 }
 
-/** Never returns a bare "Hi ,". */
+/** Never returns a bare "Hi ,". Never greets Mobile / Info / no-reply. */
 export function emailGreeting(fullName?: string | null) {
-  const name = firstName(fullName ?? "");
+  const name = greetingFirstName(fullName);
   return name ? `Hi ${name},` : "Hi there,";
 }
 

@@ -16,6 +16,7 @@ import { syncJobGmailLabelById } from "@/lib/gmail-labels";
 import { markJobNotificationsRead } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
+import { isCustomerReplyEmail } from "@/lib/customer-mail";
 
 export type BookResult = {
   ok: boolean;
@@ -41,6 +42,13 @@ export async function bookSlotAction(input: {
   }
 
   const settings = await getSettings();
+  if (!isCustomerReplyEmail(job.customerEmail, settings.businessEmail)) {
+    return {
+      ok: false,
+      message:
+        "That address is not a customer inbox (Google alert, Sinch, or your own info@). Add the customer's email before booking.",
+    };
+  }
   const session = await auth();
   const googleReady = Boolean(session?.accessToken);
   const demo = isDemoMode() || !googleReady;

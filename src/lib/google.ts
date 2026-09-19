@@ -1,5 +1,6 @@
 import { google } from "googleapis";
 import { auth } from "./auth";
+import { isCustomerReplyEmail } from "./customer-mail";
 import { isDemoMode, isGoogleConfigured } from "./env";
 
 export async function getGoogleAccessToken() {
@@ -68,6 +69,7 @@ export async function createGmailDraft(input: {
   body: string;
   threadId?: string | null;
 }) {
+  if (!isCustomerReplyEmail(input.to)) return null;
   const gmail = await getGmail();
   if (!gmail) return null;
   try {
@@ -110,6 +112,7 @@ export async function sendGmailMessage(input: {
   threadId?: string | null;
 }) {
   if (isDemoMode()) return false;
+  if (!isCustomerReplyEmail(input.to)) return false;
   const gmail = await getGmail();
   if (!gmail) return false;
   try {

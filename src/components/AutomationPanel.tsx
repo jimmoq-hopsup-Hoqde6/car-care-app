@@ -33,9 +33,9 @@ export function AutomationPanel({
     <section className="rounded-2xl border border-line bg-card p-4">
       <h2 className="text-sm font-semibold text-ink">Automations</h2>
       <p className="mt-1 text-xs text-stone-500">
-        Quotes and booking confirmations never send on their own. A stalled
-        follow-up, review ask, or missing-photo request can. Bonnet/roof
-        declines stay as drafts unless auto-decline is on.
+        Quotes and booking confirmations never send on their own. Follow-ups
+        and review asks can. Photo-asks are drafts only, and never go to
+        Google alerts, Sinch, or info@.
       </p>
 
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -47,7 +47,7 @@ export function AutomationPanel({
             {job.outOfScope
               ? "Not needed"
               : job.photoAskSentAt
-                ? "Sent"
+                ? "Drafted"
                 : "Waiting"}
           </p>
           <p className="mt-1 text-xs text-stone-500">
@@ -56,8 +56,8 @@ export function AutomationPanel({
               : job.photoAskSentAt
                 ? demo
                   ? `Queued ${when(job.photoAskSentAt)} — demo mode, not emailed.`
-                  : `Asked for photos ${when(job.photoAskSentAt)}.`
-                : "Sends once if an in-scope quote request has no usable repair photos."}
+                  : `Photo-ask draft saved ${when(job.photoAskSentAt)} — not sent.`
+                : "If the toggle is on, a draft is prepared for a real customer inbox only. It never auto-sends."}
           </p>
         </article>
         <article className="rounded-xl border border-line bg-white p-3">
