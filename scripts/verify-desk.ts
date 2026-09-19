@@ -105,6 +105,10 @@ async function main() {
     "Inbox sync endpoint is reachable without a session (cron)",
   );
   assert(
+    isPublicPath("/api/photos/demo-id"),
+    "Damage photo files stay visible on job cards after login",
+  );
+  assert(
     isPublicPath("/api/automations/run"),
     "Automations run endpoint is reachable without a session (cron)",
   );

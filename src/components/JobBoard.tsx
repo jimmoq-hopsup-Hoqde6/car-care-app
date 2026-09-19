@@ -417,7 +417,7 @@ function JobCard({
       <PhotoFrame
         src={photo?.url}
         alt={`${job.customerName} damage photo`}
-        className="h-44 w-full md:h-32"
+        className="h-52 w-full md:h-36"
       >
         {job.photos.length > 1 ? (
           <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-semibold text-white">

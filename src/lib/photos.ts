@@ -7,6 +7,13 @@ export type PhotoLike = {
   createdAt?: Date | string;
 };
 
+export function usablePhotoUrl(url?: string | null) {
+  const value = url?.trim() ?? "";
+  if (!value || value === "pending") return false;
+  if (/^(javascript|file|about):/i.test(value)) return false;
+  return true;
+}
+
 export function sortPhotos<T extends PhotoLike>(photos: T[]): T[] {
   return [...photos].sort((a, b) => {
     if (a.isPrimary && !b.isPrimary) return -1;
@@ -20,8 +27,9 @@ export function sortPhotos<T extends PhotoLike>(photos: T[]): T[] {
 }
 
 export function primaryPhoto<T extends PhotoLike>(photos: T[]): T | null {
-  const sorted = sortPhotos(photos);
-  return sorted[0] ?? null;
+  return (
+    sortPhotos(photos).find((photo) => usablePhotoUrl(photo.url)) ?? null
+  );
 }
 
 export function photoAlt(photo: PhotoLike, fallback = "Repair photo") {
@@ -47,7 +55,6 @@ export function hasUsablePhotos(
   photos: Array<{ id?: string; url?: string | null }>,
   notes?: string | null,
 ) {
-  const hasFile = photos.some((photo) => Boolean(photo.url?.trim() || photo.id));
-  if (hasFile) return true;
+  if (photos.some((photo) => usablePhotoUrl(photo.url))) return true;
   return !formSaysNoPhotos(notes) && photos.length > 0;
 }

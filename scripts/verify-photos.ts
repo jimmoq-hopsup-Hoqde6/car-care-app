@@ -1,5 +1,5 @@
 import { buildPhotoAskEmail, SCOPE_DECLINE_FRAMING } from "../src/lib/automation-copy";
-import { formSaysNoPhotos, hasUsablePhotos, primaryPhoto, sortPhotos } from "../src/lib/photos";
+import { formSaysNoPhotos, hasUsablePhotos, primaryPhoto, sortPhotos, usablePhotoUrl } from "../src/lib/photos";
 import { prisma } from "../src/lib/prisma";
 
 function assert(condition: unknown, message: string) {
@@ -7,6 +7,23 @@ function assert(condition: unknown, message: string) {
 }
 
 async function main() {
+  assert(usablePhotoUrl("/demo/jenny-bumper.svg"), "Demo SVG URLs are usable thumbs");
+  assert(usablePhotoUrl("/api/photos/abc"), "Neon-hosted photo URLs are usable");
+  assert(!usablePhotoUrl(""), "Blank URL is not a thumb");
+  assert(!usablePhotoUrl("pending"), "Pending URL is not a thumb");
+  assert(!usablePhotoUrl("javascript:alert(1)"), "Script URLs are never shown");
+  assert(
+    !primaryPhoto([{ id: "x", url: "   " }]),
+    "Empty URL does not become a board thumb",
+  );
+  assert(
+    primaryPhoto([
+      { id: "empty", url: "" },
+      { id: "ok", url: "/demo/mia-bumper.svg", isPrimary: true },
+    ])?.id === "ok",
+    "Primary thumb skips unusable URLs",
+  );
+
   const withPhotos = await prisma.job.findMany({
     where: {
       id: {
@@ -29,6 +46,10 @@ async function main() {
   for (const job of withPhotos) {
     assert(job.photos.length > 0, `${job.id} should show a repair photo`);
     assert(primaryPhoto(job.photos), `${job.id} needs a primary thumbnail`);
+    assert(
+      usablePhotoUrl(primaryPhoto(job.photos)?.url),
+      `${job.id} primary thumb must be a loadable URL`,
+    );
   }
 
   const jenny = withPhotos.find((job) => job.id === "job-jenny");

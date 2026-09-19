@@ -364,7 +364,7 @@ Photos come from:
 - images attached to the Gmail thread when you add it to the board
 - files you upload on the job (demo and live)
 
-Demo SVGs live in `public/demo/`. Manual uploads go to `public/uploads/` (not committed).
+Demo SVGs live in `public/demo/`. On your computer, manual uploads go to `public/uploads/` (not committed). On Vercel, Gmail attachments and uploads are stored in Neon and served from `/api/photos/…` so job-card thumbs survive serverless disk.
 
 ## Panel scope (critical)
 
@@ -482,7 +482,7 @@ In the same Google Cloud OAuth **Web application** client you used locally:
 
 ### Hosted limits to know
 
-- Repair photos you **upload** on Vercel are ephemeral (serverless disk). Photos already in the repo demo set, and photos pulled from Gmail into the database URL field, are fine. For lasting uploads later, use a blob store.
+- On Vercel, Gmail attachments and **uploads persist in Neon** (not serverless disk) and show on the job card via `/api/photos/…`. Local demo still uses `public/uploads/` plus the repo demo SVGs. A later blob store is optional if photos get large.
 - Daily automations are in `vercel.json` (Adelaide morning via 22:30 UTC). After deploy, Vercel → Project → **Cron Jobs** should list `/api/inbox/sync` and `/api/automations/run`. If those URLs return 401, `CRON_SECRET` is missing or does not match `AUTOMATIONS_SECRET`. Settings → **Run automations now** still works while you are signed in.
 
 A small always-on VPS (SQLite on disk) also works: set the same env vars, `AUTH_URL` to that origin, and add the Google redirect URI.

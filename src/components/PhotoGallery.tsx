@@ -130,11 +130,11 @@ export function PhotoGallery({
             </button>
           </div>
           <div className="flex min-h-0 flex-1 items-center justify-center py-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <PhotoFrame
               src={openPhoto.url}
               alt={photoAlt(openPhoto)}
-              className="max-h-full max-w-full object-contain"
+              fit="contain"
+              className="flex h-full max-h-full w-full max-w-full items-center justify-center bg-black"
             />
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2">

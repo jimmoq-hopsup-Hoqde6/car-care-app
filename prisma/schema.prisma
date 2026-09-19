@@ -66,6 +66,8 @@ model Photo {
   url       String
   filename  String?
   source    String   @default("upload")
+  mimeType  String?
+  bytes     Bytes?
   isPrimary Boolean  @default(false)
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())

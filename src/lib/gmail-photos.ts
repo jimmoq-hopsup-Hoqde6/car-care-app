@@ -1,6 +1,6 @@
 import { prisma } from "./prisma";
 import { getGmail } from "./google";
-import { saveJobImageFile } from "./photo-store";
+import { createJobPhoto } from "./photo-store";
 
 const IMAGE = /^image\/(jpeg|jpg|png|webp|gif)$/i;
 
@@ -63,21 +63,14 @@ export async function importGmailThreadPhotos(jobId: string, threadId?: string |
     }
     if (!buffer) continue;
     try {
-      const saved = await saveJobImageFile({
+      await createJobPhoto({
         jobId,
         buffer,
         mimeType: part.mimeType ?? "image/jpeg",
         filename: part.filename,
-      });
-      await prisma.photo.create({
-        data: {
-          jobId,
-          url: saved.url,
-          filename: saved.filename,
-          source: "gmail",
-          isPrimary: !hasPrimary && created === 0,
-          sortOrder: created,
-        },
+        source: "gmail",
+        isPrimary: !hasPrimary && created === 0,
+        sortOrder: created,
       });
       created += 1;
     } catch {

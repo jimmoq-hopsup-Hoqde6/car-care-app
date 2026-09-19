@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { saveJobImageFile } from "@/lib/photo-store";
+import { createJobPhoto } from "@/lib/photo-store";
 import { prisma } from "@/lib/prisma";
 
 function revalidateJob(jobId: string) {
@@ -28,23 +28,20 @@ export async function addJobPhotosAction(jobId: string, formData: FormData) {
   for (const file of files) {
     if (!file.size) continue;
     const buffer = Buffer.from(await file.arrayBuffer());
-    const saved = await saveJobImageFile({
-      jobId,
-      buffer,
-      mimeType: file.type || "image/jpeg",
-      filename: file.name,
-    });
-    await prisma.photo.create({
-      data: {
+    try {
+      await createJobPhoto({
         jobId,
-        url: saved.url,
-        filename: saved.filename,
+        buffer,
+        mimeType: file.type || "image/jpeg",
+        filename: file.name,
         source: "upload",
         isPrimary: !hasPrimary && added === 0,
         sortOrder: job.photos.length + added,
-      },
-    });
-    added += 1;
+      });
+      added += 1;
+    } catch {
+      // skip a file that is not a usable image
+    }
   }
 
   if (added === 0) {

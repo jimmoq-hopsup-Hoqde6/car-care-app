@@ -31,6 +31,7 @@ export function isPublicPath(pathname: string) {
   if (pathname.startsWith("/brand/")) return true;
   if (pathname.startsWith("/demo/")) return true;
   if (pathname.startsWith("/uploads/")) return true;
+  if (pathname.startsWith("/api/photos/")) return true;
   if (pathname === "/favicon.ico") return true;
   return false;
 }
