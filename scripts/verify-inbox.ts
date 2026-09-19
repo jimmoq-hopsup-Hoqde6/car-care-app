@@ -168,6 +168,15 @@ async function main() {
   assert(
     classifyThread({
       from: "Mobile Car Scratch Repair Adelaide <info@mobilecarscratchrepairadelaide.com.au>",
+      subject: "New Quote Request",
+      snippet:
+        "Customer Details\nName: Pat Lee\nEmail: pat.lee@example.net\nPhone: 0411 222 333\nBumper scratch, Magill. No photos uploaded.",
+    }) === "website_form",
+    "New Quote Request form mail classifies as a website form",
+  );
+  assert(
+    classifyThread({
+      from: "Mobile Car Scratch Repair Adelaide <info@mobilecarscratchrepairadelaide.com.au>",
       subject: "Bumper scratch, Magill",
       snippet: "Name: Michael Stewart\nEmail: michael.stewart@example.net\nBumper scratch.",
     }) === "website_form",
@@ -384,6 +393,33 @@ async function main() {
       "Photo-ask draft is addressed to Michael only",
     );
 
+    const nqrThread = {
+      id: `demo-thread-verify-nqr-${stamp}`,
+      from: "Mobile Car Scratch Repair Adelaide <info@mobilecarscratchrepairadelaide.com.au>",
+      fromEmail: "info@mobilecarscratchrepairadelaide.com.au",
+      subject: "New Quote Request",
+      snippet:
+        "Customer Details\nName: Pat Lee\nEmail: pat.lee@example.net\nPhone: 0411 222 333\nBumper scratch, Magill. Photos attached.",
+      kind: "website_form" as const,
+      ignored: false,
+    };
+    const nqrFirst = await importThreadToBoard(nqrThread);
+    const nqrAgain = await importThreadToBoard(nqrThread);
+    const nqrJob = await prisma.job.findUnique({
+      where: { id: nqrFirst.jobId },
+      include: { automations: true, photos: true },
+    });
+    assert(nqrFirst.created, "New Quote Request form creates a job");
+    assert(!nqrAgain.created && nqrAgain.jobId === nqrFirst.jobId, "New Quote Request import is idempotent");
+    assert(nqrJob?.status === "NEEDS_QUOTE", "New Quote Request lands in Needs quote");
+    assert(nqrJob?.customerEmail === "pat.lee@example.net", "New Quote Request uses customer Email");
+    assert(/Pat/i.test(nqrJob?.customerName ?? ""), "New Quote Request uses customer Name");
+    assert(nqrJob?.customerPhoneE164 === "+61411222333", "New Quote Request stores the mobile");
+    assert(
+      !nqrJob?.automations.some((item) => item.type === "photo_ask"),
+      "Form that says photos attached does not photo-ask",
+    );
+
     await prisma.job.deleteMany({
       where: {
         threadId: {
@@ -392,6 +428,7 @@ async function main() {
             googleThread.id,
             sinchThread.id,
             formThread.id,
+            nqrThread.id,
           ],
         },
       },

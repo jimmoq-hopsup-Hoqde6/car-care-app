@@ -72,6 +72,11 @@ export default async function JobPage({
                 Awaiting photos
               </span>
             ) : null}
+            {job.status === "READY_TO_BOOK" && !job.bookedStart && !job.calendarEventId ? (
+              <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">
+                Ready to book — no date
+              </span>
+            ) : null}
           </div>
           <p className="mt-1 text-stone-600">
             {job.vehicle || "Vehicle not set"} · {job.suburb || "Suburb not set"}

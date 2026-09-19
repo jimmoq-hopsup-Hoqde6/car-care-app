@@ -47,7 +47,7 @@ export default async function InboxPage() {
         <h1 className="text-2xl font-semibold text-ink">Inbox triage</h1>
         <p className="text-sm text-stone-600">
           {live
-            ? "Live Gmail from the last 45 days. Eligible quote, booking and SMS threads are added to the job board automatically. Marketing such as Manheim stays ignored."
+            ? "Live Gmail from the last 45 days. Eligible quote, New Quote Request forms, booking and SMS threads are added to the job board automatically. Marketing such as Manheim stays ignored."
             : isGoogleConfigured()
               ? "Showing sample threads until you connect Google. Eligible ones still land on the demo board automatically."
               : "Demo threads. Eligible quote requests are added to the board automatically. Add Google OAuth keys in .env to use the live inbox."}

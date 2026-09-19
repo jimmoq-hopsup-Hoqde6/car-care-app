@@ -152,7 +152,7 @@ async function main() {
       suburb: "Glenelg",
       address: "41 Jetty Road, Glenelg SA 5045",
       damageNotes:
-        "Rear quarter panel scratch, passenger side. Happy with the quote — wants to lock in a day.",
+        "Rear quarter panel scratch, passenger side. Happy with the quote — Yes, Wednesday afternoon is fine.",
       repairItems: JSON.stringify(["Rear quarter panel scratch"]),
       channel: "email",
       threadId: "demo-thread-john",
@@ -338,6 +338,8 @@ async function main() {
           bookedEnd: null,
           calendarEventId: null,
           suburb: "Glenelg",
+          damageNotes:
+            "Rear quarter panel scratch, passenger side. Happy with the quote — Yes, Wednesday afternoon is fine.",
           lastCustomerReplyAt: adelaideAt(1, 16, 32),
           lastActivityAt: adelaideAt(1, 16, 32),
         },

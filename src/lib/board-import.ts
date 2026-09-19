@@ -8,7 +8,7 @@ import {
   needsBookingApproval,
   type InboxThread,
 } from "./inbox";
-import { notifyBookingApproval } from "./notifications";
+import { notifyBookingApproval, syncInboxNotifications } from "./notifications";
 import { prisma } from "./prisma";
 import { detectOutOfScope } from "./scope";
 import { getSettings } from "./settings";
@@ -82,6 +82,7 @@ export async function importThreadToBoard(thread: InboxThread): Promise<{
       gmailThreadId: liveThreadId,
       status,
       lastActivityAt: new Date(),
+      lastCustomerReplyAt: bookingReply ? new Date() : undefined,
       outOfScope,
     },
   });
@@ -143,6 +144,11 @@ export async function importEligibleInbox(): Promise<{
     };
   }
   const result = await autoImportEligibleInbox(listed.threads);
+  try {
+    await syncInboxNotifications(result.threads);
+  } catch {
+    // Booking alerts are best-effort; the board still loads.
+  }
   return {
     threads: result.threads,
     imported: result.imported,

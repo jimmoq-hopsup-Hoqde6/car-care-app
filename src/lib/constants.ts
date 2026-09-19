@@ -45,7 +45,7 @@ export const STATUS_LABELS: Record<JobStatusValue, string> = {
 export const STATUS_HELP: Record<JobStatusValue, string> = {
   NEEDS_QUOTE: "Photos or notes in — you still need to type a price",
   AWAITING_CUSTOMER: "Quote drafted or sent — waiting on a reply",
-  READY_TO_BOOK: "Customer accepted — pick a free slot",
+  READY_TO_BOOK: "Accepted — no calendar date until you book",
   BOOKED: "Calendar event created",
   DONE: "Repair finished",
 };

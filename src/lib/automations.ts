@@ -16,7 +16,7 @@ import { isDemoMode } from "./env";
 import { syncJobGmailLabelById } from "./gmail-labels";
 import { createGmailDraft, encodeRfc822 } from "./google";
 import { getStoredOAuthClient } from "./google-tokens";
-import { hasUsablePhotos } from "./photos";
+import { formSaysHasPhotos, hasUsablePhotos } from "./photos";
 import { ownerMobileE164, toE164Au } from "./phone";
 import { parseRepairItems } from "./quote";
 import { detectOutOfScope } from "./scope";
@@ -317,7 +317,9 @@ async function processPhotoAndScope(
 
   if (outOfScope) return queued;
 
-  const usablePhotos = hasUsablePhotos(job.photos, job.damageNotes);
+  const usablePhotos =
+    hasUsablePhotos(job.photos, job.damageNotes) ||
+    formSaysHasPhotos(job.damageNotes);
   const photoTo = customerRecipientOrNull(
     job.customerEmail,
     settings.businessEmail,

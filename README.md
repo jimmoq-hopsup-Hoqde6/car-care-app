@@ -15,20 +15,20 @@ The job-desk header uses Marcel's business-card lockup (black background, white 
 ## What you can do
 
 - **Phone / web login** — hosted mode shows a branded Google Sign-In page; only Marcel's allowlisted accounts get in. Local demo stays open. See [Deploy for phone access](#deploy-for-phone-access).
-- **Job board** — Needs quote, Awaiting customer, Ready to book, Booked, Done. Each card shows a **repair photo** thumbnail (or “No repair photo”) and **last activity** in Adelaide time (`Last: 19 Sep · 11:58 am`). Toggle **Newest activity** or **Stalled first**.
+- **Job board** — Needs quote, Awaiting customer, Ready to book, Booked, Done. Cards show last activity, suburb, quote $, and a **Ready to book — no date** waiting badge. Toggle **Needs your reply** (forgotten bookings first), **Newest activity**, or **Stalled first**.
 - **Inbox triage** — quote requests, website forms, booking replies and SMS **land on the job board automatically** when you open the (empty) job board, open Inbox, tap **Sync inbox now**, or hit `/api/inbox/sync` (same cron secret as automations). Marketing such as Manheim, Google security alerts, and Sinch tickets are never added. Website forms that arrive from `info@` import the customer **Name / Email / Phone** (or Reply-To), never `info@` itself. If Gmail fails, the desk shows a reconnect message instead of crashing.
-- **Notifications** — unread booking approvals sit in an amber bar on the job board and on Alerts (phone tab badge). Nothing is auto-sent.
+- **Notifications** — **Needs your reply** stays on the board and Alerts until a calendar date exists (marking an alert read does not hide the job). Quotes and bookings still never auto-send.
 - **Quote composer** — you enter the price or tap **Accept suggestion**; the email uses Marcel's locked standard (first-name greeting, 30-day validity, mobile number ask). Suggestions never send themselves.
 - **Booking picker** — next 14 weekdays, default 8:00 am–4:00 pm, 3-hour jobs; recommends slots near other booked jobs in nearby Adelaide suburbs; creates a Calendar event and a confirmation draft
 - **SMS** — same job card as email, via MessageMedia on **0435 222 221**. Unknown numbers become Needs quote. Live webhook: `https://car-care-app-green.vercel.app/api/sms/messagemedia`.
 - **Gmail labels** — one stage label at a time: Quote request, Awaiting customer, Ready to book, Booked, Follow-up / Review. Label changes never send email.
 
-## Expert workflow (phone)
+## Expert workflow (phone) — a day in the life
 
 1. Sign in with an allowlisted Google account (hosted) or open the demo locally.
-2. If the board is empty, tap **Sync inbox now** (Settings, Inbox, or the empty-board card) so Neon is not stuck on All (0). Opening the job board after sign-in also auto-imports when there are no jobs yet.
-3. **Needs quote** → open the job → **Write quote** → Accept suggestion or type the price → **Save draft** or **Send**. Quotes never auto-send.
-4. **Ready to book** (Alerts) → **Pick a slot** (suburb-aware) → confirmation draft. Booking confirms never auto-send.
+2. If the board is empty, tap **Sync inbox now** so website **New Quote Request** forms and booking replies land on the board. Opening the empty job board after sign-in also auto-imports.
+3. The amber **Needs your reply** strip lists every **Ready to book — no date** job (they accepted or asked “when can you come?” and there is still no Calendar event). Age is since the last customer message. Tap **Offer dates** or **Confirm booking**. Quotes and booking confirms never auto-send.
+4. **Needs quote** → **Write quote** → Accept suggestion or type the price → **Save draft** or **Send**. New form leads show the customer’s name/email, not `info@`. Photo-asks stay drafts and only go to a real customer inbox.
 5. SMS stays on the same job. Failed sends explain an unauthorised 0435 222 221 if MessageMedia rejected the sender.
 
 Settings **Connection health** shows Google login, Gmail token, Calendar, MessageMedia, and the owner mobile.

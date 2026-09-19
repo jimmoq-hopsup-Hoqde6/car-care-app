@@ -119,6 +119,9 @@ export function classifyThread(input: {
     haystack.includes("website") ||
     haystack.includes("contact form") ||
     haystack.includes("enquiry from") ||
+    haystack.includes("new quote request") ||
+    haystack.includes("quote request") ||
+    haystack.includes("customer details") ||
     (/(?:^|\n)\s*(?:full )?name\s*[:\-]/i.test(`${input.subject}\n${input.snippet}`) &&
       /(?:^|\n)\s*(?:e-?mail|customer e-?mail)\s*[:\-]/i.test(
         `${input.subject}\n${input.snippet}`,

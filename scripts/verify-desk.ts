@@ -1,4 +1,10 @@
 import { nextActionForJob } from "../src/lib/job-next";
+import {
+  bookingNextCta,
+  forgottenReadyToBook,
+  isReadyToBookNoDate,
+  waitingSinceLabel,
+} from "../src/lib/booking-ops";
 import { isPublicPath } from "../src/lib/auth.config";
 import { cronAuthorised } from "../src/lib/cron-auth";
 import { friendlyInboxError } from "../src/lib/inbox";
@@ -34,8 +40,18 @@ async function main() {
     quoteAmount: 520,
     outOfScope: false,
   });
-  assert(/booking approval/i.test(book.sentence), "Ready to book mentions approval");
+  assert(/no calendar date/i.test(book.sentence), "Ready to book mentions no date");
   assert(book.href === "/jobs/job-y/book", "Ready to book CTA goes to picker");
+  assert(book.cta === "Offer dates", "Generic ready-to-book CTA is Offer dates");
+
+  const confirm = nextActionForJob({
+    id: "job-y2",
+    status: "READY_TO_BOOK",
+    quoteAmount: 520,
+    outOfScope: false,
+    damageNotes: "Yes, Wednesday afternoon is fine.",
+  });
+  assert(confirm.cta === "Confirm booking", "Named-time reply CTA is Confirm booking");
 
   const oos = nextActionForJob({
     id: "job-z",
@@ -152,6 +168,16 @@ async function main() {
     ),
     "Health shows owner mobile 0435 222 221",
   );
+
+  const john = await prisma.job.findUnique({ where: { id: "job-john" } });
+  const mia = await prisma.job.findUnique({ where: { id: "job-mia" } });
+  assert(john && isReadyToBookNoDate(john), "John is ready to book with no calendar date");
+  assert(mia && isReadyToBookNoDate(mia), "Mia is ready to book with no calendar date");
+  assert(bookingNextCta(john!) === "Confirm booking", "John named a time");
+  assert(bookingNextCta(mia!) === "Offer dates", "Mia still needs dates offered");
+  const forgotten = forgottenReadyToBook([john!, mia!]);
+  assert(forgotten[0]?.id === "job-mia", "Oldest waiting ready-to-book is first");
+  assert(/Waiting/.test(waitingSinceLabel(john!)), "John shows a waiting badge");
 
   const stamp = Date.now().toString().slice(-8);
   const from = `0418${stamp.slice(0, 6)}`.slice(0, 10);

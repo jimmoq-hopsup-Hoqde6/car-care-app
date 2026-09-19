@@ -35,6 +35,14 @@ export function formSaysNoPhotos(text?: string | null) {
   );
 }
 
+/** Website form / email text that says pictures were included. */
+export function formSaysHasPhotos(text?: string | null) {
+  if (formSaysNoPhotos(text)) return false;
+  return /photos attached|photo attached|photos uploaded|pictures attached|images attached/i.test(
+    text ?? "",
+  );
+}
+
 export function hasUsablePhotos(
   photos: Array<{ id?: string; url?: string | null }>,
   notes?: string | null,

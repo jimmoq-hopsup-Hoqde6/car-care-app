@@ -4,6 +4,7 @@ import {
   jobEventDescription,
   listAvailableSlots,
 } from "../src/lib/booking";
+import { forgottenReadyToBook, isReadyToBookNoDate } from "../src/lib/booking-ops";
 import { OWNER_MOBILE } from "../src/lib/constants";
 import { prisma } from "../src/lib/prisma";
 import { recommendSlots } from "../src/lib/recommendations";
@@ -73,6 +74,17 @@ async function main() {
   }
   if (!confirmation.includes("Marcel Kuhn")) {
     throw new Error("Confirmation must sign off Marcel Kuhn.");
+  }
+
+  const ready = await prisma.job.findMany({
+    where: { status: JobStatus.READY_TO_BOOK },
+  });
+  const forgotten = forgottenReadyToBook(ready);
+  if (forgotten.length < 2) {
+    throw new Error("Expected John and Mia as ready-to-book with no date.");
+  }
+  if (!forgotten.every(isReadyToBookNoDate)) {
+    throw new Error("Forgotten ready-to-book jobs must have no calendar event.");
   }
 
   const eventBody = jobEventDescription({

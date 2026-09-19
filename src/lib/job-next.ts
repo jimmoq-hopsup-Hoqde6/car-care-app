@@ -1,4 +1,5 @@
 import type { JobStatus } from "@prisma/client";
+import { bookingNextCta, isReadyToBookNoDate } from "./booking-ops";
 
 export type JobNextAction = {
   sentence: string;
@@ -14,6 +15,11 @@ type JobLike = {
   outOfScope?: boolean | null;
   photoAskSentAt?: Date | null;
   bookedStart?: Date | null;
+  calendarEventId?: string | null;
+  lastCustomerReplyAt?: Date | null;
+  lastActivityAt?: Date | null;
+  updatedAt?: Date | null;
+  damageNotes?: string | null;
   photos?: { id: string }[];
   drafts?: { type: string; sentAt: Date | null }[];
 };
@@ -78,11 +84,16 @@ export function nextActionForJob(job: JobLike): JobNextAction {
   }
 
   if (job.status === "READY_TO_BOOK") {
+    const cta = bookingNextCta(job);
+    const noDate = isReadyToBookNoDate(job);
     return {
-      sentence:
-        "They are waiting for your booking approval. Pick a suburb-aware slot, then save the confirmation draft (it will not send itself).",
+      sentence: noDate
+        ? cta === "Confirm booking"
+          ? "They named a time. Confirm booking — Ready to book, no calendar date yet. The confirmation draft will not send itself."
+          : "They asked to book. Offer dates — Ready to book, no calendar date yet. The confirmation draft will not send itself."
+        : "They are waiting for your booking approval. Pick a suburb-aware slot, then save the confirmation draft (it will not send itself).",
       href: bookHref,
-      cta: "Pick a slot",
+      cta,
       tone: "go",
     };
   }
