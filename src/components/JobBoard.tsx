@@ -129,7 +129,7 @@ export function JobBoard({
       {unreadApprovals > 0 ? (
         <Link
           href="/notifications"
-          className="flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-ink"
+          className="flex min-h-11 flex-col gap-2 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-ink sm:flex-row sm:items-center sm:justify-between"
         >
           <span>
             {unreadApprovals} waiting for your booking approval
