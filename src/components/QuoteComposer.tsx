@@ -55,21 +55,6 @@ export function QuoteComposer({ job, priceBands, items }: Props) {
             {job.vehicle} · {job.suburb}
           </p>
           <p className="mt-2 text-sm text-stone-600">{job.damageNotes}</p>
-          {job.photos.length > 0 ? (
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              {job.photos.map((photo) => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  key={photo.id}
-                  src={photo.url}
-                  alt={photo.filename ?? "Damage photo"}
-                  width={240}
-                  height={96}
-                  className="h-24 w-full rounded-xl bg-stone-200 object-cover ring-1 ring-line"
-                />
-              ))}
-            </div>
-          ) : null}
         </div>
 
         <div className="rounded-2xl border border-line bg-card p-4">

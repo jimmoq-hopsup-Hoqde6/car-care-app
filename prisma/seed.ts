@@ -171,7 +171,7 @@ async function main() {
       completedAt: completedSince,
       lastOutboundAt: daysAgo(5),
       lastActivityAt: adelaideAt(2, 15, 40),
-      photos: [] as { url: string; filename: string }[],
+      photos: [{ url: "/demo/priya-door.svg", filename: "mazda-door-ding.jpg" }],
     },
     {
       id: "job-mia",
@@ -191,6 +191,46 @@ async function main() {
       isDemo: true,
       lastCustomerReplyAt: adelaideAt(2, 13, 18),
       lastActivityAt: adelaideAt(2, 13, 18),
+      photos: [{ url: "/demo/mia-bumper.svg", filename: "corolla-bumper.jpg" }],
+    },
+    {
+      id: "job-jamie",
+      customerName: "Jamie Collis",
+      customerEmail: "jamie_collis@outlook.com",
+      customerPhone: "0468 923 953",
+      vehicle: "Panel repair — bonnet",
+      suburb: "Paradise",
+      address: "12 Silkes Road, Paradise SA 5075",
+      damageNotes:
+        "Website form: scratches on bonnet, ceramic coating has been applied prior to damage. Form showed: No photos uploaded. Service: Panel Repair.",
+      repairItems: JSON.stringify(["Scratches on bonnet"]),
+      channel: "website",
+      threadId: "demo-thread-jamie",
+      status: JobStatus.NEEDS_QUOTE,
+      quoteAmount: null as number | null,
+      isDemo: true,
+      outOfScope: true,
+      lastActivityAt: adelaideAt(0, 8, 40),
+      photos: [] as { url: string; filename: string }[],
+    },
+    {
+      id: "job-sam",
+      customerName: "Sam Vella",
+      customerEmail: "sam.vella@example.com",
+      customerPhone: "0412 334 880",
+      vehicle: "Subaru Forester — driver door",
+      suburb: "Norwood",
+      address: "40 The Parade, Norwood SA 5067",
+      damageNotes:
+        "Website form: long scratch on the driver door. No photos uploaded.",
+      repairItems: JSON.stringify(["Driver door scratch"]),
+      channel: "website",
+      threadId: "demo-thread-sam",
+      status: JobStatus.NEEDS_QUOTE,
+      quoteAmount: null as number | null,
+      isDemo: true,
+      outOfScope: false,
+      lastActivityAt: adelaideAt(0, 8, 55),
       photos: [] as { url: string; filename: string }[],
     },
   ];
@@ -265,6 +305,26 @@ async function main() {
         data: {
           status: JobStatus.NEEDS_QUOTE,
           lastActivityAt: adelaideAt(0, 9, 14),
+        },
+      });
+    }
+    if (job.id === "job-jamie") {
+      await prisma.job.update({
+        where: { id: job.id },
+        data: {
+          status: JobStatus.NEEDS_QUOTE,
+          outOfScope: true,
+          lastActivityAt: adelaideAt(0, 8, 40),
+        },
+      });
+    }
+    if (job.id === "job-sam") {
+      await prisma.job.update({
+        where: { id: job.id },
+        data: {
+          status: JobStatus.NEEDS_QUOTE,
+          outOfScope: false,
+          lastActivityAt: adelaideAt(0, 8, 55),
         },
       });
     }
@@ -348,8 +408,40 @@ async function main() {
     });
   }
 
+  const demoPhotos: Record<string, { url: string; filename: string }[]> = {
+    "job-jenny": [
+      { url: "/demo/jenny-bumper.svg", filename: "bmw-bumper.jpg" },
+      { url: "/demo/jenny-bumper-close.svg", filename: "bmw-bumper-close.jpg" },
+    ],
+    "job-nathan": [{ url: "/demo/nathan-door.svg", filename: "outlander-door.jpg" }],
+    "job-john": [{ url: "/demo/john-quarter.svg", filename: "crv-quarter.jpg" }],
+    "job-mia": [{ url: "/demo/mia-bumper.svg", filename: "corolla-bumper.jpg" }],
+    "job-priya": [{ url: "/demo/priya-door.svg", filename: "mazda-door-ding.jpg" }],
+    "job-liam": [{ url: "/demo/liam-tailgate.svg", filename: "hilux-tailgate.jpg" }],
+    "job-tom": [{ url: "/demo/tom-bumper.svg", filename: "ranger-bumper.jpg" }],
+    "job-eve": [{ url: "/demo/eve-door.svg", filename: "i30-door.jpg" }],
+  };
+  for (const [jobId, photos] of Object.entries(demoPhotos)) {
+    const existing = await prisma.photo.count({ where: { jobId } });
+    if (existing > 0) continue;
+    for (const [index, photo] of photos.entries()) {
+      await prisma.photo.create({
+        data: {
+          jobId,
+          url: photo.url,
+          filename: photo.filename,
+          source: "demo",
+          isPrimary: index === 0,
+          sortOrder: index,
+        },
+      });
+    }
+  }
+
   const demoActivity: Record<string, Date> = {
     "job-jenny": adelaideAt(0, 9, 14),
+    "job-sam": adelaideAt(0, 8, 55),
+    "job-jamie": adelaideAt(0, 8, 40),
     "job-john": adelaideAt(1, 16, 32),
     "job-eve": adelaideAt(1, 11, 5),
     "job-mia": adelaideAt(2, 13, 18),
@@ -396,8 +488,12 @@ async function main() {
     });
   }
 
+  const { runPhotoAndScopeAutomations } = await import("../src/lib/automations");
+  await runPhotoAndScopeAutomations("job-jamie");
+  await runPhotoAndScopeAutomations("job-sam");
+
   console.log(
-    "Seeded demo jobs: Jenny, Nathan, John, Mia, Priya, plus booked neighbours (Stirling, Brighton, Somerton Park) and booking-approval notifications.",
+    "Seeded demo jobs: Jenny, Nathan, John, Mia, Priya, Jamie (bonnet, out of scope), Sam (door, photo ask), plus booked neighbours (Stirling, Brighton, Somerton Park) and booking-approval notifications.",
   );
 }
 

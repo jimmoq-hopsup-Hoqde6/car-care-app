@@ -170,6 +170,33 @@ export function demoInboxThreads(): InboxThread[] {
       },
       "ready_to_book",
     ),
+    withDeskLabel(
+      {
+        id: "demo-thread-jamie",
+        from: "Jamie Collis <jamie_collis@outlook.com>",
+        fromEmail: "jamie_collis@outlook.com",
+        subject: "Website enquiry — panel repair, Paradise",
+        snippet:
+          "Scratches on bonnet, ceramic coating has been applied prior to damage. No photos uploaded.",
+        kind: "website_form",
+        ignored: false,
+        jobId: "job-jamie",
+      },
+      "quote_request",
+    ),
+    withDeskLabel(
+      {
+        id: "demo-thread-sam",
+        from: "Sam Vella <sam.vella@example.com>",
+        fromEmail: "sam.vella@example.com",
+        subject: "Website enquiry — door scratch, Norwood",
+        snippet: "Long scratch on the driver door. No photos uploaded.",
+        kind: "website_form",
+        ignored: false,
+        jobId: "job-sam",
+      },
+      "quote_request",
+    ),
     {
       id: "demo-thread-manheim",
       from: "Manheim <noreply@manheim.com.au>",

@@ -2,6 +2,7 @@ import { JobStatus } from "@prisma/client";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BookingPicker } from "@/components/BookingPicker";
+import { PhotoGallery } from "@/components/PhotoGallery";
 import { jobEventTitle, listAvailableSlots } from "@/lib/booking";
 import { prisma } from "@/lib/prisma";
 import { recommendSlots } from "@/lib/recommendations";
@@ -12,7 +13,10 @@ export default async function BookPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const job = await prisma.job.findUnique({ where: { id } });
+  const job = await prisma.job.findUnique({
+    where: { id },
+    include: { photos: true },
+  });
   if (!job) notFound();
   const [openSlots, bookedJobs] = await Promise.all([
     listAvailableSlots(14),
@@ -66,6 +70,7 @@ export default async function BookPage({
           hours. Recommended times sit near other jobs the same day.
         </p>
       </div>
+      <PhotoGallery jobId={job.id} photos={job.photos} compact />
       <BookingPicker job={job} slots={slots} eventTitle={jobEventTitle(job)} />
     </div>
   );

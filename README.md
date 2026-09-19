@@ -4,7 +4,7 @@ A local web app for **Marcel Kuhn** to turn quote requests into drafts and booki
 
 It does **not** invent prices. You type the figure. **Quotes and booking confirmations never send unless you tap Send.** The usual path is: write quote → save Gmail draft → pick a free calendar slot → save a confirmation draft.
 
-Two follow-on emails can send on a schedule (see [Automations](#automations-what-sends-on-its-own)): a nudge if a quote sits unanswered, and a Google review ask after a job is marked Done.
+A few follow-on emails can send on a schedule (see [Automations](#automations-what-sends-on-its-own)): a nudge if a quote sits unanswered, a Google review ask after a job is marked Done, and a photo request when a quote has no damage pictures. Quotes and booking confirmations still never auto-send.
 
 Timezone: **Australia/Adelaide**  
 From address: **Info@mobilecarscratchrepairadelaide.com.au**  
@@ -14,14 +14,14 @@ The job-desk header uses Marcel's business-card lockup (black background, white 
 
 ## What you can do
 
-- **Job board** — Needs quote, Awaiting customer, Ready to book, Booked, Done. Each card shows **last activity** in Adelaide time (`Last: 19 Sep · 11:58 am`). Toggle **Newest activity** or **Stalled first**.
+- **Job board** — Needs quote, Awaiting customer, Ready to book, Booked, Done. Each card shows a **repair photo** thumbnail (or “No repair photo”) and **last activity** in Adelaide time (`Last: 19 Sep · 11:58 am`). Toggle **Newest activity** or **Stalled first**.
 - **Inbox triage** — quote requests, website form leads, booking replies; marketing such as Manheim is ignored. Existing Gmail job-desk labels seed the job status.
 - **Gmail labels** — one stage label at a time: Quote request, Awaiting customer, Ready to book, Booked, Follow-up / Review. Label changes never send email.
 - **Notifications** — when a customer accepts a quote or asks to book, a badge tells you they are waiting for your booking approval (nothing is auto-sent)
 - **Quote composer** — you enter the price; the email uses Marcel's locked standard (first-name greeting, 30-day validity, mobile number ask)
 - **Booking picker** — next 14 weekdays, default 8:00 am–4:00 pm, 3-hour jobs; recommends slots near other booked jobs in nearby Adelaide suburbs; creates a Calendar event and a confirmation draft
 
-Sample jobs load automatically: **Jenny Gwynne (BMW bumper, Crafers)**, **Nathan Crowe (Outlander, Unley, follow-up due)**, **John Hale (Honda CR-V, Glenelg, waiting for booking approval)**, **Mia Chen (Corolla, Goodwood, waiting for booking approval)**, **Priya Nair (Mazda 3, Norwood, review ask due)**, plus booked neighbours in **Stirling, Brighton and Somerton Park** so recommendations show in demo.
+Sample jobs load automatically: **Jenny Gwynne (BMW bumper, Crafers)**, **Nathan Crowe (Outlander, Unley, follow-up due)**, **John Hale (Honda CR-V, Glenelg, waiting for booking approval)**, **Mia Chen (Corolla, Goodwood, waiting for booking approval)**, **Priya Nair (Mazda 3, Norwood, review ask due)**, **Jamie Collis (Paradise bonnet, out of scope, no photos)**, **Sam Vella (Norwood door, photo ask queued)**, plus booked neighbours in **Stirling, Brighton and Somerton Park** so recommendations show in demo.
 
 ## Run it on your computer (demo, no Google)
 
@@ -49,6 +49,8 @@ npm run booking:verify      # confirm demo alerts + suburb-aware slot recommenda
 npm run quote:verify        # confirm the locked quote template wording
 npm run labels:verify       # confirm Gmail job-desk label mapping (no email)
 npm run activity:verify     # confirm last-activity Adelaide formatting + seeded dates
+npm run photos:verify       # confirm demo repair photos + Jamie/Sam intake
+npm run scope:verify        # confirm bonnet/roof out of scope + photo-ask/decline copy
 npm run verify              # run all of the checks above
 ```
 
@@ -200,16 +202,20 @@ Mobile Car Scratch Repair Adelaide
 - Quote emails
 - Booking confirmation emails
 
-**May auto-send (only these two):**
+**May auto-send:**
 
 | Rule | When | Default |
 | --- | --- | --- |
 | Follow-up | Job is **Awaiting customer** (quote sent or waiting) and there has been no customer reply for **2 days** | `FOLLOW_UP_DAYS=2` |
 | Google review ask | The day after you mark a job **Booked → Done** (or otherwise Done) | `REVIEW_ASK_DAYS_AFTER_JOB=1` |
+| Photo ask | Quote request is **in scope** and has **no usable repair photos** | Settings toggle on |
+| Out-of-scope decline | Incoming quote is clearly a **bonnet or roof** | Draft only (toggle off) |
 
 The review email includes Marcel's Google review link (`GOOGLE_REVIEW_URL`, default `https://maps.app.goo.gl/UJcUi9ouWQaVn71D8?g_st=ic`). Change it on Settings if the Maps link ever moves.
 
-Each job stores `lastOutboundAt`, `followUpSentAt`, and `reviewAskSentAt` so the same email is not sent twice. You can **Skip** a follow-up or review ask on the job page. The board shows Pending / Sent / Skipped / Waiting.
+Photo-ask and decline emails use a first-name greeting and sign off Marcel Kuhn / Mobile Car Scratch Repair Adelaide / 0435 222 221. They never include a price. Each job stores `photoAskSentAt` and `declinedAt` so the same email is not sent twice.
+
+Each job stores `lastOutboundAt`, `followUpSentAt`, and `reviewAskSentAt` so the same follow-up / review is not sent twice. You can **Skip** a follow-up or review ask on the job page. The board shows Pending / Sent / Skipped / Waiting.
 
 ### How the schedule runs
 
@@ -240,17 +246,41 @@ Marcel's owner mobile for a later SMS phase is **0435222221** (`OWNER_MOBILE` in
 Every job stores `lastActivityAt` (Australia/Adelaide). It is the newest of:
 
 - last inbound customer message
-- last outbound quote, booking confirmation, follow-up, or review email (drafted or sent)
+- last outbound quote, booking confirmation, follow-up, review, photo-ask, or decline email (drafted or sent)
 - last status change
 - last booking-slot action
+- last repair-photo upload
 
 The board and the job page show it as `Today · 11:58 am`, `Yesterday · 4:32 pm`, or `Wed 17 Sep · 4:32 pm`. Demo jobs are seeded with staggered times so stalled threads are easy to spot.
+
+## Repair photos
+
+Every job card uses the **primary** damage shot as a thumbnail so Marcel can see the panel before driving out. The job, quote, and booking screens show a gallery — tap for full size, swipe previous/next, and mark another shot as the board thumbnail.
+
+Photos come from:
+
+- images attached to the Gmail thread when you add it to the board
+- files you upload on the job (demo and live)
+
+Demo SVGs live in `public/demo/`. Manual uploads go to `public/uploads/` (not committed).
+
+## Panel scope
+
+**Out of scope (do not quote, do not auto-ask for photos):** bonnets and roofs — the only horizontal panels this mobile service cannot repair.
+
+**In scope:** doors, bumpers, guards/fenders, quarters, **tailgates** and **tailgate spoilers**. A tailgate is not the roof.
+
+A polite decline draft is prepared (not sent unless **Auto-send out-of-scope declines** is on). Wording:
+
+> With our mobile service, the only panels we are unable to repair are the horizontal ones — the bonnet and the roof.
 
 ## Settings you can change in the app
 
 - Weekdays and hours (default Monday–Friday 8:00–16:00 Adelaide)
 - Job length (default 3 hours)
 - Follow-up days, review-ask days, and Google review URL
+- Auto-ask for photos when missing (default on)
+- Auto-send out-of-scope declines (default off — draft only)
 - Optional price bands (minor scratch / bumper / multi-panel) — only used if **you** store a rate
 
 ## Deploy later

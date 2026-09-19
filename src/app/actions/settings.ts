@@ -33,6 +33,8 @@ export async function saveSettingsAction(formData: FormData) {
       googleReviewUrl:
         String(formData.get("googleReviewUrl") ?? "").trim() ||
         DEFAULT_GOOGLE_REVIEW_URL,
+      autoAskPhotos: formData.get("autoAskPhotos") === "on",
+      autoDeclineOutOfScope: formData.get("autoDeclineOutOfScope") === "on",
     },
   });
 

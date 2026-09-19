@@ -13,7 +13,11 @@ export default function NewJobPage() {
           Leave the price blank. You add that on the quote screen.
         </p>
       </div>
-      <form action={createJob} className="space-y-3 rounded-2xl border border-line bg-card p-4">
+      <form
+        action={createJob}
+        encType="multipart/form-data"
+        className="space-y-3 rounded-2xl border border-line bg-card p-4"
+      >
         <Field name="customerName" label="Customer name" required />
         <Field name="customerEmail" label="Email" type="email" />
         <Field name="customerPhone" label="Phone" />
@@ -47,6 +51,20 @@ export default function NewJobPage() {
             className="mt-1 w-full rounded-xl border border-line bg-white px-3 py-2"
             placeholder="Front bumper scratch"
           />
+        </label>
+        <label className="block text-sm font-medium text-ink">
+          Repair photos
+          <input
+            name="photos"
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            multiple
+            className="mt-1 block w-full text-sm"
+          />
+          <span className="mt-1 block text-xs font-normal text-stone-500">
+            Optional. Add the damage shots so you know the panel before you
+            drive out.
+          </span>
         </label>
         <button
           type="submit"

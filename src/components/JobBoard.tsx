@@ -12,6 +12,7 @@ import {
 import type { AutomationSettings } from "@/lib/automation-status";
 import { activityMillis, formatLastActivity } from "@/lib/activity";
 import { formatAUD } from "@/lib/money";
+import { primaryPhoto } from "@/lib/photos";
 import { AutomationBadges } from "./AutomationBadges";
 import { StatusBadge } from "./StatusBadge";
 
@@ -195,44 +196,54 @@ function JobCard({
   job: JobWithPhotos;
   settings: AutomationSettings;
 }) {
-  const photo = job.photos[0];
+  const photo = primaryPhoto(job.photos);
   return (
     <Link
       href={`/jobs/${job.id}`}
-      className="block rounded-2xl border border-line bg-card p-3 shadow-sm hover:border-teal/40"
+      className="block overflow-hidden rounded-2xl border border-line bg-card shadow-sm hover:border-teal/40"
     >
-      <div className="flex gap-3">
+      <div className="relative bg-stone-200">
         {photo ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={photo.url}
-            alt=""
-            width={56}
-            height={56}
-            className="h-14 w-14 rounded-xl bg-stone-200 object-cover ring-1 ring-line"
+            alt={`${job.customerName} repair photo`}
+            width={320}
+            height={180}
+            className="h-28 w-full object-cover sm:h-24"
           />
         ) : (
-          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-stone-100 text-[10px] text-stone-400">
-            No photo
+          <div className="flex h-28 items-center justify-center text-xs font-medium text-stone-500 sm:h-24">
+            No repair photo
           </div>
         )}
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <p className="truncate font-semibold text-ink">{job.customerName}</p>
-            <StatusBadge status={job.status} />
-          </div>
-          <p className="truncate text-xs text-stone-500">
-            Last: {formatLastActivity(job.lastActivityAt ?? job.updatedAt, new Date(), { compact: true })}
-          </p>
-          <p className="truncate text-sm text-stone-600">
-            {job.vehicle || "Vehicle not set"}
-          </p>
-          <p className="truncate text-xs text-stone-500">
-            {job.suburb || "Suburb not set"}
-            {job.quoteAmount != null ? ` · ${formatAUD(job.quoteAmount)}` : ""}
-          </p>
-          <AutomationBadges job={job} settings={settings} />
+        {job.photos.length > 1 ? (
+          <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-semibold text-white">
+            {job.photos.length} photos
+          </span>
+        ) : null}
+        {job.outOfScope ? (
+          <span className="absolute left-1.5 top-1.5 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-semibold text-ink">
+            Out of scope
+          </span>
+        ) : null}
+      </div>
+      <div className="p-3">
+        <div className="flex items-start justify-between gap-2">
+          <p className="truncate font-semibold text-ink">{job.customerName}</p>
+          <StatusBadge status={job.status} />
         </div>
+        <p className="truncate text-xs text-stone-500">
+          Last: {formatLastActivity(job.lastActivityAt ?? job.updatedAt, new Date(), { compact: true })}
+        </p>
+        <p className="truncate text-sm text-stone-600">
+          {job.vehicle || "Vehicle not set"}
+        </p>
+        <p className="truncate text-xs text-stone-500">
+          {job.suburb || "Suburb not set"}
+          {job.quoteAmount != null ? ` · ${formatAUD(job.quoteAmount)}` : ""}
+        </p>
+        <AutomationBadges job={job} settings={settings} />
       </div>
     </Link>
   );

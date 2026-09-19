@@ -92,9 +92,10 @@ export default async function SettingsPage() {
       <section className="rounded-2xl border border-line bg-card p-4">
         <h2 className="font-semibold text-ink">Automations</h2>
         <p className="mt-1 text-sm text-stone-600">
-          Only two emails can send without a tap: a follow-up on a quiet quote,
-          and a Google review ask the day after a job is marked Done. Quotes and
-          booking confirmations still need you to press Send.
+          Quotes and booking confirmations still need you to press Send. A
+          follow-up, review ask, and missing-photo request may send on their
+          own. Out-of-scope declines stay as drafts unless you turn auto-decline
+          on.
         </p>
         <p className="mt-2 text-xs text-stone-500">
           Demo mode queues those emails on the job and never sends them. Live
@@ -111,7 +112,15 @@ export default async function SettingsPage() {
               <li key={event.id} className="rounded-xl bg-white px-3 py-2">
                 <span className="font-medium">{event.job.customerName}</span>
                 {" · "}
-                {event.type === "follow_up" ? "Follow-up" : "Review ask"}
+                {event.type === "follow_up"
+                  ? "Follow-up"
+                  : event.type === "review_ask"
+                    ? "Review ask"
+                    : event.type === "photo_ask"
+                      ? "Photo ask"
+                      : event.type === "scope_decline"
+                        ? "Out-of-scope decline"
+                        : event.type}
                 {" · "}
                 {event.delivered ? "emailed" : event.demo ? "demo queue" : "not sent"}
               </li>
@@ -199,6 +208,32 @@ export default async function SettingsPage() {
             defaultValue={settings.businessEmail}
             className="mt-1 w-full rounded-xl border border-line px-3 py-2"
           />
+        </label>
+
+        <h3 className="pt-2 font-semibold text-ink">Quote intake</h3>
+        <label className="mt-2 flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="autoAskPhotos"
+            defaultChecked={settings.autoAskPhotos}
+            className="mt-1"
+          />
+          <span>
+            Auto-ask for photos when missing (default on). Sends a short reply
+            asking for pictures — never a price.
+          </span>
+        </label>
+        <label className="mt-2 flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="autoDeclineOutOfScope"
+            defaultChecked={settings.autoDeclineOutOfScope}
+            className="mt-1"
+          />
+          <span>
+            Auto-send out-of-scope declines for bonnet or roof jobs. Off by
+            default — a draft is prepared for you to send.
+          </span>
         </label>
 
         <h3 className="pt-2 font-semibold text-ink">Automation timing</h3>

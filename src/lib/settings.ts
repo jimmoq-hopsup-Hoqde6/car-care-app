@@ -22,6 +22,8 @@ export async function getSettings() {
     timezone: row.timezone || ADELAIDE_TZ,
     followUpDays: row.followUpDays || 2,
     reviewAskDaysAfterJob: row.reviewAskDaysAfterJob || 1,
+    autoAskPhotos: row.autoAskPhotos !== false,
+    autoDeclineOutOfScope: Boolean(row.autoDeclineOutOfScope),
     googleReviewUrl:
       row.googleReviewUrl && !row.googleReviewUrl.includes("PLACEHOLDER")
         ? row.googleReviewUrl

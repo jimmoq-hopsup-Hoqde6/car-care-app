@@ -33,11 +33,50 @@ export function AutomationPanel({
     <section className="rounded-2xl border border-line bg-card p-4">
       <h2 className="text-sm font-semibold text-ink">Automations</h2>
       <p className="mt-1 text-xs text-stone-500">
-        Quotes and booking confirmations never send on their own. Only a stalled
-        follow-up and a Google review ask can go out automatically.
+        Quotes and booking confirmations never send on their own. A stalled
+        follow-up, review ask, or missing-photo request can. Bonnet/roof
+        declines stay as drafts unless auto-decline is on.
       </p>
 
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <article className="rounded-xl border border-line bg-white p-3">
+          <p className="text-xs uppercase tracking-wide text-stone-500">
+            Photo ask
+          </p>
+          <p className="mt-1 font-semibold text-ink">
+            {job.outOfScope
+              ? "Not needed"
+              : job.photoAskSentAt
+                ? "Sent"
+                : "Waiting"}
+          </p>
+          <p className="mt-1 text-xs text-stone-500">
+            {job.outOfScope
+              ? "Not sent — this looks like a bonnet or roof."
+              : job.photoAskSentAt
+                ? demo
+                  ? `Queued ${when(job.photoAskSentAt)} — demo mode, not emailed.`
+                  : `Asked for photos ${when(job.photoAskSentAt)}.`
+                : "Sends once if a quote request has no usable repair photos."}
+          </p>
+        </article>
+        <article className="rounded-xl border border-line bg-white p-3">
+          <p className="text-xs uppercase tracking-wide text-stone-500">
+            Out of scope
+          </p>
+          <p className="mt-1 font-semibold text-ink">
+            {job.outOfScope
+              ? job.declinedAt
+                ? "Decline drafted"
+                : "Flagged"
+              : "In scope"}
+          </p>
+          <p className="mt-1 text-xs text-stone-500">
+            {job.outOfScope
+              ? "Bonnet and roof are the only panels this mobile service cannot repair. Tailgates and spoilers are in scope."
+              : "Doors, bumpers, guards, quarters, tailgates and spoilers are in scope."}
+          </p>
+        </article>
         <article className="rounded-xl border border-line bg-white p-3">
           <p className="text-xs uppercase tracking-wide text-stone-500">
             Follow-up

@@ -3,9 +3,12 @@
 import { JobStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { runPhotoAndScopeAutomations } from "@/lib/automations";
 import { syncJobGmailLabelById } from "@/lib/gmail-labels";
+import { saveJobImageFile } from "@/lib/photo-store";
 import { prisma } from "@/lib/prisma";
 import { parseRepairItems } from "@/lib/quote";
+import { detectOutOfScope } from "@/lib/scope";
 
 function slugId(name: string) {
   const slug = name
@@ -24,6 +27,15 @@ export async function createJob(formData: FormData) {
 
   const repairItems = parseRepairItems(String(formData.get("repairItems") ?? ""));
   const id = slugId(customerName);
+  const vehicle = String(formData.get("vehicle") ?? "").trim() || null;
+  const suburb = String(formData.get("suburb") ?? "").trim() || null;
+  const damageNotes = String(formData.get("damageNotes") ?? "").trim() || null;
+  const outOfScope = detectOutOfScope({
+    vehicle,
+    suburb,
+    damageNotes,
+    repairItems,
+  });
 
   await prisma.job.create({
     data: {
@@ -31,16 +43,44 @@ export async function createJob(formData: FormData) {
       customerName,
       customerEmail: String(formData.get("customerEmail") ?? "").trim() || null,
       customerPhone: String(formData.get("customerPhone") ?? "").trim() || null,
-      vehicle: String(formData.get("vehicle") ?? "").trim() || null,
-      suburb: String(formData.get("suburb") ?? "").trim() || null,
+      vehicle,
+      suburb,
       address: String(formData.get("address") ?? "").trim() || null,
-      damageNotes: String(formData.get("damageNotes") ?? "").trim() || null,
+      damageNotes,
       repairItems: JSON.stringify(repairItems),
       channel: String(formData.get("channel") ?? "email"),
       status: JobStatus.NEEDS_QUOTE,
       lastActivityAt: new Date(),
+      outOfScope,
     },
   });
+
+  const files = formData.getAll("photos").filter((item): item is File => item instanceof File);
+  let added = 0;
+  for (const file of files) {
+    if (!file.size) continue;
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const saved = await saveJobImageFile({
+      jobId: id,
+      buffer,
+      mimeType: file.type || "image/jpeg",
+      filename: file.name,
+    });
+    await prisma.photo.create({
+      data: {
+        jobId: id,
+        url: saved.url,
+        filename: saved.filename,
+        source: "upload",
+        isPrimary: added === 0,
+        sortOrder: added,
+      },
+    });
+    added += 1;
+  }
+
+  await runPhotoAndScopeAutomations(id);
+  await syncJobGmailLabelById(id);
 
   revalidatePath("/");
   redirect(`/jobs/${id}`);

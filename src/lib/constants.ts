@@ -8,6 +8,14 @@ export const DEFAULT_GOOGLE_REVIEW_URL =
 export const OWNER_MOBILE =
   process.env.OWNER_MOBILE?.trim() || "0435222221";
 
+export function formatOwnerMobile(mobile = OWNER_MOBILE) {
+  const digits = mobile.replace(/\D/g, "");
+  if (digits.length === 10) {
+    return `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7)}`;
+  }
+  return mobile;
+}
+
 export const GOOGLE_SCOPES = [
   "openid",
   "email",

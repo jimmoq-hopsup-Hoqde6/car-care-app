@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { PhotoGallery } from "@/components/PhotoGallery";
 import { QuoteComposer } from "@/components/QuoteComposer";
 import { prisma } from "@/lib/prisma";
 import { parseRepairItems } from "@/lib/quote";
@@ -27,6 +28,7 @@ export default async function QuotePage({
           You enter the price. The email follows your locked standard wording.
         </p>
       </div>
+      <PhotoGallery jobId={job.id} photos={job.photos} compact />
       <QuoteComposer
         job={job}
         priceBands={priceBands}

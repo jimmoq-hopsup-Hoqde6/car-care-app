@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AutomationPanel } from "@/components/AutomationPanel";
+import { PhotoGallery } from "@/components/PhotoGallery";
 import { StatusBadge } from "@/components/StatusBadge";
 import { StatusSelect } from "@/components/StatusSelect";
 import { getSettings } from "@/lib/settings";
@@ -46,6 +47,11 @@ export default async function JobPage({
             Last activity · {formatLastActivity(job.lastActivityAt ?? job.updatedAt)}
           </p>
           <p className="text-xs text-stone-500">Australia/Adelaide</p>
+          {job.outOfScope ? (
+            <p className="mt-2 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">
+              Out of scope — bonnet or roof
+            </p>
+          ) : null}
         </div>
         <div className="flex gap-2">
           <Link
@@ -62,6 +68,8 @@ export default async function JobPage({
           </Link>
         </div>
       </div>
+
+      <PhotoGallery jobId={job.id} photos={job.photos} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="rounded-2xl border border-line bg-card p-4">
@@ -111,23 +119,6 @@ export default async function JobPage({
           <div className="mt-2">
             <StatusSelect jobId={job.id} status={job.status} />
           </div>
-          {job.photos.length > 0 ? (
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              {job.photos.map((photo) => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  key={photo.id}
-                  src={photo.url}
-                  alt={photo.filename ?? "Damage photo"}
-                  width={320}
-                  height={144}
-                  className="h-36 w-full rounded-xl bg-stone-200 object-cover ring-1 ring-line"
-                />
-              ))}
-            </div>
-          ) : (
-            <p className="mt-4 text-sm text-stone-500">No photos on this job yet.</p>
-          )}
         </section>
       </div>
 
