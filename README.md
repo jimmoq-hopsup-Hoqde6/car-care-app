@@ -119,7 +119,7 @@ After that:
 - Board stage changes apply the matching Gmail label and remove the other four
 - Booking reads real free/busy on your primary calendar
 - **Save as draft** writes a Gmail draft (not sent)
-- **Book** creates a calendar event titled like `Job — Jenny Gwynne — BMW 320i front bumper — Crafers` and a confirmation draft
+- **Book** creates a calendar event titled like `Job — Jenny Gwynne — BMW 320i front bumper — Crafers` (description includes name, phone, quote total, and address) and a confirmation draft. The confirmation is never auto-sent.
 
 ## Gmail labels
 
